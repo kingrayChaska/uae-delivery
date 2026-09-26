@@ -1,17 +1,22 @@
-'use server';
+"use server";
 
-import { DASHBOARD_HOME } from '@/lib/types';
-import { createClient } from '@/lib/supabase/server';
-import { safeErrorMessage } from '@/lib/security/errors';
-import { verifyTurnstile } from '@/lib/security/turnstile';
-import { RATE_LIMIT_MESSAGE, checkIpRateLimit, checkRateLimit } from '@/lib/security/rate-limit';
+import { DASHBOARD_HOME } from "@/lib/types";
+import { createClient } from "@/lib/supabase/server";
+import { safeErrorMessage } from "@/lib/security/errors";
+import { verifyTurnstile } from "@/lib/security/turnstile";
+import { getPublicOrigin } from "@/lib/auth/public-url";
+import {
+  RATE_LIMIT_MESSAGE,
+  checkIpRateLimit,
+  checkRateLimit,
+} from "@/lib/security/rate-limit";
 import {
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
   updateProfileSchema,
-} from '@/lib/auth/schemas';
+} from "@/lib/auth/schemas";
 
 import type {
   ForgotPasswordInput,
@@ -19,8 +24,8 @@ import type {
   RegisterInput,
   ResetPasswordInput,
   UpdateProfileInput,
-} from '@/lib/auth/schemas';
-import type { Role } from '@/lib/types';
+} from "@/lib/auth/schemas";
+import type { Role } from "@/lib/types";
 
 // Actions return a redirectTo path rather than calling next/navigation's
 // redirect() themselves. These are invoked imperatively from client hooks
@@ -31,7 +36,7 @@ export type AuthActionResult =
   | { success: true; redirectTo?: string; message?: string }
   | { success: false; error: string };
 
-const getAppUrl = () => process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+const getAppUrl = () => getPublicOrigin();
 
 // Customer self-registration only — this is the ONLY signup path reachable
 // from a browser. Staff (driver/operator/manager) accounts are created by
@@ -39,15 +44,22 @@ const getAppUrl = () => process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:300
 // never through this form. The handle_new_user DB trigger also hard-codes
 // role='customer' regardless of what's sent here, so even a forged request
 // against this action can't grant itself a different role.
-export const registerAction = async (input: RegisterInput, turnstileToken?: string): Promise<AuthActionResult> => {
+export const registerAction = async (
+  input: RegisterInput,
+  turnstileToken?: string,
+): Promise<AuthActionResult> => {
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input",
+    };
   }
 
   const human = await verifyTurnstile(turnstileToken);
   if (!human.ok) return { success: false, error: human.error };
-  if (!(await checkIpRateLimit('registerPerIp'))) return { success: false, error: RATE_LIMIT_MESSAGE };
+  if (!(await checkIpRateLimit("registerPerIp")))
+    return { success: false, error: RATE_LIMIT_MESSAGE };
 
   const { fullName, email, phone, password } = parsed.data;
   const supabase = await createClient();
@@ -74,14 +86,20 @@ export const registerAction = async (input: RegisterInput, turnstileToken?: stri
 
   return {
     success: true,
-    message: 'Check your email to confirm your account before signing in.',
+    message: "Check your email to confirm your account before signing in.",
   };
 };
 
-export const loginAction = async (input: LoginInput, turnstileToken?: string): Promise<AuthActionResult> => {
+export const loginAction = async (
+  input: LoginInput,
+  turnstileToken?: string,
+): Promise<AuthActionResult> => {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input",
+    };
   }
 
   const human = await verifyTurnstile(turnstileToken);
@@ -92,25 +110,28 @@ export const loginAction = async (input: LoginInput, turnstileToken?: string): P
   // Auth's own rate limits are per calling IP — and every request here comes
   // from this server's IP — so they can't do either job on their own.
   const [ipOk, emailOk] = await Promise.all([
-    checkIpRateLimit('loginPerIp'),
-    checkRateLimit('loginPerEmail', parsed.data.email),
+    checkIpRateLimit("loginPerIp"),
+    checkRateLimit("loginPerEmail", parsed.data.email),
   ]);
   if (!ipOk || !emailOk) return { success: false, error: RATE_LIMIT_MESSAGE };
 
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
-  if (error) return { success: false, error: 'Incorrect email or password' };
+  if (error) return { success: false, error: "Incorrect email or password" };
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, active')
-    .eq('id', data.user.id)
+    .from("profiles")
+    .select("role, active")
+    .eq("id", data.user.id)
     .single();
 
   if (!profile || !profile.active) {
     await supabase.auth.signOut();
-    return { success: false, error: 'This account is not active. Contact support.' };
+    return {
+      success: false,
+      error: "This account is not active. Contact support.",
+    };
   }
 
   return { success: true, redirectTo: DASHBOARD_HOME[profile.role as Role] };
@@ -119,7 +140,7 @@ export const loginAction = async (input: LoginInput, turnstileToken?: string): P
 export const signOutAction = async (): Promise<AuthActionResult> => {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  return { success: true, redirectTo: '/' };
+  return { success: true, redirectTo: "/" };
 };
 
 export const requestPasswordResetAction = async (
@@ -128,14 +149,17 @@ export const requestPasswordResetAction = async (
 ): Promise<AuthActionResult> => {
   const parsed = forgotPasswordSchema.safeParse(input);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input",
+    };
   }
 
   const human = await verifyTurnstile(turnstileToken);
   if (!human.ok) return { success: false, error: human.error };
   const [ipOk, emailOk] = await Promise.all([
-    checkIpRateLimit('passwordResetPerIp'),
-    checkRateLimit('passwordResetPerEmail', parsed.data.email),
+    checkIpRateLimit("passwordResetPerIp"),
+    checkRateLimit("passwordResetPerEmail", parsed.data.email),
   ]);
   if (!ipOk || !emailOk) return { success: false, error: RATE_LIMIT_MESSAGE };
 
@@ -149,7 +173,7 @@ export const requestPasswordResetAction = async (
 
   return {
     success: true,
-    message: 'If an account exists for that email, a reset link is on its way.',
+    message: "If an account exists for that email, a reset link is on its way.",
   };
 };
 
@@ -158,10 +182,15 @@ export const requestPasswordResetAction = async (
 // app/auth/callback/route.ts). This just sets the new password on that
 // already-authenticated session — it never receives or trusts a password
 // reset token directly from client input.
-export const updatePasswordAction = async (input: ResetPasswordInput): Promise<AuthActionResult> => {
+export const updatePasswordAction = async (
+  input: ResetPasswordInput,
+): Promise<AuthActionResult> => {
   const parsed = resetPasswordSchema.safeParse(input);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input",
+    };
   }
 
   const supabase = await createClient();
@@ -170,37 +199,53 @@ export const updatePasswordAction = async (input: ResetPasswordInput): Promise<A
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { success: false, error: 'Reset link expired. Request a new one.' };
-  if (!(await checkRateLimit('passwordUpdatePerUser', user.id))) return { success: false, error: RATE_LIMIT_MESSAGE };
+  if (!user)
+    return { success: false, error: "Reset link expired. Request a new one." };
+  if (!(await checkRateLimit("passwordUpdatePerUser", user.id)))
+    return { success: false, error: RATE_LIMIT_MESSAGE };
 
-  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+  const { error } = await supabase.auth.updateUser({
+    password: parsed.data.password,
+  });
   if (error) return { success: false, error: error.message };
 
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
 
-  return { success: true, redirectTo: profile ? DASHBOARD_HOME[profile.role as Role] : '/login' };
+  return {
+    success: true,
+    redirectTo: profile ? DASHBOARD_HOME[profile.role as Role] : "/login",
+  };
 };
 
 // Display-only fields (full name, phone) — role/active are locked out by
 // the prevent_profile_privilege_escalation trigger (migration 0002) even
 // though the customer's own RLS update policy would otherwise allow the
 // row-level update.
-export const updateProfileAction = async (input: UpdateProfileInput): Promise<AuthActionResult> => {
+export const updateProfileAction = async (
+  input: UpdateProfileInput,
+): Promise<AuthActionResult> => {
   const parsed = updateProfileSchema.safeParse(input);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input",
+    };
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: 'Not signed in' };
+  if (!user) return { success: false, error: "Not signed in" };
 
   const { error } = await supabase
-    .from('profiles')
+    .from("profiles")
     .update({ full_name: parsed.data.fullName, phone: parsed.data.phone })
-    .eq('id', user.id);
+    .eq("id", user.id);
 
   if (error) return { success: false, error: safeErrorMessage(error) };
   return { success: true };
