@@ -11,7 +11,16 @@ import TurnstileWidget from '@/components/security/turnstile-widget';
 import { useLoginForm } from '@/lib/hooks/use-login-form';
 
 const LoginForm = () => {
-  const { register, errors, isSubmitting, serverError, onSubmit, turnstile } = useLoginForm();
+  const {
+    register,
+    errors,
+    isSubmitting,
+    isGoogleSubmitting,
+    serverError,
+    onSubmit,
+    signInWithGoogle,
+    turnstile,
+  } = useLoginForm();
 
   return (
     <form onSubmit={onSubmit} className="flex w-full max-w-sm flex-col gap-4" noValidate>
@@ -38,6 +47,24 @@ const LoginForm = () => {
 
       <Button type="submit" disabled={isSubmitting || !turnstile.ready}>
         {isSubmitting ? 'Signing in…' : 'Sign In'}
+      </Button>
+
+      <div className="relative flex items-center gap-3 py-1">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs text-muted-foreground">OR</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        onClick={signInWithGoogle}
+        disabled={isSubmitting || isGoogleSubmitting}
+      >
+        <span className="font-semibold text-[#4285F4]" aria-hidden="true">
+          G
+        </span>
+        {isGoogleSubmitting ? 'Connecting…' : 'Continue with Google'}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
