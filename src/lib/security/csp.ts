@@ -13,6 +13,11 @@ type CspOptions = {
   nonce: string;
   isDev: boolean;
   supabaseUrl?: string;
+  // Defaults to production-only. Callers turn it off for loopback hosts:
+  // a production build run locally is served over plain http, and
+  // browsers that honour it there (notably Safari) would rewrite every
+  // script/stylesheet URL to https://localhost — which doesn't exist.
+  upgradeInsecureRequests?: boolean;
 };
 
 const originOf = (url?: string) => {
@@ -24,7 +29,7 @@ const originOf = (url?: string) => {
   }
 };
 
-export const buildCsp = ({ nonce, isDev, supabaseUrl }: CspOptions): string => {
+export const buildCsp = ({ nonce, isDev, supabaseUrl, upgradeInsecureRequests = !isDev }: CspOptions): string => {
   const supabase = originOf(supabaseUrl);
   const supabaseWs = supabase ? supabase.replace(/^http/, 'ws') : null;
 
@@ -62,7 +67,7 @@ export const buildCsp = ({ nonce, isDev, supabaseUrl }: CspOptions): string => {
     .map(([name, values]) => `${name} ${values.join(' ')}`)
     .join('; ');
 
-  return isDev ? policy : `${policy}; upgrade-insecure-requests`;
+  return upgradeInsecureRequests ? `${policy}; upgrade-insecure-requests` : policy;
 };
 
 export const generateNonce = () => {
@@ -70,3 +75,12 @@ export const generateNonce = () => {
   crypto.getRandomValues(bytes);
   return btoa(String.fromCharCode(...bytes));
 };
+
+// This machine, by any of its usual names — where a production build is
+// served over plain http during local testing.
+export const isLoopbackHost = (hostname: string) =>
+  hostname === 'localhost' ||
+  hostname.endsWith('.localhost') ||
+  hostname === '[::1]' ||
+  hostname === '::1' ||
+  /^127(\.\d{1,3}){3}$/.test(hostname);

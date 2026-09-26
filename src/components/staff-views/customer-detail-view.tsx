@@ -2,13 +2,13 @@ import { notFound } from 'next/navigation';
 
 import StatCard from '@/components/dashboard/stat-card';
 import ShipmentListItem from '@/components/shipment/shipment-list-item';
+import Pagination from '@/components/dashboard/pagination';
 import { getCustomerDetail } from '@/services/customers/list-customers';
 
-import type { StaffDetailViewProps } from '@/components/staff-views/types';
+import type { StaffDetailListViewProps } from '@/components/staff-views/types';
 
-const CustomerDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
-
-  const detail = await getCustomerDetail(id);
+const CustomerDetailView = async ({ basePath, id, page }: StaffDetailListViewProps) => {
+  const detail = await getCustomerDetail(id, page);
   if (!detail) notFound();
 
   const { customer, shipments } = detail;
@@ -29,13 +29,18 @@ const CustomerDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
 
       <div className="flex flex-col gap-2">
         <h2 className="text-lg font-medium">Shipment history</h2>
-        {shipments.length === 0 ? (
+        {shipments.items.length === 0 ? (
           <p className="text-sm text-muted-foreground">No shipments yet.</p>
         ) : (
-          shipments.map((shipment) => (
+          shipments.items.map((shipment) => (
             <ShipmentListItem key={shipment.id} shipment={shipment} basePath={`${basePath}/shipments`} />
           ))
         )}
+        <Pagination
+          page={shipments.page}
+          totalPages={shipments.totalPages}
+          href={`${basePath}/customers/${customer.id}`}
+        />
       </div>
     </main>
   );

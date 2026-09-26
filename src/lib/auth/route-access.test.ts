@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { decideRoute } from '@/lib/auth/route-access';
+import { decideRoute, routeNeedsProfile } from '@/lib/auth/route-access';
 import { DASHBOARD_HOME, ROLES } from '@/lib/types';
 
 import type { Role } from '@/lib/types';
@@ -89,5 +89,30 @@ describe('decideRoute — deactivated accounts (regression: redirect loop)', () 
         }
       }
     }
+  });
+});
+
+describe('routeNeedsProfile — the proxy only looks up the profile where the layout cannot', () => {
+  it.each(ROLES.map((r) => `/dashboard/${r}/shipments`))('skips the lookup for %s (its layout checks the role)', (pathname) => {
+    expect(routeNeedsProfile(pathname)).toBe(false);
+  });
+
+  it.each(['/login', '/register', '/dashboard', '/dashboard/admin'])('looks up the profile for %s', (pathname) => {
+    expect(routeNeedsProfile(pathname)).toBe(true);
+  });
+
+  it.each(['/', '/tracking', '/terms'])('never needs it on public page %s', (pathname) => {
+    expect(routeNeedsProfile(pathname)).toBe(false);
+  });
+
+  it('allows a signed-in user through to a role dashboard when the profile was not looked up', () => {
+    expect(decideRoute({ pathname: '/dashboard/manager', signedIn: true, profile: undefined })).toEqual({ type: 'allow' });
+  });
+
+  it('still sends a signed-out visitor to login without a profile lookup', () => {
+    expect(decideRoute({ pathname: '/dashboard/manager', signedIn: false, profile: undefined })).toEqual({
+      type: 'redirect',
+      to: `/login?redirectTo=${encodeURIComponent('/dashboard/manager')}`,
+    });
   });
 });

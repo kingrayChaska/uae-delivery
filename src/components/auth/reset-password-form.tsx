@@ -1,7 +1,7 @@
 'use client';
 
 import Button from '@/components/ui/button';
-import Input from '@/components/ui/input';
+import PasswordInput from '@/components/ui/password-input';
 import Label from '@/components/ui/label';
 import FieldError from '@/components/ui/field-error';
 import { useResetPasswordForm } from '@/lib/hooks/use-reset-password-form';
@@ -13,15 +13,14 @@ const ResetPasswordForm = () => {
     <form onSubmit={onSubmit} className="flex w-full max-w-sm flex-col gap-4" noValidate>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="password">New password</Label>
-        <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
+        <PasswordInput id="password" autoComplete="new-password" {...register('password')} />
         <FieldError message={errors.password?.message} />
       </div>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="confirmPassword">Confirm new password</Label>
-        <Input
+        <PasswordInput
           id="confirmPassword"
-          type="password"
           autoComplete="new-password"
           {...register('confirmPassword')}
         />

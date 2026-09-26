@@ -21,21 +21,20 @@ export type ShipmentDetail = {
 export const getShipmentDetail = async (shipmentId: string): Promise<ShipmentDetail | null> => {
   const supabase = await createClient();
 
-  const { data: row } = await supabase
-    .from('shipments')
-    .select(SHIPMENT_SELECT_COLUMNS)
-    .eq('id', shipmentId)
-    .maybeSingle();
+  // The history read doesn't depend on the shipment row, so both go at
+  // once; RLS returns no history for a shipment the caller can't see.
+  const [{ data: row }, { data: historyRows }] = await Promise.all([
+    supabase.from('shipments').select(SHIPMENT_SELECT_COLUMNS).eq('id', shipmentId).maybeSingle(),
+    supabase
+      .from('shipment_status_history')
+      .select('status, created_at')
+      .eq('shipment_id', shipmentId)
+      .order('created_at', { ascending: true }),
+  ]);
 
   if (!row) return null;
 
   const shipment = mapRowToShipment(row as ShipmentRow);
-
-  const { data: historyRows } = await supabase
-    .from('shipment_status_history')
-    .select('status, created_at')
-    .eq('shipment_id', shipmentId)
-    .order('created_at', { ascending: true });
 
   let packageImageUrl: string | null = null;
   const packageImagePath = (row as { package_image_url: string | null }).package_image_url;

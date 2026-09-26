@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildCsp, generateNonce } from '@/lib/security/csp';
+import { buildCsp, generateNonce, isLoopbackHost } from '@/lib/security/csp';
 
 const directive = (csp: string, name: string) =>
   csp.split('; ').find((part) => part.startsWith(`${name} `))?.split(' ').slice(1) ?? [];
@@ -47,5 +47,21 @@ describe('generateNonce', () => {
     const a = generateNonce();
     expect(atob(a)).toHaveLength(16);
     expect(a).not.toBe(generateNonce());
+  });
+});
+
+describe('local production builds', () => {
+  it('can omit upgrade-insecure-requests for a plain-http local host', () => {
+    const csp = buildCsp({ nonce: 'n', isDev: false, upgradeInsecureRequests: false });
+    expect(csp).not.toContain('upgrade-insecure-requests');
+    expect(csp).toContain("'nonce-n'");
+  });
+
+  it.each(['localhost', 'app.localhost', '127.0.0.1', '127.1.2.3', '[::1]', '::1'])('treats %s as loopback', (host) => {
+    expect(isLoopbackHost(host)).toBe(true);
+  });
+
+  it.each(['parcellinkuae.com', 'localhost.evil.com', '128.0.0.1', '10.0.0.5'])('does not treat %s as loopback', (host) => {
+    expect(isLoopbackHost(host)).toBe(false);
   });
 });

@@ -1,6 +1,9 @@
 import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
+import { mergeWindow, paginateMerged } from '@/lib/pagination';
+
+import type { Paginated } from '@/lib/pagination';
 
 export type PaymentRecord = {
   id: string;
@@ -16,19 +19,26 @@ export type PaymentRecord = {
 // Card payments live in `payments`; COD amounts live on the shipment itself
 // (collected by the driver, not paid upfront) — merged here into one list
 // so the customer sees a single payment history regardless of method.
-export const listCustomerPayments = async (customerId: string): Promise<PaymentRecord[]> => {
+export const listCustomerPayments = async (customerId: string, page: number): Promise<Paginated<PaymentRecord>> => {
   const supabase = await createClient();
+  const depth = mergeWindow(page);
 
-  const [{ data: payments }, { data: codShipments }] = await Promise.all([
+  const [{ data: payments, count: cardCount }, { data: codShipments, count: codCount }] = await Promise.all([
     supabase
       .from('payments')
-      .select('id, shipment_id, amount, currency, method, status, created_at, shipments(tracking_number)')
-      .eq('customer_id', customerId),
+      .select('id, shipment_id, amount, currency, method, status, created_at, shipments(tracking_number)', {
+        count: 'exact',
+      })
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false })
+      .limit(depth),
     supabase
       .from('shipments')
-      .select('id, tracking_number, price, currency, payment_status, created_at')
+      .select('id, tracking_number, price, currency, payment_status, created_at', { count: 'exact' })
       .eq('customer_id', customerId)
-      .eq('payment_method', 'cod'),
+      .eq('payment_method', 'cod')
+      .order('created_at', { ascending: false })
+      .limit(depth),
   ]);
 
   const cardRecords: PaymentRecord[] = (payments ?? []).map((row) => ({
@@ -53,7 +63,5 @@ export const listCustomerPayments = async (customerId: string): Promise<PaymentR
     createdAt: row.created_at,
   }));
 
-  return [...cardRecords, ...codRecords].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  return paginateMerged([cardRecords, codRecords], (cardCount ?? 0) + (codCount ?? 0), page);
 };

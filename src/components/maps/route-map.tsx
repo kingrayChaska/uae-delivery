@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 
 import { UAE_DEFAULT_CENTER, UAE_DEFAULT_ZOOM } from '@/lib/maps/config';
+import { BRAND } from '@/lib/brand';
 
 import type { Coordinates } from '@/lib/types';
 import type { RouteResult } from '@/lib/maps/types';
@@ -64,7 +65,7 @@ const RouteMap = ({ pickup, dropoff, route, className }: RouteMapProps) => {
       let hasPoints = false;
 
       if (pickup) {
-        const marker = new mapboxgl.Marker({ color: '#0e5c63' })
+        const marker = new mapboxgl.Marker({ color: BRAND.purple })
           .setLngLat([pickup.lng, pickup.lat])
           .addTo(map);
         markersRef.current.push(marker);
@@ -73,7 +74,7 @@ const RouteMap = ({ pickup, dropoff, route, className }: RouteMapProps) => {
       }
 
       if (dropoff) {
-        const marker = new mapboxgl.Marker({ color: '#e8a33d' })
+        const marker = new mapboxgl.Marker({ color: BRAND.teal })
           .setLngLat([dropoff.lng, dropoff.lat])
           .addTo(map);
         markersRef.current.push(marker);
@@ -98,7 +99,7 @@ const RouteMap = ({ pickup, dropoff, route, className }: RouteMapProps) => {
             type: 'line',
             source: ROUTE_SOURCE_ID,
             layout: { 'line-join': 'round', 'line-cap': 'round' },
-            paint: { 'line-color': '#0e5c63', 'line-width': 4 },
+            paint: { 'line-color': BRAND.purple, 'line-width': 4 },
           });
         }
       } else if (geojsonSource) {

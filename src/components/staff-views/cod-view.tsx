@@ -4,8 +4,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import CodActionsCell from '@/components/operator/cod-actions-cell';
 import ExportLink from '@/components/manager/export-link';
 import { getCurrentProfile } from '@/lib/auth/session';
-import { listAllCodTransactions } from '@/services/cod/list-all-cod';
+import Pagination from '@/components/dashboard/pagination';
+import { getCodTotals, listCodTransactionsPage } from '@/services/cod/list-all-cod';
 
+import type { StaffListViewProps } from '@/components/staff-views/types';
 
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'success'> = {
   expected: 'secondary',
@@ -14,11 +16,9 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'success'> = {
   remitted: 'success',
 };
 
-const sumByStatus = (records: { status: string; amount: number }[], status: string) =>
-  records.filter((r) => r.status === status).reduce((sum, r) => sum + r.amount, 0);
-
-const CodView = async () => {
-  const [profile, records] = await Promise.all([getCurrentProfile(), listAllCodTransactions()]);
+const CodView = async ({ basePath, page }: StaffListViewProps) => {
+  const [profile, records, totals] = await Promise.all([getCurrentProfile(), listCodTransactionsPage(page), getCodTotals()]);
+  const total = (status: string) => (totals[status] ?? 0).toFixed(2);
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-6">
@@ -35,19 +35,19 @@ const CodView = async () => {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Expected" value={`AED ${sumByStatus(records, 'expected').toFixed(2)}`} />
-        <StatCard label="Collected" value={`AED ${sumByStatus(records, 'collected').toFixed(2)}`} />
-        <StatCard label="Reconciled" value={`AED ${sumByStatus(records, 'reconciled').toFixed(2)}`} />
-        <StatCard label="Remitted" value={`AED ${sumByStatus(records, 'remitted').toFixed(2)}`} />
+        <StatCard label="Expected" value={`AED ${total('expected')}`} />
+        <StatCard label="Collected" value={`AED ${total('collected')}`} />
+        <StatCard label="Reconciled" value={`AED ${total('reconciled')}`} />
+        <StatCard label="Remitted" value={`AED ${total('remitted')}`} />
       </div>
 
-      {records.length === 0 ? (
+      {records.items.length === 0 ? (
         <div className="rounded-md border border-dashed p-8 text-center">
           <p className="font-medium">No COD transactions</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {records.map((record) => (
+          {records.items.map((record) => (
             <Card key={record.id}>
               <CardContent className="flex items-center justify-between gap-4 pt-6 text-sm">
                 <div>
@@ -66,6 +66,8 @@ const CodView = async () => {
           ))}
         </div>
       )}
+
+      <Pagination page={records.page} totalPages={records.totalPages} href={`${basePath}/cod`} />
     </main>
   );
 };

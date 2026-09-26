@@ -8,7 +8,7 @@ import { getCurrentProfile } from '@/lib/auth/session';
 import { getOperationsSummary } from '@/services/shipments/get-operations-summary';
 import { listUnassignedShipments } from '@/services/shipments/list-all-shipments';
 import { getDriverLocationsSnapshot } from '@/services/drivers/get-driver-locations-snapshot';
-import { listBatches } from '@/services/bulk/list-batches';
+import { listRecentBatches } from '@/services/bulk/list-batches';
 
 // Spec section 21: the main Operator screen combines the shipment queue,
 // the live map, and the assignment panel — so the home page embeds the
@@ -20,7 +20,7 @@ const OperatorDashboardPage = async () => {
     getOperationsSummary(),
     listUnassignedShipments(),
     getDriverLocationsSnapshot(),
-    listBatches({ limit: 5 }),
+    listRecentBatches(5),
   ]);
 
   return (

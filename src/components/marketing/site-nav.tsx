@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import Button from '@/components/ui/button';
 import MobileNav from '@/components/marketing/mobile-nav';
+import Logo from '@/components/brand/logo';
 
 const NAV_LINKS = [
   { label: 'Services', href: '#services' },
@@ -15,9 +16,7 @@ const SiteNav = () => {
   return (
     <header className="relative border-b border-brand-ink/10 bg-brand-paper">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
-        <Link href="/" className="font-display text-lg font-semibold text-brand-ink">
-          ParcelLink
-        </Link>
+        <Logo height={34} priority />
 
         <nav className="hidden items-center gap-6 md:flex">
           {NAV_LINKS.map((link) => (

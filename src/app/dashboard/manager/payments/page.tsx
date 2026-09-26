@@ -1,12 +1,16 @@
 import Link from 'next/link';
 
 import Badge from '@/components/ui/badge';
+import Pagination from '@/components/dashboard/pagination';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
+import { parsePage } from '@/lib/pagination';
 import { listAllPayments } from '@/services/payments/list-all-payments';
 
-const ManagerPaymentsPage = async () => {
+import type { PageSearchParams } from '@/lib/pagination';
+
+const ManagerPaymentsPage = async ({ searchParams }: { searchParams: PageSearchParams }) => {
   await requireRoleOrRedirect('manager');
-  const payments = await listAllPayments();
+  const payments = await listAllPayments(parsePage((await searchParams).page));
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">
@@ -16,7 +20,7 @@ const ManagerPaymentsPage = async () => {
         from their shipments.
       </p>
 
-      {payments.length === 0 ? (
+      {payments.items.length === 0 ? (
         <div className="rounded-md border border-dashed p-8 text-center">
           <p className="font-medium">No payments yet</p>
         </div>
@@ -34,7 +38,7 @@ const ManagerPaymentsPage = async () => {
               </tr>
             </thead>
             <tbody>
-              {payments.map((payment) => (
+              {payments.items.map((payment) => (
                 <tr key={`${payment.method}-${payment.id}`} className="border-t">
                   <td className="px-3 py-2">
                     <Link
@@ -61,6 +65,8 @@ const ManagerPaymentsPage = async () => {
           </table>
         </div>
       )}
+
+      <Pagination page={payments.page} totalPages={payments.totalPages} href="/dashboard/manager/payments" />
     </main>
   );
 };

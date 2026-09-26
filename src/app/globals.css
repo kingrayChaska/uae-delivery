@@ -5,64 +5,73 @@
 
 :root {
   --radius: 0.625rem;
+  /* ParcelLink brand colours, sampled from the official logo. Every token
+     below derives from these two, so a brand refresh is a two-line change
+     (plus lib/brand.ts, which holds the same values for Mapbox/charts,
+     where CSS variables can't be used). */
+  --parcellink-purple: #7b3fa7;
+  --parcellink-teal: #1a98a2;
+
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: oklch(0.18 0.02 300);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.18 0.02 300);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.18 0.02 300);
+  --primary: var(--parcellink-purple);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.015 305);
+  --secondary-foreground: oklch(0.3 0.09 305);
+  --muted: oklch(0.965 0.008 305);
+  --muted-foreground: oklch(0.52 0.02 300);
+  --accent: oklch(0.95 0.025 200);
+  --accent-foreground: oklch(0.36 0.07 200);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.915 0.012 305);
+  --input: oklch(0.905 0.014 305);
+  --ring: var(--parcellink-purple);
   --success: oklch(0.62 0.15 145);
   --success-foreground: oklch(0.985 0 0);
   --warning: oklch(0.75 0.15 75);
   --warning-foreground: oklch(0.145 0 0);
 
-  /* Marketing-site brand tokens — deliberately separate from the neutral
-     shadcn tokens above, which stay used for the app/dashboard UI. See
-     the design notes in components/marketing/ for the rationale. */
-  --brand-ink: #1a1b1e;
-  --brand-paper: #f6f5f1;
-  --brand-route: #0e5c63;
-  --brand-route-deep: #0e2a32;
-  --brand-signal: #e8a33d;
-  --brand-muted: #6b6f76;
+  /* Marketing-site brand tokens, mapped onto the ParcelLink palette:
+     route = the primary purple, route-deep = the dark purple used for
+     hero/CTA backgrounds, signal = the teal accent. */
+  --brand-ink: #1d1a24;
+  --brand-paper: #f8f6fb;
+  --brand-route: var(--parcellink-purple);
+  --brand-route-deep: #2a1541;
+  --brand-signal: var(--parcellink-teal);
+  --brand-muted: #6b6776;
   --brand-font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   --brand-font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
   --brand-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.16 0.02 300);
+  --foreground: oklch(0.975 0.005 300);
+  --card: oklch(0.21 0.03 300);
+  --card-foreground: oklch(0.975 0.005 300);
+  --popover: oklch(0.21 0.03 300);
+  --popover-foreground: oklch(0.975 0.005 300);
+  /* A lighter purple, so primary buttons and links keep their contrast
+     against the dark background. */
+  --primary: oklch(0.72 0.13 305);
+  --primary-foreground: oklch(0.18 0.03 300);
+  --secondary: oklch(0.28 0.05 305);
+  --secondary-foreground: oklch(0.975 0.005 300);
+  --muted: oklch(0.27 0.03 300);
+  --muted-foreground: oklch(0.72 0.02 300);
+  --accent: oklch(0.3 0.05 200);
+  --accent-foreground: oklch(0.93 0.03 200);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.72 0.13 305);
   --success: oklch(0.7 0.15 145);
   --success-foreground: oklch(0.145 0 0);
   --warning: oklch(0.8 0.15 75);
@@ -106,6 +115,8 @@
   --color-brand-route-deep: var(--brand-route-deep);
   --color-brand-signal: var(--brand-signal);
   --color-brand-muted: var(--brand-muted);
+  --color-parcellink-purple: var(--parcellink-purple);
+  --color-parcellink-teal: var(--parcellink-teal);
   --font-display: var(--brand-font-display);
   --font-brand-sans: var(--brand-font-sans);
   --font-brand-mono: var(--brand-font-mono);

@@ -1,8 +1,10 @@
 import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
+import { pageRange, toPaginated } from '@/lib/pagination';
 import { mapRowToShipment, SHIPMENT_SELECT_COLUMNS } from '@/services/shipments/shipment-mapper';
 
+import type { Paginated } from '@/lib/pagination';
 import type { Shipment } from '@/lib/types';
 import type { ShipmentRow } from '@/services/shipments/shipment-mapper';
 
@@ -16,63 +18,94 @@ export type CustomerSummary = {
   totalSpent: number;
 };
 
-export const listCustomers = async (): Promise<CustomerSummary[]> => {
+type StatsRow = { customer_id: string; shipment_count: number; total_paid: number };
+
+// Counts and totals come from customer_shipment_stats (migration 0021),
+// computed in the database for just this page of customers — not by
+// downloading every shipment of every customer.
+export const listCustomers = async (page: number): Promise<Paginated<CustomerSummary>> => {
   const supabase = await createClient();
+  const { from, to } = pageRange(page);
 
-  const { data: profiles } = await supabase
+  const { data: profiles, count } = await supabase
     .from('profiles')
-    .select('id, full_name, email, phone, active')
+    .select('id, full_name, email, phone, active', { count: 'exact' })
     .eq('role', 'customer')
-    .order('full_name', { ascending: true });
+    .order('full_name', { ascending: true })
+    .range(from, to);
 
-  if (!profiles || profiles.length === 0) return [];
+  if (!profiles || profiles.length === 0) return toPaginated([], count ?? 0, page);
 
-  const { data: shipmentRows } = await supabase
-    .from('shipments')
-    .select('customer_id, price, payment_status')
+  const { data: stats } = await supabase
+    .from('customer_shipment_stats')
+    .select('customer_id, shipment_count, total_paid')
     .in(
       'customer_id',
       profiles.map((p) => p.id),
     );
+  const byCustomer = new Map(((stats ?? []) as StatsRow[]).map((row) => [row.customer_id, row]));
 
-  return profiles.map((profile) => {
-    const shipments = (shipmentRows ?? []).filter((s) => s.customer_id === profile.id);
+  const items = profiles.map((profile) => {
+    const row = byCustomer.get(profile.id);
     return {
       id: profile.id,
       fullName: profile.full_name,
       email: profile.email,
       phone: profile.phone,
       active: profile.active,
-      shipmentCount: shipments.length,
-      totalSpent: shipments.filter((s) => s.payment_status === 'paid').reduce((sum, s) => sum + s.price, 0),
+      shipmentCount: row?.shipment_count ?? 0,
+      totalSpent: Number(row?.total_paid ?? 0),
     };
   });
+
+  return toPaginated(items, count ?? 0, page);
+};
+
+// Just what the staff booking wizard's customer picker needs — no stats.
+export const listCustomerOptions = async (): Promise<{ id: string; fullName: string; email: string }[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, full_name, email')
+    .eq('role', 'customer')
+    .eq('active', true)
+    .order('full_name', { ascending: true });
+
+  return (data ?? []).map((row) => ({ id: row.id, fullName: row.full_name, email: row.email }));
 };
 
 export type CustomerDetail = {
   customer: CustomerSummary;
-  shipments: Shipment[];
+  shipments: Paginated<Shipment>;
 };
 
-export const getCustomerDetail = async (customerId: string): Promise<CustomerDetail | null> => {
+// The profile, its totals and one page of shipments don't depend on each
+// other, so all three run at once.
+export const getCustomerDetail = async (customerId: string, page: number): Promise<CustomerDetail | null> => {
   const supabase = await createClient();
+  const { from, to } = pageRange(page);
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, full_name, email, phone, active')
-    .eq('id', customerId)
-    .eq('role', 'customer')
-    .maybeSingle();
+  const [{ data: profile }, { data: stats }, { data: shipmentRows, count }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, full_name, email, phone, active')
+      .eq('id', customerId)
+      .eq('role', 'customer')
+      .maybeSingle(),
+    supabase
+      .from('customer_shipment_stats')
+      .select('shipment_count, total_paid')
+      .eq('customer_id', customerId)
+      .maybeSingle(),
+    supabase
+      .from('shipments')
+      .select(SHIPMENT_SELECT_COLUMNS, { count: 'exact' })
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false })
+      .range(from, to),
+  ]);
 
   if (!profile) return null;
-
-  const { data: shipmentRows } = await supabase
-    .from('shipments')
-    .select(SHIPMENT_SELECT_COLUMNS)
-    .eq('customer_id', customerId)
-    .order('created_at', { ascending: false });
-
-  const shipments = ((shipmentRows ?? []) as ShipmentRow[]).map(mapRowToShipment);
 
   return {
     customer: {
@@ -81,9 +114,9 @@ export const getCustomerDetail = async (customerId: string): Promise<CustomerDet
       email: profile.email,
       phone: profile.phone,
       active: profile.active,
-      shipmentCount: shipments.length,
-      totalSpent: shipments.filter((s) => s.paymentStatus === 'paid').reduce((sum, s) => sum + s.price, 0),
+      shipmentCount: stats?.shipment_count ?? 0,
+      totalSpent: Number(stats?.total_paid ?? 0),
     },
-    shipments,
+    shipments: toPaginated(((shipmentRows ?? []) as ShipmentRow[]).map(mapRowToShipment), count ?? 0, page),
   };
 };

@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+import Logo from '@/components/brand/logo';
+
 const FOOTER_LINKS: { heading: string; links: { label: string; href: string }[] }[] = [
   {
     heading: 'Services',
@@ -36,7 +38,7 @@ const SiteFooter = () => {
       <div className="mx-auto max-w-6xl px-6 py-14">
         <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-5">
           <div className="md:col-span-1">
-            <p className="font-display text-lg font-semibold text-brand-ink">ParcelLink</p>
+            <Logo height={32} />
             <p className="mt-2 text-sm text-brand-ink/55">Reliable delivery across the UAE.</p>
           </div>
 

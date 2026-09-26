@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
+import PasswordInput from '@/components/ui/password-input';
 import Label from '@/components/ui/label';
 import FieldError from '@/components/ui/field-error';
 import TurnstileWidget from '@/components/security/turnstile-widget';
@@ -27,13 +28,13 @@ const LoginForm = () => {
             Forgot password?
           </Link>
         </div>
-        <Input id="password" type="password" autoComplete="current-password" {...register('password')} />
+        <PasswordInput id="password" autoComplete="current-password" {...register('password')} />
         <FieldError message={errors.password?.message} />
       </div>
 
       {serverError ? <FieldError message={serverError} /> : null}
 
-      <TurnstileWidget containerRef={turnstile.containerRef} enabled={turnstile.enabled} loadError={turnstile.loadError} />
+      <TurnstileWidget turnstile={turnstile} />
 
       <Button type="submit" disabled={isSubmitting || !turnstile.ready}>
         {isSubmitting ? 'Signing in…' : 'Sign In'}

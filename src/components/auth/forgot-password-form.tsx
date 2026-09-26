@@ -35,7 +35,7 @@ const ForgotPasswordForm = () => {
 
       {serverError ? <FieldError message={serverError} /> : null}
 
-      <TurnstileWidget containerRef={turnstile.containerRef} enabled={turnstile.enabled} loadError={turnstile.loadError} />
+      <TurnstileWidget turnstile={turnstile} />
 
       <Button type="submit" disabled={isSubmitting || !turnstile.ready}>
         {isSubmitting ? 'Sending…' : 'Send Reset Link'}

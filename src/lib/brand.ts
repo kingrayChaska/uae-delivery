@@ -1,0 +1,12 @@
+// ParcelLink brand colours for code that can't read CSS variables (Mapbox
+// markers/layers, Recharts). Keep in sync with --parcellink-* in
+// app/globals.css.
+export const BRAND = {
+  name: 'ParcelLink',
+  purple: '#7b3fa7',
+  teal: '#1a98a2',
+  logoSrc: '/brand/parcellink-logo.png',
+  // Intrinsic size of the logo file, for next/image's aspect ratio.
+  logoWidth: 960,
+  logoHeight: 238,
+} as const;

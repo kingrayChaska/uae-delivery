@@ -21,36 +21,41 @@ export type DriverSummary = {
   codCollected: number;
 };
 
+type DriverStatsRow = {
+  driver_id: string;
+  today_count: number;
+  week_count: number;
+  month_count: number;
+  delivered_count: number;
+  failed_count: number;
+};
+
+// Per-driver counts come from driver_shipment_stats / driver_cod_stats
+// (migration 0021), aggregated in the database, instead of downloading
+// every shipment each driver has ever carried. Today/week/month are UAE
+// calendar periods. The fleet itself is small enough to list in one go.
 export const listAllDrivers = async (): Promise<DriverSummary[]> => {
   const supabase = await createClient();
 
-  const { data: driverRows } = await supabase
-    .from('driver_profiles')
-    .select('profile_id, driver_code, availability, profiles(full_name, phone, email, active), vehicles(make, model)');
+  const [{ data: driverRows }, { data: statsRows }, { data: codRows }] = await Promise.all([
+    supabase
+      .from('driver_profiles')
+      .select('profile_id, driver_code, availability, profiles(full_name, phone, email, active), vehicles(make, model)'),
+    supabase
+      .from('driver_shipment_stats')
+      .select('driver_id, today_count, week_count, month_count, delivered_count, failed_count'),
+    supabase.from('driver_cod_stats').select('driver_id, collected_total'),
+  ]);
 
   if (!driverRows || driverRows.length === 0) return [];
 
-  const driverIds = driverRows.map((row) => row.profile_id);
-  const now = new Date();
-  const startOfDay = new Date(now);
-  startOfDay.setHours(0, 0, 0, 0);
-  const startOfWeek = new Date(startOfDay);
-  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-  const [{ data: shipmentRows }, { data: codRows }] = await Promise.all([
-    supabase.from('shipments').select('driver_id, status, created_at').in('driver_id', driverIds),
-    supabase
-      .from('cod_transactions')
-      .select('driver_id, amount')
-      .in('driver_id', driverIds)
-      .in('status', ['collected', 'reconciled', 'remitted']),
-  ]);
+  const stats = new Map(((statsRows ?? []) as DriverStatsRow[]).map((row) => [row.driver_id, row]));
+  const cod = new Map((codRows ?? []).map((row) => [row.driver_id, Number(row.collected_total)]));
 
   return driverRows.map((row) => {
     const profile = row.profiles as unknown as { full_name: string; phone: string; email: string; active: boolean } | null;
     const vehicle = row.vehicles as unknown as { make: string; model: string } | null;
-    const shipments = (shipmentRows ?? []).filter((s) => s.driver_id === row.profile_id);
+    const counts = stats.get(row.profile_id);
 
     return {
       id: row.profile_id,
@@ -61,14 +66,12 @@ export const listAllDrivers = async (): Promise<DriverSummary[]> => {
       driverCode: row.driver_code,
       availability: row.availability,
       vehicle: vehicle ? `${vehicle.make} ${vehicle.model}` : null,
-      todayDeliveries: shipments.filter((s) => new Date(s.created_at) >= startOfDay).length,
-      weekDeliveries: shipments.filter((s) => new Date(s.created_at) >= startOfWeek).length,
-      monthDeliveries: shipments.filter((s) => new Date(s.created_at) >= startOfMonth).length,
-      successfulDeliveries: shipments.filter((s) => s.status === 'delivered').length,
-      failedDeliveries: shipments.filter((s) => s.status === 'delivery_failed').length,
-      codCollected: (codRows ?? [])
-        .filter((c) => c.driver_id === row.profile_id)
-        .reduce((sum, c) => sum + c.amount, 0),
+      todayDeliveries: counts?.today_count ?? 0,
+      weekDeliveries: counts?.week_count ?? 0,
+      monthDeliveries: counts?.month_count ?? 0,
+      successfulDeliveries: counts?.delivered_count ?? 0,
+      failedDeliveries: counts?.failed_count ?? 0,
+      codCollected: cod.get(row.profile_id) ?? 0,
     };
   });
 };

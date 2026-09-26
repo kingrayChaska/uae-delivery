@@ -2,13 +2,17 @@ import Link from 'next/link';
 
 import Button from '@/components/ui/button';
 import BatchList from '@/components/bulk/batch-list';
+import Pagination from '@/components/dashboard/pagination';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { BULK_MAX_ROWS } from '@/lib/business/schemas';
+import { parsePage } from '@/lib/pagination';
 import { listBatches } from '@/services/bulk/list-batches';
 
-const CustomerBulkPage = async () => {
+import type { PageSearchParams } from '@/lib/pagination';
+
+const CustomerBulkPage = async ({ searchParams }: { searchParams: PageSearchParams }) => {
   await requireRoleOrRedirect('customer');
-  const batches = await listBatches();
+  const batches = await listBatches(parsePage((await searchParams).page));
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">
@@ -26,10 +30,11 @@ const CustomerBulkPage = async () => {
       </div>
 
       <BatchList
-        batches={batches}
+        batches={batches.items}
         hrefBase="/dashboard/customer/bulk"
         emptyMessage="You haven't submitted a bulk list yet"
       />
+      <Pagination page={batches.page} totalPages={batches.totalPages} href="/dashboard/customer/bulk" />
     </main>
   );
 };

@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import Logo from '@/components/brand/logo';
 import SignOutButton from '@/components/navigation/sign-out-button';
-import { NAV_ITEMS } from '@/lib/types';
+import { DASHBOARD_HOME, NAV_ITEMS } from '@/lib/types';
 
 import type { Profile } from '@/lib/types';
 
@@ -19,9 +20,12 @@ const DashboardNav = ({ profile }: DashboardNavProps) => {
   return (
     <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-4 py-3 md:w-56 md:shrink-0 md:flex-col md:flex-nowrap md:items-stretch md:justify-start md:border-b-0 md:border-r md:px-3 md:py-4">
       <div className="flex items-center justify-between gap-2 md:flex-col md:items-stretch">
-        <div className="px-1">
-          <p className="text-sm font-semibold capitalize">{profile.role} Portal</p>
-          <p className="truncate text-xs text-muted-foreground">{profile.fullName}</p>
+        <div className="flex flex-col gap-2 px-1">
+          <Logo height={28} href={DASHBOARD_HOME[profile.role]} />
+          <div>
+            <p className="text-sm font-semibold capitalize">{profile.role} Portal</p>
+            <p className="truncate text-xs text-muted-foreground">{profile.fullName}</p>
+          </div>
         </div>
       </div>
 

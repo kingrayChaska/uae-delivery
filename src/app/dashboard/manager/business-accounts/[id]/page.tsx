@@ -8,14 +8,24 @@ import BusinessForm from '@/components/manager/business-form';
 import BusinessMembers from '@/components/manager/business-members';
 import BusinessActiveToggle from '@/components/manager/business-active-toggle';
 import BulkUpload from '@/components/manager/bulk-upload';
+import Pagination from '@/components/dashboard/pagination';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
+import { parsePage } from '@/lib/pagination';
 import { getBusinessAccountDetail } from '@/services/business/business-accounts';
 
-const BusinessAccountDetailPage = async ({ params }: { params: Promise<{ id: string }> }) => {
-  await requireRoleOrRedirect('manager');
-  const { id } = await params;
+import type { PageSearchParams } from '@/lib/pagination';
 
-  const detail = await getBusinessAccountDetail(id);
+const BusinessAccountDetailPage = async ({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: PageSearchParams;
+}) => {
+  await requireRoleOrRedirect('manager');
+  const [{ id }, { page }] = await Promise.all([params, searchParams]);
+
+  const detail = await getBusinessAccountDetail(id, parsePage(page));
   if (!detail) notFound();
 
   const { account, members, shipments, totals } = detail;
@@ -81,13 +91,18 @@ const BusinessAccountDetailPage = async ({ params }: { params: Promise<{ id: str
 
       <div className="flex flex-col gap-2">
         <h2 className="text-lg font-medium">Shipment history</h2>
-        {shipments.length === 0 ? (
+        {shipments.items.length === 0 ? (
           <p className="text-sm text-muted-foreground">No shipments under this account yet.</p>
         ) : (
-          shipments.map((shipment) => (
+          shipments.items.map((shipment) => (
             <ShipmentListItem key={shipment.id} shipment={shipment} basePath="/dashboard/manager/shipments" />
           ))
         )}
+        <Pagination
+          page={shipments.page}
+          totalPages={shipments.totalPages}
+          href={`/dashboard/manager/business-accounts/${account.id}`}
+        />
       </div>
     </main>
   );

@@ -6,7 +6,6 @@ import {
   bulkBatchDetailsSchema,
   missingCustomerBulkColumns,
   sanitizeBulkRecords,
-  summarizeBatchProgress,
   todayInUae,
 } from '@/lib/bulk/schemas';
 
@@ -66,11 +65,5 @@ describe('customer bulk lists', () => {
     const past = bulkBatchDetailsSchema.safeParse({ ...base, pickupDate: '2020-01-01' });
     expect(past.success).toBe(false);
     expect(past.error?.issues[0]?.message).toBe('Pickup date cannot be in the past');
-  });
-
-  it('groups shipment statuses into list progress', () => {
-    expect(
-      summarizeBatchProgress(['confirmed', 'pending_payment', 'in_transit', 'delivered', 'cancelled', 'assigned']),
-    ).toEqual({ awaitingDispatch: 2, inProgress: 2, delivered: 1, issues: 1 });
   });
 });

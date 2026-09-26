@@ -13,13 +13,15 @@ import {
   YAxis,
 } from 'recharts';
 
+import { BRAND } from '@/lib/brand';
+
 type ReportChartsProps = {
   trend: { date: string; shipments: number; delivered: number }[];
   drivers: { name: string; delivered: number; failed: number }[];
 };
 
-const ROUTE = '#0e5c63';
-const SIGNAL = '#e8a33d';
+const ROUTE = BRAND.purple;
+const SIGNAL = BRAND.teal;
 const FAILED = '#c2410c';
 
 const ReportCharts = ({ trend, drivers }: ReportChartsProps) => {

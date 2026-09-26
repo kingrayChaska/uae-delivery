@@ -30,7 +30,7 @@ const TrackingLookupForm = () => {
           {isSubmitting ? 'Tracking…' : 'Track'}
         </Button>
       </form>
-      <TurnstileWidget containerRef={turnstile.containerRef} enabled={turnstile.enabled} loadError={turnstile.loadError} />
+      <TurnstileWidget turnstile={turnstile} />
 
       {result && !result.success ? <FieldError message={result.error} /> : null}
       {result && result.success ? (

@@ -1,11 +1,10 @@
 import ShipmentListItem from '@/components/shipment/shipment-list-item';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
-import { ACTIVE_DRIVER_STATUSES, listDriverShipments } from '@/services/shipments/list-driver-shipments';
+import { listDriverActiveShipments } from '@/services/shipments/list-driver-shipments';
 
 const DriverDeliveriesPage = async () => {
   const profile = await requireRoleOrRedirect('driver');
-  const shipments = await listDriverShipments(profile.id);
-  const active = shipments.filter((s) => ACTIVE_DRIVER_STATUSES.includes(s.status));
+  const active = await listDriverActiveShipments(profile.id);
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">

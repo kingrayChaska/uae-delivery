@@ -1,8 +1,10 @@
 import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
+import { pageRange, toPaginated } from '@/lib/pagination';
 import { mapRowToShipment, SHIPMENT_SELECT_COLUMNS } from '@/services/shipments/shipment-mapper';
 
+import type { Paginated } from '@/lib/pagination';
 import type { Shipment } from '@/lib/types';
 import type { ShipmentRow } from '@/services/shipments/shipment-mapper';
 
@@ -17,22 +19,27 @@ export type BusinessAccountSummary = {
   shipmentCount: number;
 };
 
+// Shipment counts come from business_shipment_stats (migration 0021)
+// rather than downloading every business shipment; all three reads are
+// independent, so they run at once.
 export const listBusinessAccounts = async (): Promise<BusinessAccountSummary[]> => {
   const supabase = await createClient();
-  const { data: accounts } = await supabase
-    .from('business_accounts')
-    .select('id, company_name, contact_person, contact_email, contact_phone, active')
-    .order('company_name');
+
+  const [{ data: accounts }, { data: members }, { data: stats }] = await Promise.all([
+    supabase
+      .from('business_accounts')
+      .select('id, company_name, contact_person, contact_email, contact_phone, active')
+      .order('company_name'),
+    supabase.from('business_account_members').select('business_account_id'),
+    supabase.from('business_shipment_stats').select('business_account_id, shipment_count'),
+  ]);
   if (!accounts || accounts.length === 0) return [];
 
-  const ids = accounts.map((a) => a.id);
-  const [{ data: members }, { data: shipments }] = await Promise.all([
-    supabase.from('business_account_members').select('business_account_id').in('business_account_id', ids),
-    supabase.from('shipments').select('business_account_id').in('business_account_id', ids),
-  ]);
-
-  const count = (rows: { business_account_id: string | null }[] | null, id: string) =>
-    (rows ?? []).filter((r) => r.business_account_id === id).length;
+  const memberCounts = new Map<string, number>();
+  for (const member of members ?? []) {
+    memberCounts.set(member.business_account_id, (memberCounts.get(member.business_account_id) ?? 0) + 1);
+  }
+  const shipmentCounts = new Map((stats ?? []).map((row) => [row.business_account_id, row.shipment_count as number]));
 
   return accounts.map((account) => ({
     id: account.id,
@@ -41,47 +48,53 @@ export const listBusinessAccounts = async (): Promise<BusinessAccountSummary[]> 
     contactEmail: account.contact_email,
     contactPhone: account.contact_phone,
     active: account.active,
-    memberCount: count(members, account.id),
-    shipmentCount: count(shipments, account.id),
+    memberCount: memberCounts.get(account.id) ?? 0,
+    shipmentCount: shipmentCounts.get(account.id) ?? 0,
   }));
 };
 
 export type BusinessAccountDetail = {
   account: BusinessAccountSummary & { billingAddress: string; trn: string };
   members: { id: string; fullName: string; email: string }[];
-  shipments: Shipment[];
+  shipments: Paginated<Shipment>;
   totals: { billed: number; outstanding: number; cod: number };
 };
 
-export const getBusinessAccountDetail = async (businessId: string): Promise<BusinessAccountDetail | null> => {
+export const getBusinessAccountDetail = async (
+  businessId: string,
+  page: number,
+): Promise<BusinessAccountDetail | null> => {
   const supabase = await createClient();
+  const { from, to } = pageRange(page);
 
-  const { data: account } = await supabase
-    .from('business_accounts')
-    .select('id, company_name, contact_person, contact_email, contact_phone, active, billing_info')
-    .eq('id', businessId)
-    .maybeSingle();
-  if (!account) return null;
-
-  const [{ data: memberRows }, { data: shipmentRows }] = await Promise.all([
+  const [{ data: account }, { data: memberRows }, { data: stats }, { data: shipmentRows, count }] = await Promise.all([
+    supabase
+      .from('business_accounts')
+      .select('id, company_name, contact_person, contact_email, contact_phone, active, billing_info')
+      .eq('id', businessId)
+      .maybeSingle(),
     supabase
       .from('business_account_members')
       .select('profile_id, profiles(full_name, email)')
       .eq('business_account_id', businessId),
     supabase
-      .from('shipments')
-      .select(SHIPMENT_SELECT_COLUMNS)
+      .from('business_shipment_stats')
+      .select('shipment_count, billed, outstanding, cod')
       .eq('business_account_id', businessId)
-      .order('created_at', { ascending: false }),
+      .maybeSingle(),
+    supabase
+      .from('shipments')
+      .select(SHIPMENT_SELECT_COLUMNS, { count: 'exact' })
+      .eq('business_account_id', businessId)
+      .order('created_at', { ascending: false })
+      .range(from, to),
   ]);
+  if (!account) return null;
 
   const members = (memberRows ?? []).map((row) => {
     const profile = row.profiles as unknown as { full_name: string; email: string } | null;
     return { id: row.profile_id, fullName: profile?.full_name ?? '—', email: profile?.email ?? '—' };
   });
-
-  const shipments = ((shipmentRows ?? []) as ShipmentRow[]).map(mapRowToShipment);
-  const active = shipments.filter((s) => s.status !== 'cancelled');
   const billing = (account.billing_info ?? {}) as { address?: string; trn?: string };
 
   return {
@@ -93,18 +106,16 @@ export const getBusinessAccountDetail = async (businessId: string): Promise<Busi
       contactPhone: account.contact_phone,
       active: account.active,
       memberCount: members.length,
-      shipmentCount: shipments.length,
+      shipmentCount: stats?.shipment_count ?? 0,
       billingAddress: billing.address ?? '',
       trn: billing.trn ?? '',
     },
     members,
-    shipments,
+    shipments: toPaginated(((shipmentRows ?? []) as ShipmentRow[]).map(mapRowToShipment), count ?? 0, page),
     totals: {
-      billed: active.reduce((sum, s) => sum + s.price, 0),
-      outstanding: active
-        .filter((s) => s.paymentStatus !== 'paid' && !(s.paymentMethod === 'cod' && s.status === 'delivered'))
-        .reduce((sum, s) => sum + s.price, 0),
-      cod: active.filter((s) => s.paymentMethod === 'cod').reduce((sum, s) => sum + s.price, 0),
+      billed: Number(stats?.billed ?? 0),
+      outstanding: Number(stats?.outstanding ?? 0),
+      cod: Number(stats?.cod ?? 0),
     },
   };
 };

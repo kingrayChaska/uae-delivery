@@ -2,8 +2,6 @@ import { z } from '@/lib/zod';
 
 import { BULK_COLUMNS } from '@/lib/business/schemas';
 
-import type { ShipmentStatus } from '@/lib/types';
-
 export const BATCH_STATUSES = ['processing', 'submitted', 'partially_failed', 'failed'] as const;
 export type BatchStatus = (typeof BATCH_STATUSES)[number];
 
@@ -72,15 +70,6 @@ export const CUSTOMER_REQUIRED_COLUMNS = [
 export const missingCustomerBulkColumns = (headers: string[]) =>
   CUSTOMER_REQUIRED_COLUMNS.filter((column) => !headers.includes(column));
 
-const AWAITING: ShipmentStatus[] = ['pending_payment', 'confirmed'];
-const IN_PROGRESS: ShipmentStatus[] = ['assigned', 'driver_accepted', 'arrived_pickup', 'picked_up', 'in_transit', 'arrived_destination'];
-const ISSUES: ShipmentStatus[] = ['delivery_failed', 'cancelled', 'returned'];
-
+// Grouping of shipment statuses used by batch_shipment_stats (migration
+// 0021) — the database computes these counts.
 export type BatchProgress = { awaitingDispatch: number; inProgress: number; delivered: number; issues: number };
-
-export const summarizeBatchProgress = (statuses: ShipmentStatus[]): BatchProgress => ({
-  awaitingDispatch: statuses.filter((s) => AWAITING.includes(s)).length,
-  inProgress: statuses.filter((s) => IN_PROGRESS.includes(s)).length,
-  delivered: statuses.filter((s) => s === 'delivered').length,
-  issues: statuses.filter((s) => ISSUES.includes(s)).length,
-});

@@ -3,14 +3,13 @@ import Link from 'next/link';
 import StatCard from '@/components/dashboard/stat-card';
 import ShipmentListItem from '@/components/shipment/shipment-list-item';
 import { getCurrentProfile } from '@/lib/auth/session';
-import { getDriverDashboardSummary, listDriverShipments } from '@/services/shipments/list-driver-shipments';
+import { getDriverDashboardSummary } from '@/services/shipments/list-driver-shipments';
 
 const DriverDashboardPage = async () => {
   const profile = await getCurrentProfile();
   if (!profile) return null;
   const summary = await getDriverDashboardSummary(profile.id);
-  const shipments = await listDriverShipments(profile.id);
-  const recent = shipments.slice(0, 5);
+  const { recent } = summary;
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-6">

@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
+import PasswordInput from '@/components/ui/password-input';
 import Label from '@/components/ui/label';
 import FieldError from '@/components/ui/field-error';
 import TurnstileWidget from '@/components/security/turnstile-widget';
@@ -46,15 +47,14 @@ const RegisterForm = () => {
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="password">Password</Label>
-        <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
+        <PasswordInput id="password" autoComplete="new-password" {...register('password')} />
         <FieldError message={errors.password?.message} />
       </div>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="confirmPassword">Confirm password</Label>
-        <Input
+        <PasswordInput
           id="confirmPassword"
-          type="password"
           autoComplete="new-password"
           {...register('confirmPassword')}
         />
@@ -63,7 +63,7 @@ const RegisterForm = () => {
 
       {serverError ? <FieldError message={serverError} /> : null}
 
-      <TurnstileWidget containerRef={turnstile.containerRef} enabled={turnstile.enabled} loadError={turnstile.loadError} />
+      <TurnstileWidget turnstile={turnstile} />
 
       <Button type="submit" disabled={isSubmitting || !turnstile.ready}>
         {isSubmitting ? 'Creating account…' : 'Create Account'}

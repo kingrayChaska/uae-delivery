@@ -2,7 +2,8 @@ import 'server-only';
 
 import { redirect } from 'next/navigation';
 
-import { getCurrentProfile } from '@/lib/auth/session';
+import { getSession } from '@/lib/auth/session';
+import { DASHBOARD_HOME } from '@/lib/types';
 
 import type { Profile, Role } from '@/lib/types';
 
@@ -10,11 +11,16 @@ import type { Profile, Role } from '@/lib/types';
 // appropriate. Server actions and route handlers should use requireRole
 // from lib/auth/guards instead, which throws so the caller can return a
 // proper error response.
+//
+// This is also where a signed-in user is sent to the right dashboard: the
+// proxy skips its own profile lookup for /dashboard/<role>/... paths (see
+// routeNeedsProfile), so the redirects here mirror decideRoute's.
 export const requireRoleOrRedirect = async (...allowedRoles: Role[]): Promise<Profile> => {
-  const profile = await getCurrentProfile();
+  const { signedIn, profile } = await getSession();
 
-  if (!profile) redirect('/login');
-  if (!allowedRoles.includes(profile.role)) redirect('/login');
+  if (!signedIn) redirect('/login');
+  if (!profile || !profile.active) redirect('/login?error=inactive');
+  if (!allowedRoles.includes(profile.role)) redirect(DASHBOARD_HOME[profile.role]);
 
   return profile;
 };

@@ -18,6 +18,19 @@ export type RouteDecision = { type: 'allow' } | { type: 'redirect'; to: string }
 const allow: RouteDecision = { type: 'allow' };
 const redirect = (to: string): RouteDecision => ({ type: 'redirect', to });
 
+// The only paths where the proxy must look up the profile itself. A
+// /dashboard/<role>/... page doesn't need it: its role layout runs
+// requireRoleOrRedirect(), which makes the same decision from the profile
+// it loads anyway — so looking it up here too would cost every dashboard
+// navigation an extra database round trip for nothing.
+export const routeNeedsProfile = (pathname: string) => {
+  if (pathname === '/login' || pathname === '/register') return true;
+  if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+    return !(ROLES as readonly string[]).includes(pathname.split('/')[2] ?? '');
+  }
+  return false;
+};
+
 export const decideRoute = ({
   pathname,
   signedIn,
@@ -25,11 +38,14 @@ export const decideRoute = ({
 }: {
   pathname: string;
   signedIn: boolean;
-  profile: RouteProfile;
+  // undefined = not looked up (see routeNeedsProfile); null = no usable profile.
+  profile: RouteProfile | undefined;
 }): RouteDecision => {
   if (!signedIn) {
     return isPublicRoute(pathname) ? allow : redirect(`/login?redirectTo=${encodeURIComponent(pathname)}`);
   }
+
+  if (profile === undefined) return allow;
 
   // An inactive profile (deactivated by a manager, or a missing profile)
   // may still hold an unexpired session. It gets the public site and the

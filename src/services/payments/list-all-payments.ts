@@ -1,6 +1,9 @@
 import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
+import { mergeWindow, paginateMerged } from '@/lib/pagination';
+
+import type { Paginated } from '@/lib/pagination';
 
 export type PaymentOverviewRecord = {
   id: string;
@@ -17,19 +20,24 @@ export type PaymentOverviewRecord = {
 // Card payments come from the payments table (empty until a provider is
 // wired up — see lib/payments). COD is represented by the shipment itself,
 // same as the customer-facing payments page, so both show in one ledger.
-export const listAllPayments = async (): Promise<PaymentOverviewRecord[]> => {
+export const listAllPayments = async (page: number): Promise<Paginated<PaymentOverviewRecord>> => {
   const supabase = await createClient();
+  const depth = mergeWindow(page);
 
-  const [{ data: payments }, { data: codShipments }] = await Promise.all([
+  const [{ data: payments, count: cardCount }, { data: codShipments, count: codCount }] = await Promise.all([
     supabase
       .from('payments')
-      .select('id, shipment_id, amount, currency, status, created_at, shipments(tracking_number), profiles!customer_id(full_name)')
-      .order('created_at', { ascending: false }),
+      .select('id, shipment_id, amount, currency, status, created_at, shipments(tracking_number), profiles!customer_id(full_name)', {
+        count: 'exact',
+      })
+      .order('created_at', { ascending: false })
+      .limit(depth),
     supabase
       .from('shipments')
-      .select('id, tracking_number, price, currency, status, created_at, profiles!customer_id(full_name)')
+      .select('id, tracking_number, price, currency, status, created_at, profiles!customer_id(full_name)', { count: 'exact' })
       .eq('payment_method', 'cod')
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(depth),
   ]);
 
   const card: PaymentOverviewRecord[] = (payments ?? []).map((row) => ({
@@ -56,5 +64,5 @@ export const listAllPayments = async (): Promise<PaymentOverviewRecord[]> => {
     createdAt: row.created_at,
   }));
 
-  return [...card, ...cod].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return paginateMerged([card, cod], (cardCount ?? 0) + (codCount ?? 0), page);
 };

@@ -6,7 +6,7 @@ import BatchList from '@/components/bulk/batch-list';
 import { getCurrentProfile } from '@/lib/auth/session';
 import { getManagerSummary } from '@/services/shipments/get-manager-summary';
 import { listAuditLogs } from '@/services/audit/list-audit-logs';
-import { listBatches } from '@/services/bulk/list-batches';
+import { listRecentBatches } from '@/services/bulk/list-batches';
 
 const ManagerDashboardPage = async () => {
   const profile = await getCurrentProfile();
@@ -14,7 +14,7 @@ const ManagerDashboardPage = async () => {
   const [summary, activity, recentBatches] = await Promise.all([
     getManagerSummary(),
     listAuditLogs(8),
-    listBatches({ limit: 5 }),
+    listRecentBatches(5),
   ]);
 
   return (

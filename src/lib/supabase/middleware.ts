@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
-import { decideRoute } from '@/lib/auth/route-access';
+import { decideRoute, routeNeedsProfile } from '@/lib/auth/route-access';
 
 import type { RouteProfile } from '@/lib/auth/route-access';
 import type { Role } from '@/lib/types';
@@ -56,11 +56,11 @@ export const updateSession = async (request: NextRequest) => {
   const userId = claimsData?.claims.sub ?? null;
 
   const { pathname } = request.nextUrl;
-  const needsProfile =
-    Boolean(userId) && (pathname.startsWith('/dashboard') || pathname === '/login' || pathname === '/register');
 
-  let profile: RouteProfile = null;
-  if (userId && needsProfile) {
+  // Role dashboards skip this lookup — their layout checks the role (see
+  // routeNeedsProfile).
+  let profile: RouteProfile | undefined;
+  if (userId && routeNeedsProfile(pathname)) {
     const { data } = await supabase.from('profiles').select('role, active').eq('id', userId).maybeSingle();
     profile = data ? { role: data.role as Role, active: data.active } : null;
   }

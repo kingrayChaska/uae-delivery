@@ -4,3 +4,6 @@
 export type StaffViewProps = { basePath: string };
 export type StaffDetailViewProps = StaffViewProps & { id: string };
 export type StaffActorViewProps = StaffViewProps & { actorId: string };
+// List views get the current page from the route's ?page= search param.
+export type StaffListViewProps = StaffViewProps & { page: number };
+export type StaffDetailListViewProps = StaffDetailViewProps & { page: number };

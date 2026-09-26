@@ -1,13 +1,12 @@
 import BatchList from '@/components/bulk/batch-list';
 import StatCard from '@/components/dashboard/stat-card';
-import { listBatches } from '@/services/bulk/list-batches';
+import Pagination from '@/components/dashboard/pagination';
+import { getBatchDispatchBacklog, listBatches } from '@/services/bulk/list-batches';
 
-import type { StaffViewProps } from '@/components/staff-views/types';
+import type { StaffListViewProps } from '@/components/staff-views/types';
 
-const BulkBatchesView = async ({ basePath }: StaffViewProps) => {
-  const batches = await listBatches();
-  const awaitingDispatch = batches.reduce((sum, batch) => sum + batch.progress.awaitingDispatch, 0);
-  const listsWaiting = batches.filter((batch) => batch.progress.awaitingDispatch > 0).length;
+const BulkBatchesView = async ({ basePath, page }: StaffListViewProps) => {
+  const [batches, backlog] = await Promise.all([listBatches(page), getBatchDispatchBacklog()]);
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">
@@ -17,12 +16,13 @@ const BulkBatchesView = async ({ basePath }: StaffViewProps) => {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Lists" value={String(batches.length)} />
-        <StatCard label="Lists With Parcels to Dispatch" value={String(listsWaiting)} />
-        <StatCard label="Shipments Awaiting Dispatch" value={String(awaitingDispatch)} />
+        <StatCard label="Lists" value={String(batches.total)} />
+        <StatCard label="Lists With Parcels to Dispatch" value={String(backlog.lists)} />
+        <StatCard label="Shipments Awaiting Dispatch" value={String(backlog.shipments)} />
       </div>
 
-      <BatchList batches={batches} hrefBase={`${basePath}/bulk`} showSender />
+      <BatchList batches={batches.items} hrefBase={`${basePath}/bulk`} showSender />
+      <Pagination page={batches.page} totalPages={batches.totalPages} href={`${basePath}/bulk`} />
     </main>
   );
 };

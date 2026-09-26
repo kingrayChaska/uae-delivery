@@ -1,8 +1,10 @@
 import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
+import { pageRange, toPaginated } from '@/lib/pagination';
 import { mapRowToShipment, SHIPMENT_SELECT_COLUMNS } from '@/services/shipments/shipment-mapper';
 
+import type { Paginated } from '@/lib/pagination';
 import type { Shipment } from '@/lib/types';
 import type { ShipmentRow } from '@/services/shipments/shipment-mapper';
 
@@ -28,16 +30,18 @@ export type CustomerDashboardSummary = {
 // RLS (shipments_select) already scopes this to the caller's own
 // shipments — no explicit customer_id filter needed here, but adding one
 // anyway is harmless and makes the query's intent obvious to read.
-export const listCustomerShipments = async (customerId: string): Promise<Shipment[]> => {
+export const listCustomerShipments = async (customerId: string, page: number): Promise<Paginated<Shipment>> => {
   const supabase = await createClient();
+  const { from, to } = pageRange(page);
 
-  const { data } = await supabase
+  const { data, count } = await supabase
     .from('shipments')
-    .select(SHIPMENT_SELECT_COLUMNS)
+    .select(SHIPMENT_SELECT_COLUMNS, { count: 'exact' })
     .eq('customer_id', customerId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
-  return ((data ?? []) as ShipmentRow[]).map(mapRowToShipment);
+  return toPaginated(((data ?? []) as ShipmentRow[]).map(mapRowToShipment), count ?? 0, page);
 };
 
 export const getCustomerDashboardSummary = async (customerId: string): Promise<CustomerDashboardSummary> => {
@@ -59,11 +63,7 @@ export const getCustomerDashboardSummary = async (customerId: string): Promise<C
       .select('id', { count: 'exact', head: true })
       .eq('customer_id', customerId)
       .eq('status', 'delivered'),
-    supabase
-      .from('shipments')
-      .select('price, currency')
-      .eq('customer_id', customerId)
-      .or('payment_status.eq.paid,and(payment_method.eq.cod,status.eq.delivered)'),
+    supabase.from('customer_shipment_stats').select('total_spent, currency').eq('customer_id', customerId).maybeSingle(),
     supabase
       .from('shipments')
       .select(SHIPMENT_SELECT_COLUMNS)
@@ -72,18 +72,14 @@ export const getCustomerDashboardSummary = async (customerId: string): Promise<C
       .limit(5),
   ]);
 
-  const totalSpent = ((spentRes.data ?? []) as { price: number; currency: string }[]).reduce(
-    (sum, s) => sum + s.price,
-    0,
-  );
-  const currency = (spentRes.data as { price: number; currency: string }[] | null)?.[0]?.currency ?? 'AED';
-
   return {
     active: activeRes.count ?? 0,
     pending: pendingRes.count ?? 0,
     completed: completedRes.count ?? 0,
-    totalSpent,
-    currency,
+    // Summed in the database (customer_shipment_stats, migration 0021)
+    // rather than by downloading every paid shipment.
+    totalSpent: Number(spentRes.data?.total_spent ?? 0),
+    currency: spentRes.data?.currency ?? 'AED',
     recent: ((recentRes.data ?? []) as ShipmentRow[]).map(mapRowToShipment),
   };
 };
