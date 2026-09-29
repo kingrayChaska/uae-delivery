@@ -52,6 +52,14 @@ Customer self-registration only (`/register`) — driver/operator/manager accoun
 
 The end-to-end suite found four bugs that every other check had passed — most seriously, a rounding mismatch that made the database reject almost every real booking. Details in [e2e/README.md](e2e/README.md#bugs-this-suite-found-all-fixed).
 
+## Merchants, pricing and tracking (v2)
+
+- **Deploy order:** apply `database/migrations/0022_merchants_pricing_v2.sql` **before** deploying this code — the app reads the new profile, pricing and shipment columns on every request.
+- **Pricing** lives in one engine, `lib/pricing/calculate.ts` (`calculateShipmentPrice`), used by the booking wizard, the landing-page calculator, the server-side booking and — as SQL — the database's own price check. Rules (per account type × same-day/next-day, with weight allowance, COD fee and distance limit) are managed on **Manager → Pricing**.
+- **Merchants:** customers choose Individual or Merchant after registering; merchant applications are reviewed under **Manager → Merchant Applications**.
+- **Merchant emails** use `RESEND_API_KEY` and `EMAIL_FROM` (e.g. `ParcelLink <notifications@yourdomain.ae>`). Without them, the in-app notification is still sent and the email is skipped (logged).
+- **Tracking IDs** are 8 characters (e.g. `PL7K29X4`). Existing `DLV-…` numbers still work on `/tracking`.
+
 ## Supabase email templates
 
 Staff invitations and password resets use Supabase's server-side `token_hash` flow, handled by `/auth/confirm`. In the Supabase dashboard (Authentication → Email Templates), point these links at it:

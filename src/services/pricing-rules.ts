@@ -1,7 +1,9 @@
 import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
+import { PRICING_RULE_COLUMNS, mapPricingRule } from '@/lib/pricing/get-active-rule';
 
+import type { PricingRuleRow } from '@/lib/pricing/get-active-rule';
 import type { PricingRule } from '@/lib/types';
 
 export type PricingRuleRecord = PricingRule & { createdAt: string };
@@ -11,17 +13,12 @@ export const listPricingRules = async (): Promise<PricingRuleRecord[]> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from('pricing_rules')
-    .select('id, name, base_distance_km, base_price, additional_price_per_km, currency, is_active, created_at')
-    .order('created_at', { ascending: false });
+    .select(`${PRICING_RULE_COLUMNS}, created_at`)
+    .order('created_at', { ascending: false })
+    .limit(200);
 
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    name: row.name,
-    baseDistanceKm: Number(row.base_distance_km),
-    basePrice: Number(row.base_price),
-    additionalPricePerKm: Number(row.additional_price_per_km),
-    currency: row.currency,
-    isActive: row.is_active,
+  return ((data ?? []) as (PricingRuleRow & { created_at: string })[]).map((row) => ({
+    ...mapPricingRule(row),
     createdAt: row.created_at,
   }));
 };

@@ -1,27 +1,29 @@
 'use client';
 
-import Button from '@/components/ui/button';
-import FieldError from '@/components/ui/field-error';
+import { XCircle } from 'lucide-react';
+
+import ConfirmButton from '@/components/ui/confirm-button';
 import { useCancelShipment } from '@/lib/hooks/use-cancel-shipment';
 
 const CancelShipmentButton = ({ shipmentId }: { shipmentId: string }) => {
   const { cancel, isCancelling, error } = useCancelShipment(shipmentId);
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <Button
-        type="button"
-        variant="outline"
-        className="border-destructive text-destructive hover:bg-destructive/10"
-        disabled={isCancelling}
-        onClick={() => {
-          if (confirm('Cancel this delivery?')) cancel();
-        }}
-      >
-        {isCancelling ? 'Cancelling…' : 'Cancel Delivery'}
-      </Button>
-      {error ? <FieldError message={error} /> : null}
-    </div>
+    <ConfirmButton
+      variant="outline"
+      className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
+      title="Cancel this delivery?"
+      description="The pickup will be called off and the driver, if one is assigned, is told straight away. This can’t be undone."
+      confirmLabel="Yes, cancel delivery"
+      cancelLabel="Keep delivery"
+      confirmVariant="destructive"
+      isPending={isCancelling}
+      error={error}
+      onConfirm={cancel}
+    >
+      <XCircle aria-hidden />
+      Cancel delivery
+    </ConfirmButton>
   );
 };
 

@@ -1,22 +1,30 @@
 'use client';
 
 import BookingWizard from '@/components/shipment/booking/booking-wizard';
-import { createShipmentAction } from '@/lib/shipment/actions';
+import { createBookingAction } from '@/lib/shipment/actions';
 
-import type { PricingRule } from '@/lib/types';
+import type { AccountType, DeliveryType, PricingRule } from '@/lib/types';
 
 type CustomerBookingWizardProps = {
   customerId: string;
-  activeRule: PricingRule;
+  accountType: AccountType;
+  rules: Record<DeliveryType, PricingRule>;
 };
 
-const CustomerBookingWizard = ({ customerId, activeRule }: CustomerBookingWizardProps) => {
+const CustomerBookingWizard = ({ customerId, accountType, rules }: CustomerBookingWizardProps) => {
   return (
     <BookingWizard
       uploaderId={customerId}
-      activeRule={activeRule}
-      onSubmit={createShipmentAction}
-      getSuccessPath={(id) => `/dashboard/customer/deliveries/${id}`}
+      rules={rules}
+      accountType={accountType}
+      onSubmit={createBookingAction}
+      supportHref="/dashboard/customer/support/new"
+      getSuccessPath={(result) => {
+        if (!result.batchId) return `/dashboard/customer/deliveries/${result.shipmentIds[0]}?booked=1`;
+        const params = new URLSearchParams({ booking: result.batchId, booked: '1' });
+        if (result.failed.length) params.set('failed', String(result.failed.length));
+        return `/dashboard/customer/deliveries?${params}`;
+      }}
     />
   );
 };

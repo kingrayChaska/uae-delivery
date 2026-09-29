@@ -10,33 +10,35 @@ test.describe.serial('Manager pricing, account deactivation, responsive layouts'
     await login(page, MANAGER.email);
     await page.goto('/dashboard/manager/pricing');
     await page.getByLabel('Rule name').fill('Premium 2027');
-    await page.getByLabel('Base km').fill('3');
+    // "Applies to" defaults to individual customers, same-day.
+    await page.getByLabel('Included km').fill('3');
     await page.getByLabel('Base price (AED)').fill('15');
     await page.getByLabel('Per extra km').fill('1.5');
     await page.getByRole('button', { name: 'Save rule' }).click();
-    await expect.poll(() => sql(`select name from pricing_rules where is_active`)).toBe('Premium 2027');
+    await expect
+      .poll(() => sql(`select name from pricing_rules where is_active and delivery_type = 'same_day' and account_type = 'individual'`))
+      .toBe('Premium 2027');
     expect(sql(`select count(*) from audit_logs where action = 'pricing.create_and_activate'`)).toBe('1');
 
     const customer = await (await browser.newContext({ ignoreHTTPSErrors: true })).newPage();
     await login(customer, CUSTOMER.email);
     await customer.goto('/dashboard/customer/book');
-    await pickAddress(customer, 'Pickup address', PLACES.marina.query, PLACES.marina.suggestion);
+    await pickAddress(customer, 'Pickup location', PLACES.marina.query, PLACES.marina.suggestion);
     await customer.locator('#pickup-contactName').fill(CUSTOMER.name);
     await customer.locator('#pickup-contactPhone').fill(CUSTOMER.phone);
-    await customer.getByRole('button', { name: 'Next' }).click();
-    await pickAddress(customer, 'Delivery address', PLACES.moe.query, PLACES.moe.suggestion);
+    await customer.getByRole('button', { name: 'Continue' }).click();
+    await pickAddress(customer, 'Delivery location', PLACES.moe.query, PLACES.moe.suggestion);
     await customer.getByLabel('Recipient name').fill('Sara Recipient');
     await customer.locator('#dropoff-contactPhone').fill('0507654321');
-    await customer.getByRole('button', { name: 'Next' }).click();
-    await customer.getByLabel('Description').fill('Shoes');
-    await customer.getByRole('button', { name: 'Next' }).click();
-    await customer.getByText('Cash on Delivery', { exact: true }).click();
-    await customer.getByRole('button', { name: 'Next' }).click();
+    await customer.getByRole('button', { name: 'Continue' }).click();
+    await customer.getByLabel('What are you sending?').fill('Shoes');
+    await customer.getByRole('button', { name: 'Add to booking' }).click();
+    await customer.getByText('Cash', { exact: true }).click();
 
     const price = expectedPrice(PLACES.marina, PLACES.moe, { baseKm: 3, basePrice: 15, perKm: 1.5 });
-    await expect(customer.getByText(`AED ${price}`)).toBeVisible();
-    await customer.getByRole('button', { name: 'Confirm & Book' }).click();
-    await customer.waitForURL(/\/deliveries\/[0-9a-f-]{36}$/);
+    await expect(customer.getByText(`AED ${price}`).first()).toBeVisible();
+    await customer.getByRole('button', { name: /Confirm & book/ }).click();
+    await customer.waitForURL(/\/deliveries\/[0-9a-f-]{36}\?booked=1$/);
     // Accepted by the database's price re-check under the NEW rule.
     expect(sql(`select s.price || ' ' || r.name from shipments s join pricing_rules r on r.id = s.pricing_rule_id order by s.created_at desc limit 1`)).toBe(`${price} Premium 2027`);
   });
@@ -49,8 +51,8 @@ test.describe.serial('Manager pricing, account deactivation, responsive layouts'
     await login(page, MANAGER.email);
     const driverId = sql(`select id from profiles where email = '${DRIVER.email}'`);
     await page.goto(`/dashboard/manager/drivers/${driverId}`);
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Deactivate' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Deactivate' }).click();
     await expect.poll(() => sql(`select active from profiles where id = '${driverId}'`)).toBe('f');
 
     // The driver's session is still valid for a moment — the page must
@@ -96,6 +98,10 @@ test.describe.serial('Manager pricing, account deactivation, responsive layouts'
     { who: 'public', email: null, path: '/tracking' },
     { who: 'customer', email: CUSTOMER.email, path: '/dashboard/customer' },
     { who: 'customer', email: CUSTOMER.email, path: '/dashboard/customer/book' },
+    { who: 'customer', email: CUSTOMER.email, path: '/dashboard/customer/track' },
+    { who: 'customer', email: CUSTOMER.email, path: '/dashboard/customer/merchant/apply' },
+    { who: 'manager', email: MANAGER.email, path: '/dashboard/manager/merchants' },
+    { who: 'manager', email: MANAGER.email, path: '/dashboard/manager/pricing' },
     { who: 'operator', email: OPERATOR.email, path: '/dashboard/operator' },
     { who: 'manager', email: MANAGER.email, path: '/dashboard/manager/reports' },
     { who: 'manager', email: MANAGER.email, path: '/dashboard/manager/drivers' },

@@ -2,6 +2,7 @@ import Badge from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import EditStaffForm from '@/components/manager/edit-staff-form';
 import StaffAccessControls from '@/components/manager/staff-access-controls';
+import DeleteStaffAccount from '@/components/manager/delete-staff-account';
 
 import type { StaffDetail as StaffDetailData } from '@/services/staff/list-staff';
 
@@ -46,6 +47,18 @@ const StaffDetail = ({ staff }: { staff: StaffDetailData }) => {
             <CardContent className="flex flex-col gap-3 pt-6">
               <p className="text-sm font-medium">Access</p>
               <StaffAccessControls profileId={staff.id} active={staff.active} />
+            </CardContent>
+          </Card>
+
+          <Card className="border-destructive/30">
+            <CardContent className="flex flex-col items-start gap-3 pt-6">
+              <div>
+                <p className="text-sm font-medium text-destructive">Danger zone</p>
+                <p className="text-sm text-muted-foreground">
+                  Deactivating is reversible. Deleting permanently removes the account.
+                </p>
+              </div>
+              <DeleteStaffAccount profileId={staff.id} fullName={staff.fullName} role={staff.role} />
             </CardContent>
           </Card>
 

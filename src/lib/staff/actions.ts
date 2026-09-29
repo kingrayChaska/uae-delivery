@@ -303,3 +303,92 @@ export const resetStaffAccessAction = async (
   });
   return { success: true };
 };
+
+// Permanently deletes an operator or driver account. The database function
+// (delete_staff_account, migration 0023) is the real gate: it re-checks the
+// caller is a manager, refuses self-deletion, customers, drivers with
+// deliveries in progress or unreconciled cash, then scrubs contact details
+// and role records while keeping the profile row that shipment, COD and
+// audit history point at. Only after that succeeds is the sign-in removed.
+export const deleteStaffAction = async (
+  profileId: string,
+): Promise<StaffActionResult> => {
+  if (!isUuid(profileId)) return { success: false, error: "Not found" };
+  const manager = await requireRole("manager");
+  if (profileId === manager.id)
+    return { success: false, error: "You cannot delete your own account" };
+
+  const supabase = await createClient();
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("role, full_name, email, deleted_at")
+    .eq("id", profileId)
+    .maybeSingle();
+  if (
+    !target ||
+    !["operator", "driver"].includes(target.role) ||
+    target.deleted_at
+  ) {
+    return { success: false, error: "Staff member not found" };
+  }
+
+  const { error } = await supabase.rpc("delete_staff_account", {
+    p_profile_id: profileId,
+  });
+  // The function's own messages ("Reassign or complete them first", ...)
+  // are written for the manager; anything else stays generic.
+  if (error)
+    return {
+      success: false,
+      error: safeErrorMessage(error, "Could not delete this account"),
+    };
+
+  // Removes the user from Supabase Auth entirely. The profile no longer
+  // depends on the auth row (migration 0024), and it's already anonymised
+  // above. If this fails the account is still unusable — the profile is
+  // inactive, which every session check reads — so ban it as a fallback.
+  const admin = createAdminClient();
+  const { error: authError } = await admin.auth.admin.deleteUser(profileId);
+  if (authError) {
+    console.error(
+      "Staff auth deletion failed; banning instead",
+      profileId,
+      authError.message,
+    );
+    const { error: banError } = await admin.auth.admin.updateUserById(
+      profileId,
+      {
+        ban_duration: "876000h",
+      },
+    );
+    if (banError) {
+      console.error(
+        "Could not ban staff account after auth deletion failed",
+        profileId,
+        banError.message,
+      );
+    }
+  }
+
+  await logAuditEvent({
+    actorId: manager.id,
+    action: "staff.delete",
+    entityType: "profile",
+    entityId: profileId,
+    oldValue: {
+      role: target.role,
+      fullName: target.full_name,
+      email: target.email,
+    },
+  });
+
+  if (authError) {
+    return {
+      success: false,
+      error:
+        "The profile was deactivated, but permanent deletion from Supabase Auth failed. Check server logs or delete the user from Supabase Auth.",
+    };
+  }
+
+  return { success: true };
+};

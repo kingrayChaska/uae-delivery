@@ -30,6 +30,15 @@ describe('buildCsp', () => {
     expect(prod).not.toContain('*.supabase.co');
   });
 
+  it('allows WebAssembly compilation and the hero animation host, but still no JS eval', () => {
+    const prod = buildCsp({ nonce: 'n', isDev: false });
+    expect(directive(prod, 'script-src')).toContain("'wasm-unsafe-eval'");
+    expect(directive(prod, 'script-src')).not.toContain("'unsafe-eval'");
+    expect(directive(prod, 'connect-src')).toContain('https://lottie.host');
+    // The renderer is served from our own origin, not a public CDN.
+    expect(directive(prod, 'connect-src')).not.toContain('https://cdn.jsdelivr.net');
+  });
+
   it('blocks framing, plugins, and base-tag hijacking', () => {
     expect(directive(prod, 'frame-ancestors')).toEqual(["'none'"]);
     expect(directive(prod, 'object-src')).toEqual(["'none'"]);

@@ -7,14 +7,16 @@ import { getCurrentProfile } from '@/lib/auth/session';
 import { getManagerSummary } from '@/services/shipments/get-manager-summary';
 import { listAuditLogs } from '@/services/audit/list-audit-logs';
 import { listRecentBatches } from '@/services/bulk/list-batches';
+import { countMerchantApplicationsByStatus } from '@/services/merchant/applications';
 
 const ManagerDashboardPage = async () => {
   const profile = await getCurrentProfile();
   if (!profile) return null;
-  const [summary, activity, recentBatches] = await Promise.all([
+  const [summary, activity, recentBatches, merchantCounts] = await Promise.all([
     getManagerSummary(),
     listAuditLogs(8),
     listRecentBatches(5),
+    countMerchantApplicationsByStatus(),
   ]);
 
   return (
@@ -36,6 +38,21 @@ const ManagerDashboardPage = async () => {
           </Button>
         </div>
       </div>
+
+      {merchantCounts.pending > 0 ? (
+        <Link
+          href="/dashboard/manager/merchants?status=pending"
+          className="flex items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-secondary/50 p-4 text-sm transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          <span>
+            <span className="font-semibold">
+              {merchantCounts.pending} merchant {merchantCounts.pending === 1 ? 'application' : 'applications'}
+            </span>{' '}
+            waiting for review
+          </span>
+          <span className="font-medium text-primary">Review →</span>
+        </Link>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Booked Today" value={String(summary.shipmentsToday)} />

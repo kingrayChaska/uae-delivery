@@ -2,31 +2,27 @@ import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
 import { safeErrorMessage } from '@/lib/security/errors';
-import { BOOKING_ERRORS, validateBookingLocations, validateRoute } from '@/lib/shipment/booking-guards';
-import { createAdminClient } from '@/lib/supabase/admin';
+import {
+  BOOKING_ERRORS,
+  distanceLimitMessage,
+  validateBookingLocations,
+  validateRoute,
+} from '@/lib/shipment/booking-guards';
 import { mapboxProvider } from '@/lib/maps/mapbox-provider';
-import { getActivePricingRule } from '@/lib/pricing/get-active-rule';
-import { calculatePrice } from '@/lib/pricing/calculate';
+import { requireServiceableTrip } from '@/lib/service-areas/verify';
+import { getActivePricingRules } from '@/lib/pricing/get-active-rule';
+import { isFallbackRule } from '@/lib/pricing/config';
+import { calculateShipmentPrice } from '@/lib/pricing/calculate';
 import { mapRowToShipment, SHIPMENT_SELECT_COLUMNS } from '@/services/shipments/shipment-mapper';
 
 import type { BookingInput } from '@/lib/shipment/schemas';
-import type { Shipment } from '@/lib/types';
+import type { AccountType, PriceBreakdown, PricingRule, PricingRuleSet, Shipment } from '@/lib/types';
 import type { ShipmentRow } from '@/services/shipments/shipment-mapper';
+import type { Emirate } from '@/lib/service-areas/config';
 
-// cod_transactions has no INSERT policy for ordinary users (migration 0007)
-// — the "expected" row is a system-generated record, the same way
-// notifications/audit_logs are, so it's created below with the
-// service-role client after the shipment itself was already inserted (and
-// RLS-validated) via the customer's own session.
-const createExpectedCodRecord = async (shipmentId: string, customerId: string, amount: number) => {
-  const admin = createAdminClient();
-  await admin.from('cod_transactions').insert({
-    shipment_id: shipmentId,
-    customer_id: customerId,
-    amount,
-    status: 'expected',
-  });
-};
+// Cash on delivery (the goods amount and/or a cash delivery fee) is
+// recorded by a database trigger when a driver is assigned — see
+// sync_shipment_cod_transaction, migration 0022.
 
 const findByClientRequestId = async (customerId: string, clientRequestId: string): Promise<Shipment | null> => {
   const supabase = await createClient();
@@ -39,30 +35,87 @@ const findByClientRequestId = async (customerId: string, clientRequestId: string
   return data ? mapRowToShipment(data as ShipmentRow) : null;
 };
 
-// Distance, duration and price are computed HERE, from the coordinates the
-// person picked via AddressAutocomplete — never read from a client-supplied
-// price field, because there isn't one on the wire in the first place. The
-// shipments_insert RLS policy (migration 0006) independently re-checks this
-// same consistency as a backstop against a request that bypasses this
-// service entirely and hits the Supabase REST API directly.
-export const createShipment = async (
-  customerId: string,
-  input: BookingInput,
-  businessAccountId: string | null = null,
-  batchId: string | null = null,
-): Promise<Shipment> => {
+// Customer-typed details and Mapbox's structured address for one end of the
+// trip. The coordinates (pickup_lat/lng etc.) stay the authoritative location;
+// `emirate` in *_place is the one this server confirmed, not the browser's.
+const locationDetailColumns = (prefix: 'pickup' | 'dropoff', location: BookingInput['pickup'], emirate: Emirate) => ({
+  [`${prefix}_building`]: location.building?.trim() || null,
+  [`${prefix}_unit`]: location.unit?.trim() || null,
+  [`${prefix}_floor`]: location.floor?.trim() || null,
+  [`${prefix}_instructions`]: location.instructions?.trim() || null,
+  [`${prefix}_place`]: { ...location.place, emirate },
+});
+
+export type BookingCustomer = {
+  id: string;
+  accountType: AccountType;
+  // Approved merchants' shipments are tagged with their business account.
+  merchantBusinessAccountId: string | null;
+};
+
+// Account type is read from the database, never from the request. The
+// caller's own session reads it: a customer can read their own profile,
+// staff can read any customer's.
+export const getBookingCustomer = async (customerId: string): Promise<BookingCustomer> => {
   const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, account_type')
+    .eq('id', customerId)
+    .maybeSingle();
+  if (!profile) throw new Error('Customer not found');
+
+  let merchantBusinessAccountId: string | null = null;
+  if (profile.account_type === 'merchant') {
+    const { data: membership } = await supabase
+      .from('business_account_members')
+      .select('business_account_id, business_accounts(active)')
+      .eq('profile_id', customerId);
+    const active = (membership ?? []).find((row) => {
+      const business = row.business_accounts as { active: boolean } | { active: boolean }[] | null;
+      return Array.isArray(business) ? business[0]?.active : business?.active;
+    });
+    merchantBusinessAccountId = active?.business_account_id ?? null;
+  }
+
+  return { id: profile.id, accountType: profile.account_type as AccountType, merchantBusinessAccountId };
+};
+
+export type ShipmentQuote = {
+  input: BookingInput;
+  rule: PricingRule;
+  breakdown: PriceBreakdown;
+  // Confirmed by requireServiceableTrip, and stored with the shipment.
+  emirates: { pickup: Emirate; dropoff: Emirate };
+};
+
+// Validates one shipment and prices it from a route this server computed —
+// distance, duration and price are never read from the request. Throws a
+// customer-readable message when the shipment can't be booked.
+export const quoteShipment = async (
+  customer: BookingCustomer,
+  input: BookingInput,
+  rules?: PricingRuleSet,
+): Promise<ShipmentQuote> => {
   const pickup = { lat: input.pickup.lat, lng: input.pickup.lng };
   const dropoff = { lat: input.dropoff.lat, lng: input.dropoff.lng };
 
   const locationError = validateBookingLocations(pickup, dropoff);
   if (locationError) throw new Error(locationError);
 
-  // A retry of a booking that already went through: hand back the original
-  // instead of creating a second shipment (and skip the paid Mapbox call).
-  if (input.clientRequestId) {
-    const existing = await findByClientRequestId(customerId, input.clientRequestId);
-    if (existing) return existing;
+  // Both ends must be in a fully supported emirate (lib/service-areas).
+  // Checked from the coordinates on this server, before anything is priced.
+  const emirates = await requireServiceableTrip(pickup, dropoff);
+
+  if (customer.accountType === 'merchant' && (input.packageWeightKg === undefined || input.packageWeightKg <= 0)) {
+    throw new Error(BOOKING_ERRORS.weightRequired);
+  }
+
+  const rule = (rules ?? (await getActivePricingRules()))[customer.accountType][input.deliveryType];
+  if (isFallbackRule(rule)) {
+    // An in-code fallback has no database row, so the database's price
+    // check would reject it anyway. Fail clearly instead.
+    throw new Error('Pricing is not configured. Please contact support.');
   }
 
   let route;
@@ -76,27 +129,47 @@ export const createShipment = async (
   const routeError = validateRoute(route);
   if (routeError) throw new Error(routeError);
 
-  const rule = await getActivePricingRule();
-  if (rule.id === 'default') {
-    // The in-code fallback rule (lib/pricing/calculate.ts) has no real DB
-    // row — inserting against it would fail the RLS price-consistency
-    // check anyway. Fail clearly here instead of a confusing RLS error.
-    throw new Error('Pricing is not configured. Please contact support.');
+  const breakdown = calculateShipmentPrice({
+    rule,
+    distanceKm: route.distanceKm,
+    durationMinutes: route.durationMinutes,
+    weightKg: input.packageWeightKg ?? null,
+    recipientPaymentType: input.recipientPaymentType,
+    shipmentQuantity: input.packageQuantity,
+    codAmount: input.codAmount,
+  });
+
+  if (breakdown.exceedsDistanceLimit) {
+    throw new Error(distanceLimitMessage(breakdown.distanceKm, breakdown.maxDistanceKm));
   }
 
-  const breakdown = calculatePrice(route.distanceKm, route.durationMinutes, rule);
+  return { input, rule, breakdown, emirates };
+};
 
-  // COD doesn't need upfront payment, so it can go straight to 'confirmed'.
-  // Card bookings sit at 'pending_payment' — there's no live payment
-  // provider wired up yet (lib/payments is a documented stub), so this is
-  // the honest state rather than faking a successful charge.
+// Inserts a priced shipment with the caller's own session, so the
+// shipments_insert RLS policy independently re-checks every component of
+// the price against the active rule, the distance limit and the customer's
+// account type (migration 0022) — a backstop against a request that skips
+// this service and hits the Supabase REST API directly.
+export const insertQuotedShipment = async (
+  customer: BookingCustomer,
+  { input, rule, breakdown, emirates }: ShipmentQuote,
+  { businessAccountId = null, batchId = null }: { businessAccountId?: string | null; batchId?: string | null } = {},
+): Promise<Shipment> => {
+  const supabase = await createClient();
+
+  // Cash-paid delivery fees don't need upfront payment, so they go straight
+  // to 'confirmed'. Card bookings sit at 'pending_payment' — there's no live
+  // payment provider wired up yet (lib/payments is a documented stub), so
+  // this is the honest state rather than faking a successful charge.
   const status = input.paymentMethod === 'cod' ? 'confirmed' : 'pending_payment';
+  const postpaid = input.recipientPaymentType === 'postpaid';
 
   const { data, error } = await supabase
     .from('shipments')
     .insert({
-      customer_id: customerId,
-      business_account_id: businessAccountId,
+      customer_id: customer.id,
+      business_account_id: businessAccountId ?? customer.merchantBusinessAccountId,
       batch_id: batchId,
       status,
       pickup_address: input.pickup.address,
@@ -109,16 +182,29 @@ export const createShipment = async (
       dropoff_lng: input.dropoff.lng,
       dropoff_contact_name: input.dropoff.contactName,
       dropoff_contact_phone: input.dropoff.contactPhone,
+      ...locationDetailColumns('pickup', input.pickup, emirates.pickup),
+      ...locationDetailColumns('dropoff', input.dropoff, emirates.dropoff),
       distance_km: breakdown.distanceKm,
       duration_minutes: breakdown.durationMinutes,
       pricing_rule_id: rule.id,
+      delivery_type: input.deliveryType,
+      base_charge: breakdown.basePrice,
+      distance_charge: breakdown.distanceCharge,
+      weight_charge: breakdown.weightCharge,
+      cod_charge: breakdown.codCharge,
       price: breakdown.totalPrice,
       currency: breakdown.currency,
       payment_method: input.paymentMethod,
+      recipient_payment_type: input.recipientPaymentType,
+      cod_amount: postpaid ? (input.codAmount ?? 0) : 0,
+      product_value: input.productValue ?? null,
       package_type: input.packageType,
       package_description: input.packageDescription,
       package_quantity: input.packageQuantity,
-      package_weight_kg: input.packageWeightKg ?? null,
+      package_weight_kg: breakdown.weightKg,
+      package_length_cm: input.packageLengthCm ?? null,
+      package_width_cm: input.packageWidthCm ?? null,
+      package_height_cm: input.packageHeightCm ?? null,
       is_fragile: input.isFragile,
       package_image_url: input.packageImagePath ?? null,
       client_request_id: input.clientRequestId ?? null,
@@ -127,20 +213,36 @@ export const createShipment = async (
     .single();
 
   if (error || !data) {
-    // Two identical submits raced past the lookup above; the unique index
-    // (migration 0019) let exactly one insert through. Return that one.
+    // Two identical submits raced past the lookup in createShipment; the
+    // unique index (migration 0019) let exactly one insert through.
     if (error?.code === '23505' && input.clientRequestId) {
-      const existing = await findByClientRequestId(customerId, input.clientRequestId);
+      const existing = await findByClientRequestId(customer.id, input.clientRequestId);
       if (existing) return existing;
     }
     throw new Error(safeErrorMessage(error, 'Could not create the shipment'));
   }
 
-  const shipment = mapRowToShipment(data as ShipmentRow);
+  return mapRowToShipment(data as ShipmentRow);
+};
 
-  if (input.paymentMethod === 'cod') {
-    await createExpectedCodRecord(shipment.id, customerId, shipment.price);
+// Quote + insert for a single shipment. Used by the staff CSV upload and
+// anything else that books one shipment at a time.
+export const createShipment = async (
+  customerId: string,
+  input: BookingInput,
+  businessAccountId: string | null = null,
+  batchId: string | null = null,
+): Promise<Shipment> => {
+  // A retry of a booking that already went through: hand back the original
+  // instead of creating a second shipment (and skip the paid Mapbox call).
+  if (input.clientRequestId) {
+    const existing = await findByClientRequestId(customerId, input.clientRequestId);
+    if (existing) return existing;
   }
 
-  return shipment;
+  const customer = await getBookingCustomer(customerId);
+  const quote = await quoteShipment(customer, input);
+  return insertQuotedShipment(customer, quote, { businessAccountId, batchId });
 };
+
+export { findByClientRequestId };

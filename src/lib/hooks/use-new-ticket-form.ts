@@ -10,13 +10,13 @@ import { createTicketSchema } from '@/lib/support/schemas';
 
 import type { CreateTicketInput } from '@/lib/support/schemas';
 
-export const useNewTicketForm = () => {
+export const useNewTicketForm = (defaultValues: CreateTicketInput = { subject: '', message: '' }) => {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
   const form = useForm<CreateTicketInput>({
     resolver: zodResolver(createTicketSchema),
-    defaultValues: { subject: '', message: '' },
+    defaultValues,
   });
 
   const onSubmit = form.handleSubmit(async (input) => {

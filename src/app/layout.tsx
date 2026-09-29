@@ -10,15 +10,24 @@ import './globals.css';
 
 import { connection } from 'next/server';
 
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, siteUrl } from '@/lib/seo';
+
 import type { Metadata, Viewport } from 'next';
 
 // The favicon and app icons come from app/favicon.ico, app/icon.png and
 // app/apple-icon.png (Next.js file conventions), generated from the
 // ParcelLink mark.
+// metadataBase makes canonical and Open Graph URLs absolute. Pages behind
+// sign-in aren't indexed (robots.ts), so only public pages need their own
+// canonical tags.
 export const metadata: Metadata = {
-  title: 'ParcelLink — Reliable Delivery Across the UAE',
-  description:
-    'Book, track and manage deliveries across the UAE — same-day, next-day and business shipping.',
+  metadataBase: new URL(siteUrl()),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: { siteName: SITE_NAME, type: 'website', locale: 'en_AE' },
+  twitter: { card: 'summary_large_image' },
+  formatDetection: { telephone: false },
 };
 
 // Tints the browser UI (mobile address bar) in the brand purple.
@@ -37,7 +46,7 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
   await connection();
 
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en-AE" className="h-full antialiased">
       <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
   );

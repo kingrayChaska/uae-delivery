@@ -36,9 +36,14 @@ export const login = async (page: Page, email: string, password = PASSWORD) => {
   await page.waitForURL(/\/dashboard\//);
 };
 
+// Chooses a location in the booking wizard's location picker. If one is
+// already chosen, its "Change" button reopens the search first.
 export const pickAddress = async (page: Page, label: string, query: string, suggestion: RegExp) => {
-  await page.getByLabel(label).fill(query);
-  await page.getByRole('button', { name: suggestion }).click();
+  const change = page.getByRole('button', { name: `Change ${label.toLowerCase()}` });
+  if (await change.isVisible()) await change.click();
+  await page.getByRole('combobox', { name: label }).fill(query);
+  await page.getByRole('option').getByRole('button', { name: suggestion }).click();
+  await expect(page.getByRole('button', { name: `Change ${label.toLowerCase()}` })).toBeVisible();
 };
 
 // Emails the Auth server sent, captured by e2e/stack/smtp-sink.py.

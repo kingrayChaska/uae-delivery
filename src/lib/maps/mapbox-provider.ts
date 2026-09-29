@@ -4,15 +4,22 @@ import {
   MapsProviderError,
   buildDirectionsUrl,
   buildForwardGeocodeUrl,
+  buildRetrieveUrl,
   buildReverseGeocodeUrl,
+  buildSuggestUrl,
   parseDirectionsResponse,
-  parseGeocodeResponse,
+  parseGeocodeSuggestions,
+  parseRetrieveResponse,
+  parseReverseGeocodeResponse,
   parseSingleGeocodeResponse,
+  parseSuggestResponse,
 } from '@/lib/maps/mapbox-client';
 
 import type { Coordinates } from '@/lib/types';
-import type { GeocodeResult, MapsProvider, RouteResult } from '@/lib/maps/types';
+import type { GeocodeResult, LocationSuggestion, MapsProvider, ResolvedLocation, RouteResult } from '@/lib/maps/types';
 
+// Server-only: MAPBOX_SECRET_TOKEN never reaches the browser. The browser
+// only uses NEXT_PUBLIC_MAPBOX_TOKEN to draw map tiles.
 const getToken = () => {
   const token = process.env.MAPBOX_SECRET_TOKEN;
   if (!token) {
@@ -24,13 +31,13 @@ const getToken = () => {
 const fetchJson = async (url: string) => {
   let response: Response;
   try {
-    response = await fetch(url);
+    response = await fetch(url, { signal: AbortSignal.timeout(8000) });
   } catch {
     throw new MapsProviderError('Unable to reach the maps service. Please try again.');
   }
 
   if (!response.ok) {
-    throw new MapsProviderError('The maps service returned an error. Please try again.');
+    throw new MapsProviderError(`The maps service returned an error (${response.status}). Please try again.`);
   }
 
   return response.json();
@@ -39,10 +46,20 @@ const fetchJson = async (url: string) => {
 export { MapsProviderError };
 
 export const mapboxProvider: MapsProvider = {
-  autocomplete: async (query: string): Promise<GeocodeResult[]> => {
-    if (query.trim().length < 3) return [];
-    const json = await fetchJson(buildForwardGeocodeUrl(query, getToken(), { autocomplete: true }));
-    return parseGeocodeResponse(json);
+  suggest: async (query: string, sessionToken: string, proximity?: Coordinates): Promise<LocationSuggestion[]> => {
+    const json = await fetchJson(buildSuggestUrl(query, getToken(), sessionToken, proximity));
+    return parseSuggestResponse(json);
+  },
+
+  retrieve: async (id: string, sessionToken: string): Promise<ResolvedLocation> => {
+    const json = await fetchJson(buildRetrieveUrl(id, getToken(), sessionToken));
+    return parseRetrieveResponse(json);
+  },
+
+  // Geocoding-based search: the fallback when Search Box is unavailable.
+  searchPlaces: async (query: string, proximity?: Coordinates): Promise<LocationSuggestion[]> => {
+    const json = await fetchJson(buildForwardGeocodeUrl(query, getToken(), { autocomplete: true, limit: 6, proximity }));
+    return parseGeocodeSuggestions(json);
   },
 
   geocode: async (address: string): Promise<GeocodeResult> => {
@@ -50,9 +67,9 @@ export const mapboxProvider: MapsProvider = {
     return parseSingleGeocodeResponse(json);
   },
 
-  reverseGeocode: async (coordinates: Coordinates): Promise<GeocodeResult> => {
+  reverseGeocode: async (coordinates: Coordinates): Promise<ResolvedLocation> => {
     const json = await fetchJson(buildReverseGeocodeUrl(coordinates, getToken()));
-    return parseSingleGeocodeResponse(json);
+    return parseReverseGeocodeResponse(json, coordinates);
   },
 
   getRoute: async (origin: Coordinates, destination: Coordinates): Promise<RouteResult> => {

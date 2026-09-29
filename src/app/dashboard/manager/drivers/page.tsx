@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import Badge from '@/components/ui/badge';
 import Button from '@/components/ui/button';
+import DeleteStaffAccount from '@/components/manager/delete-staff-account';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { listAllDrivers } from '@/services/drivers/list-all-drivers';
 
@@ -11,8 +12,9 @@ const AVAILABILITY_VARIANT: Record<string, 'success' | 'secondary' | 'default'> 
   offline: 'default',
 };
 
-const ManagerDriversPage = async () => {
+const ManagerDriversPage = async ({ searchParams }: { searchParams: Promise<{ deleted?: string }> }) => {
   await requireRoleOrRedirect('manager');
+  const { deleted } = await searchParams;
   const drivers = await listAllDrivers();
 
   return (
@@ -23,6 +25,12 @@ const ManagerDriversPage = async () => {
           <Link href="/dashboard/manager/drivers/new">Add driver</Link>
         </Button>
       </div>
+
+      {deleted === '1' ? (
+        <p role="status" className="rounded-xl border border-success/50 bg-success/10 p-3 text-sm">
+          Account deleted. Their past activity is kept in the history.
+        </p>
+      ) : null}
 
       {drivers.length === 0 ? (
         <div className="rounded-md border border-dashed p-8 text-center">
@@ -40,6 +48,9 @@ const ManagerDriversPage = async () => {
                 <th className="px-3 py-2 font-medium">Today / Week / Month</th>
                 <th className="px-3 py-2 font-medium">Delivered / Failed</th>
                 <th className="px-3 py-2 font-medium">COD collected</th>
+                <th scope="col" className="px-3 py-2 text-right font-medium">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -68,6 +79,9 @@ const ManagerDriversPage = async () => {
                     {driver.successfulDeliveries} / {driver.failedDeliveries}
                   </td>
                   <td className="px-3 py-2 font-brand-mono">AED {driver.codCollected.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right">
+                    <DeleteStaffAccount compact profileId={driver.id} fullName={driver.fullName} role="driver" />
+                  </td>
                 </tr>
               ))}
             </tbody>

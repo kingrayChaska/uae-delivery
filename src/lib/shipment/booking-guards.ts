@@ -12,7 +12,14 @@ export const BOOKING_ERRORS = {
   sameLocation: 'Pickup and delivery are the same place. Choose a different delivery address.',
   outsideUae: 'We only deliver within the UAE. Choose addresses inside the UAE.',
   routeFailed: 'Unable to calculate route. Please try again.',
+  weightRequired: 'Enter the shipment weight — it’s required for merchant shipments.',
 } as const;
+
+// The long-distance restriction: booking is refused beyond the rule's
+// maximum distance (50 km by default, set per pricing rule). The same limit
+// is enforced by createShipment() and by the database for every caller.
+export const distanceLimitMessage = (distanceKm: number, maxDistanceKm: number) =>
+  `This delivery is ${distanceKm.toFixed(1)} km by road, which is beyond ParcelLink’s ${maxDistanceKm} km standard delivery distance, so it can’t be booked online. Choose a delivery address within ${maxDistanceKm} km of the pickup, or contact support to arrange a long-distance delivery.`;
 
 export const isInsideUae = ({ lat, lng }: Coordinates) => {
   const [minLng, minLat, maxLng, maxLat] = UAE_BBOX;

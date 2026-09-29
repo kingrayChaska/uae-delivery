@@ -31,7 +31,7 @@ export const getSession = cache(async (): Promise<Session> => {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role, full_name, email, phone, avatar_url, active, created_at')
+    .select('id, role, full_name, email, phone, avatar_url, active, account_type, account_type_selected_at, created_at')
     .eq('id', userId)
     .maybeSingle();
 
@@ -47,6 +47,8 @@ export const getSession = cache(async (): Promise<Session> => {
       phone: profile.phone,
       avatarUrl: profile.avatar_url,
       active: profile.active,
+      accountType: profile.account_type,
+      accountTypeSelectedAt: profile.account_type_selected_at,
       createdAt: profile.created_at,
     },
   };

@@ -5,7 +5,7 @@ import { pageRange, toPaginated } from '@/lib/pagination';
 import { mapRowToShipment, SHIPMENT_SELECT_COLUMNS } from '@/services/shipments/shipment-mapper';
 
 import type { Paginated } from '@/lib/pagination';
-import type { Shipment } from '@/lib/types';
+import type { AccountType, Shipment } from '@/lib/types';
 import type { ShipmentRow } from '@/services/shipments/shipment-mapper';
 
 export type CustomerSummary = {
@@ -62,16 +62,23 @@ export const listCustomers = async (page: number): Promise<Paginated<CustomerSum
 };
 
 // Just what the staff booking wizard's customer picker needs — no stats.
-export const listCustomerOptions = async (): Promise<{ id: string; fullName: string; email: string }[]> => {
+export const listCustomerOptions = async (): Promise<
+  { id: string; fullName: string; email: string; accountType: AccountType }[]
+> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from('profiles')
-    .select('id, full_name, email')
+    .select('id, full_name, email, account_type')
     .eq('role', 'customer')
     .eq('active', true)
     .order('full_name', { ascending: true });
 
-  return (data ?? []).map((row) => ({ id: row.id, fullName: row.full_name, email: row.email }));
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    fullName: row.full_name,
+    email: row.email,
+    accountType: row.account_type as AccountType,
+  }));
 };
 
 export type CustomerDetail = {

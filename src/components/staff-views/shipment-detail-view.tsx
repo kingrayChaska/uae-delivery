@@ -3,11 +3,16 @@ import Link from 'next/link';
 
 import Button from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import AddressBlock from '@/components/shipment/address-block';
 import ShipmentStatusBadge from '@/components/shipment/shipment-status-badge';
 import RouteMap from '@/components/maps/lazy-route-map';
 import MarkReturnedButton from '@/components/operator/mark-returned-button';
 import ReassignDriverSection from '@/components/operator/reassign-driver-section';
+import ShipmentChargesCard from '@/components/shipment/shipment-charges-card';
+import ProofOfDeliveryButton from '@/components/shipment/proof-of-delivery';
+import TrackingCode from '@/components/shipment/tracking-code';
 import { getShipmentDetail } from '@/services/shipments/get-shipment';
+import { getProofOfDelivery } from '@/services/shipments/get-proof-of-delivery';
 import { getProfileName } from '@/services/profiles/get-profile-name';
 import { formatEta, formatShipmentStatus } from '@/lib/shipment/format';
 
@@ -19,21 +24,24 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
   if (!detail) notFound();
 
   const { shipment, history } = detail;
-  const driverName = await getProfileName(shipment.driverId);
+  const [driverName, proof] = await Promise.all([
+    getProfileName(shipment.driverId),
+    shipment.status === 'delivered' ? getProofOfDelivery(shipment.id) : Promise.resolve(null),
+  ]);
 
   const canAssign = shipment.status === 'confirmed' && !shipment.driverId;
   const canReassign = shipment.status === 'assigned' || shipment.status === 'delivery_failed';
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-brand-mono text-sm text-muted-foreground">{shipment.trackingNumber}</p>
-          <h1 className="text-2xl font-semibold">
+    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 flex-col gap-2">
+          <TrackingCode code={shipment.trackingNumber} />
+          <h1 className="break-words text-xl font-semibold sm:text-2xl">
             {shipment.pickup.formattedAddress} → {shipment.dropoff.formattedAddress}
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="outline" size="sm">
             <Link href={`${basePath}/shipments/${shipment.id}/label`}>View label</Link>
           </Button>
@@ -50,35 +58,25 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
                 <span className="text-muted-foreground">Driver</span>
                 <span>{driverName ?? 'Unassigned'}</span>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Pickup</p>
-                <p>{shipment.pickup.formattedAddress}</p>
-                <p className="text-muted-foreground">
-                  {shipment.pickup.contactName} · {shipment.pickup.contactPhone}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Delivery</p>
-                <p>{shipment.dropoff.formattedAddress}</p>
-                <p className="text-muted-foreground">
-                  {shipment.dropoff.contactName} · {shipment.dropoff.contactPhone}
-                </p>
-              </div>
-              <div className="grid grid-cols-3 gap-4 border-t pt-3 font-brand-mono">
+              <AddressBlock heading="Pickup" address={shipment.pickup} />
+              <AddressBlock heading="Delivery" address={shipment.dropoff} />
+              <div className="grid grid-cols-2 gap-4 border-t pt-3 font-brand-mono">
                 <div>
                   <p className="text-xs text-muted-foreground">Distance</p>
                   <p>{shipment.distanceKm.toFixed(1)} km</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">ETA</p>
+                  <p className="text-xs text-muted-foreground">Est. drive time</p>
                   <p>{formatEta(shipment.durationMinutes)}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Price</p>
-                  <p>
-                    {shipment.currency} {shipment.price.toFixed(2)}
-                  </p>
-                </div>
+              </div>
+              <div className="border-t pt-3">
+                <p className="text-xs text-muted-foreground">Package</p>
+                <p>
+                  {shipment.packageQuantity} × {shipment.packageDescription}
+                  {shipment.packageWeightKg ? ` · ${shipment.packageWeightKg} kg` : ''}
+                  {shipment.isFragile ? ' · Fragile' : ''}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -111,11 +109,21 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
           </Card>
         </div>
 
-        <RouteMap
-          pickup={shipment.pickup.coordinates}
-          dropoff={shipment.dropoff.coordinates}
-          className="h-80 w-full rounded-md"
-        />
+        <div className="flex flex-col gap-6">
+          <ShipmentChargesCard shipment={shipment} />
+          {shipment.status === 'delivered' ? (
+            <Card>
+              <CardContent className="pt-6">
+                <ProofOfDeliveryButton proof={proof} status={shipment.status} trackingCode={shipment.trackingNumber} />
+              </CardContent>
+            </Card>
+          ) : null}
+          <RouteMap
+            pickup={shipment.pickup.coordinates}
+            dropoff={shipment.dropoff.coordinates}
+            className="h-80 w-full rounded-2xl"
+          />
+        </div>
       </div>
     </main>
   );

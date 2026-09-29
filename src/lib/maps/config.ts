@@ -5,3 +5,10 @@ export const UAE_BBOX: [number, number, number, number] = [51.0, 22.5, 56.5, 26.
 
 export const UAE_DEFAULT_CENTER: [number, number] = [55.2708, 25.2048]; // Dubai
 export const UAE_DEFAULT_ZOOM = 10;
+
+export const SEARCH_UNAVAILABLE_MESSAGE =
+  'Location search is temporarily unavailable. You can try again or select the location manually on the map.';
+
+// Characters typed before searching, and the pause after the last keystroke.
+export const SEARCH_MIN_CHARS = 3;
+export const SEARCH_DEBOUNCE_MS = 300;

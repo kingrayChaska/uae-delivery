@@ -40,6 +40,9 @@ export const buildCsp = ({ nonce, isDev, supabaseUrl, upgradeInsecureRequests = 
       `'nonce-${nonce}'`,
       "'strict-dynamic'",
       'https://challenges.cloudflare.com',
+      // Compiling WebAssembly (the hero's DotLottie renderer). Allows only
+      // WASM compilation — JavaScript eval stays blocked.
+      "'wasm-unsafe-eval'",
       // React's dev tooling needs eval; never allowed in production.
       ...(isDev ? ["'unsafe-eval'"] : []),
     ],
@@ -53,6 +56,8 @@ export const buildCsp = ({ nonce, isDev, supabaseUrl, upgradeInsecureRequests = 
       'https://*.tiles.mapbox.com',
       'https://events.mapbox.com',
       'https://challenges.cloudflare.com',
+      // The hero animation's .lottie file (its renderer is self-hosted).
+      'https://lottie.host',
     ],
     'worker-src': ["'self'", 'blob:'],
     'child-src': ['blob:'],

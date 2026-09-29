@@ -8,7 +8,22 @@ import type { Role } from '@/lib/types';
 const as = (role: Role, active = true) => ({ role, active });
 
 describe('decideRoute — signed out', () => {
-  it.each(['/', '/tracking', '/login', '/register', '/forgot-password', '/reset-password', '/auth/confirm', '/terms'])(
+  it.each([
+    '/',
+    '/tracking',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+    '/auth/confirm',
+    '/terms',
+    // Crawlers and link previews have no session.
+    '/robots.txt',
+    '/sitemap.xml',
+    '/opengraph-image',
+    // Self-hosted assets the public landing page loads.
+    '/vendor/dotlottie-player.wasm',
+  ])(
     'allows public route %s',
     (pathname) => {
       expect(decideRoute({ pathname, signedIn: false, profile: null })).toEqual({ type: 'allow' });

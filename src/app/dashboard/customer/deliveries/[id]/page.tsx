@@ -1,166 +1,167 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft, CircleCheck, Printer } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
-import Link from 'next/link';
-
 import Button from '@/components/ui/button';
+import AddressBlock from '@/components/shipment/address-block';
 import ShipmentStatusBadge from '@/components/shipment/shipment-status-badge';
 import TrackingTimeline from '@/components/shipment/tracking-timeline';
+import TrackingCode from '@/components/shipment/tracking-code';
 import CancelShipmentButton from '@/components/shipment/cancel-shipment-button';
+import ProofOfDeliveryButton from '@/components/shipment/proof-of-delivery';
+import ShipmentChargesCard from '@/components/shipment/shipment-charges-card';
 import RouteMap from '@/components/maps/lazy-route-map';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
+import { isUuid } from '@/lib/security/validate';
 import { getShipmentDetail } from '@/services/shipments/get-shipment';
-import { formatEta, formatShipmentStatus } from '@/lib/shipment/format';
+import { getProofOfDelivery } from '@/services/shipments/get-proof-of-delivery';
+import { formatShipmentStatus } from '@/lib/shipment/format';
 import { getTerminalNegativeMessage, getTrackingMilestones } from '@/lib/shipment/tracking-milestones';
 
-const CANCELLABLE_STATUSES = ['pending_payment', 'confirmed', 'assigned', 'driver_accepted'];
-const ROUTE_VISIBLE_STATUSES = [
-  'assigned',
-  'driver_accepted',
-  'arrived_pickup',
-  'picked_up',
-  'in_transit',
-  'arrived_destination',
-  'delivered',
-];
+import type { Metadata } from 'next';
 
-const ShipmentDetailPage = async ({ params }: { params: Promise<{ id: string }> }) => {
+export const metadata: Metadata = { title: 'Shipment details · ParcelLink' };
+
+const CANCELLABLE_STATUSES = ['pending_payment', 'confirmed', 'assigned', 'driver_accepted'];
+const ROUTE_VISIBLE_STATUSES = ['assigned', 'driver_accepted', 'arrived_pickup', 'picked_up', 'in_transit', 'arrived_destination', 'delivered'];
+
+const formatTime = (value: string) =>
+  new Intl.DateTimeFormat('en-AE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Dubai' }).format(new Date(value));
+
+const ShipmentDetailPage = async ({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ booked?: string }>;
+}) => {
   await requireRoleOrRedirect('customer');
-  const { id } = await params;
+  const [{ id }, { booked }] = await Promise.all([params, searchParams]);
+  if (!isUuid(id)) notFound();
 
   const detail = await getShipmentDetail(id);
   if (!detail) notFound();
 
   const { shipment, history, packageImageUrl } = detail;
+  const proof = shipment.status === 'delivered' ? await getProofOfDelivery(shipment.id) : null;
   const terminalMessage = getTerminalNegativeMessage(shipment.status);
-  const milestones = getTrackingMilestones(shipment.status);
+  const milestones = getTrackingMilestones(shipment.status, history);
+  const dimensions = [shipment.packageLengthCm, shipment.packageWidthCm, shipment.packageHeightCm];
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-brand-mono text-sm text-muted-foreground">{shipment.trackingNumber}</p>
-          <h1 className="text-2xl font-semibold">
-            {shipment.pickup.formattedAddress} → {shipment.dropoff.formattedAddress}
-          </h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/dashboard/customer/deliveries/${shipment.id}/label`}>View label</Link>
-          </Button>
-          <ShipmentStatusBadge status={shipment.status} />
-        </div>
-      </div>
+    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
+      <Link href="/dashboard/customer/deliveries" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="size-4" aria-hidden />
+        My deliveries
+      </Link>
 
-      {CANCELLABLE_STATUSES.includes(shipment.status) ? (
-        <div className="flex justify-end">
-          <CancelShipmentButton shipmentId={shipment.id} />
+      {booked === '1' ? (
+        <div role="status" className="flex items-start gap-3 rounded-2xl border border-success/50 bg-success/10 p-4 text-sm animate-in fade-in-0 slide-in-from-top-2 motion-reduce:animate-none">
+          <CircleCheck className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
+          <p>
+            <span className="font-medium">Booking confirmed.</span> Share the tracking ID with your recipient so they can follow the delivery.
+          </p>
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="flex flex-col gap-4">
-          <Card>
-            <CardContent className="flex flex-col gap-4 pt-6">
-              {terminalMessage ? (
-                <p className="text-sm text-muted-foreground">{terminalMessage}</p>
-              ) : (
-                <TrackingTimeline milestones={milestones} />
-              )}
-            </CardContent>
-          </Card>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 flex-col gap-3">
+          <TrackingCode code={shipment.trackingNumber} size="lg" />
+          <h1 className="text-xl font-semibold leading-snug sm:text-2xl">
+            <span className="break-words">{shipment.pickup.formattedAddress}</span>
+            <span className="text-primary" aria-label="to"> → </span>
+            <span className="break-words">{shipment.dropoff.formattedAddress}</span>
+          </h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <ShipmentStatusBadge status={shipment.status} />
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/dashboard/customer/deliveries/${shipment.id}/label`}>
+              <Printer aria-hidden />
+              Label
+            </Link>
+          </Button>
+          {CANCELLABLE_STATUSES.includes(shipment.status) ? <CancelShipmentButton shipmentId={shipment.id} /> : null}
+        </div>
+      </div>
 
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="flex flex-col gap-6 lg:col-span-3">
           <Card>
-            <CardContent className="flex flex-col gap-3 pt-6 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">Pickup</p>
-                <p>{shipment.pickup.formattedAddress}</p>
-                <p className="text-muted-foreground">
-                  {shipment.pickup.contactName} · {shipment.pickup.contactPhone}
-                </p>
+            <CardContent className="flex flex-col gap-5 pt-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold">Tracking</h2>
+                <span className="text-sm text-muted-foreground">Now: {formatShipmentStatus(shipment.status)}</span>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Delivery</p>
-                <p>{shipment.dropoff.formattedAddress}</p>
-                <p className="text-muted-foreground">
-                  {shipment.dropoff.contactName} · {shipment.dropoff.contactPhone}
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-4 border-t pt-3 font-brand-mono">
-                <div>
-                  <p className="text-xs text-muted-foreground">Distance</p>
-                  <p>{shipment.distanceKm.toFixed(1)} km</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Estimated time</p>
-                  <p>{formatEta(shipment.durationMinutes)}</p>
-                </div>
+              <TrackingTimeline milestones={milestones} terminalMessage={terminalMessage} />
+              <div className="border-t pt-4">
+                <ProofOfDeliveryButton proof={proof} status={shipment.status} trackingCode={shipment.trackingNumber} />
               </div>
             </CardContent>
           </Card>
 
           <Card>
+            <CardContent className="grid gap-5 pt-6 text-sm sm:grid-cols-2">
+              <AddressBlock heading="Pickup" address={shipment.pickup} />
+              <AddressBlock heading="Delivery" address={shipment.dropoff} />
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardContent className="flex flex-col gap-3 pt-6 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Package</span>
-                <span>{shipment.packageDescription}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Quantity</span>
-                <span>{shipment.packageQuantity}</span>
-              </div>
-              {shipment.packageWeightKg ? (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Weight</span>
-                  <span>{shipment.packageWeightKg} kg</span>
+              <h2 className="text-lg font-semibold">Package</h2>
+              <dl className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Contents</dt>
+                  <dd className="font-medium">{shipment.packageDescription}</dd>
                 </div>
-              ) : null}
-              {shipment.isFragile ? <p className="text-warning-foreground">Marked fragile</p> : null}
+                <div>
+                  <dt className="text-xs text-muted-foreground">Quantity</dt>
+                  <dd className="font-medium">{shipment.packageQuantity}</dd>
+                </div>
+                {shipment.packageWeightKg ? (
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Weight</dt>
+                    <dd className="font-medium">{shipment.packageWeightKg} kg</dd>
+                  </div>
+                ) : null}
+                {dimensions.every((d) => d !== null) ? (
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Dimensions</dt>
+                    <dd className="font-medium">{dimensions.join(' × ')} cm</dd>
+                  </div>
+                ) : null}
+              </dl>
+              {shipment.isFragile ? <p className="font-medium text-warning-foreground">Marked fragile</p> : null}
               {packageImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- signed Supabase Storage URL, not a static/remote-optimizable asset
-                <img src={packageImageUrl} alt="Package" className="mt-1 h-32 w-32 rounded-md object-cover" />
+                <img src={packageImageUrl} alt={`Package photo: ${shipment.packageDescription}`} className="mt-1 size-32 rounded-xl object-cover" />
               ) : null}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="flex flex-col gap-2 pt-6 font-brand-mono text-sm">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Payment method</span>
-                <span className="uppercase">{shipment.paymentMethod}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Payment status</span>
-                <span className="capitalize">{shipment.paymentStatus}</span>
-              </div>
-              <div className="flex justify-between border-t pt-2 text-base font-medium text-foreground">
-                <span>Total</span>
-                <span>
-                  {shipment.currency} {shipment.price.toFixed(2)}
-                </span>
-              </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <ShipmentChargesCard shipment={shipment} />
+
           {ROUTE_VISIBLE_STATUSES.includes(shipment.status) ? (
-            <RouteMap pickup={shipment.pickup.coordinates} dropoff={shipment.dropoff.coordinates} className="h-80 w-full rounded-md" />
+            <RouteMap pickup={shipment.pickup.coordinates} dropoff={shipment.dropoff.coordinates} className="h-72 w-full rounded-2xl" />
           ) : null}
 
-          <Card>
-            <CardContent className="pt-6">
-              <p className="mb-2 text-sm font-medium">Full history</p>
-              <ul className="flex flex-col gap-1 text-sm">
-                {history.map((entry) => (
-                  <li key={`${entry.status}-${entry.createdAt}`} className="flex justify-between">
-                    <span className="text-muted-foreground">{formatShipmentStatus(entry.status)}</span>
-                    <span className="font-brand-mono">{new Date(entry.createdAt).toLocaleString()}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          <details className="rounded-2xl border bg-card p-4 text-sm shadow-sm">
+            <summary className="cursor-pointer select-none font-medium">Full status history</summary>
+            <ul className="mt-3 flex flex-col gap-1.5">
+              {history.map((entry) => (
+                <li key={`${entry.status}-${entry.createdAt}`} className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">{formatShipmentStatus(entry.status)}</span>
+                  <time dateTime={entry.createdAt} className="font-brand-mono text-xs">
+                    {formatTime(entry.createdAt)}
+                  </time>
+                </li>
+              ))}
+            </ul>
+          </details>
         </div>
       </div>
     </main>

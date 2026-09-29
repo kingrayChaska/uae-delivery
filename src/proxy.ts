@@ -44,7 +44,7 @@ export const config = {
   matcher: [
     {
       source:
-        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|wasm)$).*)",
       // Prefetches don't render HTML, so they don't need a nonce.
       missing: [
         { type: "header", key: "next-router-prefetch" },

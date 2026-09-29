@@ -2,11 +2,13 @@ import Link from 'next/link';
 
 import Badge from '@/components/ui/badge';
 import Button from '@/components/ui/button';
+import DeleteStaffAccount from '@/components/manager/delete-staff-account';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { listOperators } from '@/services/staff/list-staff';
 
-const ManagerOperatorsPage = async () => {
+const ManagerOperatorsPage = async ({ searchParams }: { searchParams: Promise<{ deleted?: string }> }) => {
   await requireRoleOrRedirect('manager');
+  const { deleted } = await searchParams;
   const operators = await listOperators();
 
   return (
@@ -17,6 +19,12 @@ const ManagerOperatorsPage = async () => {
           <Link href="/dashboard/manager/operators/new">Add operator</Link>
         </Button>
       </div>
+
+      {deleted === '1' ? (
+        <p role="status" className="rounded-xl border border-success/50 bg-success/10 p-3 text-sm">
+          Account deleted. Their past activity is kept in the history.
+        </p>
+      ) : null}
 
       {operators.length === 0 ? (
         <div className="rounded-md border border-dashed p-8 text-center">
@@ -34,6 +42,9 @@ const ManagerOperatorsPage = async () => {
                 <th className="px-3 py-2 font-medium">Assignments</th>
                 <th className="px-3 py-2 font-medium">Actions logged</th>
                 <th className="px-3 py-2 font-medium">Last login</th>
+                <th scope="col" className="px-3 py-2 text-right font-medium">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -53,6 +64,9 @@ const ManagerOperatorsPage = async () => {
                   <td className="px-3 py-2 font-brand-mono">{operator.actionsLogged}</td>
                   <td className="px-3 py-2 font-brand-mono text-xs text-muted-foreground">
                     {operator.lastLoginAt ? new Date(operator.lastLoginAt).toLocaleString() : 'Never'}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <DeleteStaffAccount compact profileId={operator.id} fullName={operator.fullName} role="operator" />
                   </td>
                 </tr>
               ))}

@@ -6,8 +6,13 @@ import Label from '@/components/ui/label';
 import FieldError from '@/components/ui/field-error';
 import { useNewTicketForm } from '@/lib/hooks/use-new-ticket-form';
 
-const NewTicketForm = () => {
-  const { register, errors, isSubmitting, serverError, onSubmit } = useNewTicketForm();
+type NewTicketFormProps = {
+  defaultSubject?: string;
+  defaultMessage?: string;
+};
+
+const NewTicketForm = ({ defaultSubject = '', defaultMessage = '' }: NewTicketFormProps) => {
+  const { register, errors, isSubmitting, serverError, onSubmit } = useNewTicketForm({ subject: defaultSubject, message: defaultMessage });
 
   return (
     <form onSubmit={onSubmit} className="flex max-w-lg flex-col gap-4" noValidate>

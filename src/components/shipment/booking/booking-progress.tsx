@@ -1,11 +1,12 @@
+import { Check } from 'lucide-react';
+
 import { BOOKING_STEPS } from '@/lib/hooks/use-booking-wizard';
 
 const STEP_LABELS: Record<(typeof BOOKING_STEPS)[number], string> = {
   pickup: 'Pickup',
   dropoff: 'Delivery',
   package: 'Package',
-  payment: 'Payment',
-  review: 'Review',
+  review: 'Review & book',
 };
 
 type BookingProgressProps = {
@@ -14,29 +15,34 @@ type BookingProgressProps = {
 
 const BookingProgress = ({ stepIndex }: BookingProgressProps) => {
   return (
-    <ol className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-      {BOOKING_STEPS.map((step, index) => (
-        <li key={step} className="flex items-center gap-2">
-          <span
-            className={`flex size-7 items-center justify-center rounded-full text-xs font-medium ${
-              index <= stepIndex
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-secondary-foreground'
-            }`}
-          >
-            {index + 1}
-          </span>
-          <span
-            className={`text-sm ${index === stepIndex ? 'font-medium' : 'hidden text-muted-foreground sm:inline'}`}
-          >
-            {STEP_LABELS[step]}
-          </span>
-          {index < BOOKING_STEPS.length - 1 ? (
-            <span className="mx-0.5 h-px w-3 bg-border sm:mx-1 sm:w-6" aria-hidden />
-          ) : null}
-        </li>
-      ))}
-    </ol>
+    <nav aria-label="Booking progress">
+      <ol className="grid grid-cols-4 gap-2">
+        {BOOKING_STEPS.map((step, index) => {
+          const done = index < stepIndex;
+          const current = index === stepIndex;
+          return (
+            <li key={step} className="flex flex-col gap-2" aria-current={current ? 'step' : undefined}>
+              <span className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                <span
+                  className={`block h-full rounded-full bg-primary transition-[width] duration-500 ease-out motion-reduce:transition-none ${
+                    done || current ? 'w-full' : 'w-0'
+                  }`}
+                />
+              </span>
+              <span
+                className={`flex items-center gap-1.5 text-xs sm:text-sm ${
+                  current ? 'font-semibold text-foreground' : done ? 'text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                {done ? <Check className="size-3.5 text-primary" aria-hidden /> : null}
+                <span className={current ? '' : 'hidden sm:inline'}>{STEP_LABELS[step]}</span>
+                <span className="sr-only">{done ? ' (completed)' : current ? ' (current step)' : ''}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 };
 

@@ -1,6 +1,6 @@
 import { z } from '@/lib/zod';
 
-import { PACKAGE_TYPES, PAYMENT_METHODS } from '@/lib/types';
+import { DELIVERY_TYPES, PACKAGE_TYPES, PAYMENT_METHODS } from '@/lib/types';
 
 export const businessAccountSchema = z.object({
   companyName: z.string().trim().min(2, 'Enter a company name'),
@@ -28,7 +28,12 @@ export const BULK_COLUMNS = [
   'weight_kg',
   'fragile',
   'payment_method',
+  'delivery_type',
+  'cod_amount',
 ] as const;
+
+// Columns a CSV may leave out — each has a default.
+export const OPTIONAL_BULK_COLUMNS = ['weight_kg', 'fragile', 'payment_method', 'package_type', 'quantity', 'delivery_type', 'cod_amount'];
 
 const truthy = ['yes', 'y', 'true', '1'];
 
@@ -60,6 +65,15 @@ export const bulkRowSchema = z.object({
     .string()
     .transform((value) => (value || 'cod').toLowerCase())
     .pipe(z.enum(PAYMENT_METHODS, { error: 'payment_method must be card or cod' })),
+  delivery_type: z
+    .string()
+    .transform((value) => (value || 'same_day').toLowerCase().replace(/[\s-]+/g, '_'))
+    .pipe(z.enum(DELIVERY_TYPES, { error: 'delivery_type must be same_day or next_day' })),
+  // Amount to collect from the recipient for the goods; blank or 0 = prepaid.
+  cod_amount: z
+    .string()
+    .transform((value) => Number(value || '0'))
+    .pipe(z.number({ error: 'cod_amount must be a number' }).min(0, 'cod_amount cannot be negative').max(100000, 'cod_amount is too large')),
 });
 
 export type BulkRow = z.infer<typeof bulkRowSchema>;
@@ -78,5 +92,5 @@ export const validateBulkRecords = (records: Record<string, string>[]): BulkRowV
 };
 
 export const missingBulkColumns = (headers: string[]) =>
-  BULK_COLUMNS.filter((column) => !['weight_kg', 'fragile', 'payment_method', 'package_type', 'quantity'].includes(column))
+  BULK_COLUMNS.filter((column) => !OPTIONAL_BULK_COLUMNS.includes(column))
     .filter((column) => !headers.includes(column));

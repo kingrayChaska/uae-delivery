@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { Card, CardContent } from '@/components/ui/card';
+import AddressBlock from '@/components/shipment/address-block';
 import ShipmentStatusBadge from '@/components/shipment/shipment-status-badge';
 import ShipmentWorkflow from '@/components/driver/shipment-workflow';
 import RouteMap from '@/components/maps/lazy-route-map';
@@ -19,6 +20,9 @@ const DriverDeliveryDetailPage = async ({ params }: { params: Promise<{ id: stri
 
   const { shipment, packageImageUrl } = detail;
   const isTerminal = TERMINAL_STATUSES.includes(shipment.status);
+  // Same split the COD record uses (sync_shipment_cod_transaction, 0022).
+  const collectGoods = shipment.recipientPaymentType === 'postpaid' ? shipment.codAmount : 0;
+  const collectFee = shipment.paymentMethod === 'cod' ? shipment.price : 0;
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-6">
@@ -58,20 +62,8 @@ const DriverDeliveryDetailPage = async ({ params }: { params: Promise<{ id: stri
 
           <Card>
             <CardContent className="flex flex-col gap-3 pt-6 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">Pickup</p>
-                <p>{shipment.pickup.formattedAddress}</p>
-                <p className="text-muted-foreground">
-                  {shipment.pickup.contactName} · {shipment.pickup.contactPhone}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Delivery</p>
-                <p>{shipment.dropoff.formattedAddress}</p>
-                <p className="text-muted-foreground">
-                  {shipment.dropoff.contactName} · {shipment.dropoff.contactPhone}
-                </p>
-              </div>
+              <AddressBlock heading="Pickup" address={shipment.pickup} showNavigation />
+              <AddressBlock heading="Delivery" address={shipment.dropoff} showNavigation />
               <div className="grid grid-cols-2 gap-4 border-t pt-3 font-brand-mono">
                 <div>
                   <p className="text-xs text-muted-foreground">Distance</p>
@@ -100,11 +92,35 @@ const DriverDeliveryDetailPage = async ({ params }: { params: Promise<{ id: stri
                 // eslint-disable-next-line @next/next/no-img-element -- signed Supabase Storage URL
                 <img src={packageImageUrl} alt="Package" className="mt-1 h-32 w-32 rounded-md object-cover" />
               ) : null}
-              {shipment.paymentMethod === 'cod' ? (
-                <p className="border-t pt-2 font-brand-mono">
-                  Collect {shipment.currency} {shipment.price.toFixed(2)} on delivery
-                </p>
-              ) : null}
+              {collectGoods + collectFee > 0 ? (
+                <div className="flex flex-col gap-1 rounded-xl border-2 border-primary/30 bg-secondary/40 p-3 font-brand-mono">
+                  <p className="font-sans text-xs font-semibold uppercase tracking-wide text-muted-foreground">Collect on delivery</p>
+                  {collectGoods > 0 ? (
+                    <p className="flex justify-between gap-4">
+                      <span>Goods (from recipient)</span>
+                      <span>
+                        {shipment.currency} {collectGoods.toFixed(2)}
+                      </span>
+                    </p>
+                  ) : null}
+                  {collectFee > 0 ? (
+                    <p className="flex justify-between gap-4">
+                      <span>Delivery fee (cash)</span>
+                      <span>
+                        {shipment.currency} {collectFee.toFixed(2)}
+                      </span>
+                    </p>
+                  ) : null}
+                  <p className="flex justify-between gap-4 border-t pt-1 text-base font-semibold">
+                    <span>Total cash</span>
+                    <span>
+                      {shipment.currency} {(collectGoods + collectFee).toFixed(2)}
+                    </span>
+                  </p>
+                </div>
+              ) : (
+                <p className="border-t pt-2 text-muted-foreground">Prepaid — nothing to collect.</p>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import Label from '@/components/ui/label';
 import Button from '@/components/ui/button';
@@ -18,7 +18,12 @@ const PackageImageUpload = ({ customerId, onChange }: PackageImageUploadProps) =
   // resolves — a plain callback ref would fire during render, which React
   // (correctly) treats as a purity violation, so this waits for the
   // committed "path changed" effect instead.
+  // Skips the initial mount: re-opening a shipment that already has a photo
+  // must not report "no photo" and wipe it.
+  const reported = useRef(path);
   useEffect(() => {
+    if (reported.current === path) return;
+    reported.current = path;
     onChange(path);
     // onChange identity isn't stable across renders in the parent form —
     // only re-run when the uploaded path itself actually changes.

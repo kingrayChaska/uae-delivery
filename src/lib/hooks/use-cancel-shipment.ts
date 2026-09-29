@@ -18,10 +18,11 @@ export const useCancelShipment = (shipmentId: string) => {
 
     if (!result.success) {
       setError(result.error);
-      return;
+      return false;
     }
 
     router.refresh();
+    return true;
   };
 
   return { cancel, isCancelling, error };

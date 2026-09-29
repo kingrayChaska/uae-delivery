@@ -1,6 +1,7 @@
 'use client';
 
 import Button from '@/components/ui/button';
+import ConfirmButton from '@/components/ui/confirm-button';
 import FieldError from '@/components/ui/field-error';
 import { resetStaffAccessAction, setStaffActiveAction } from '@/lib/staff/actions';
 import { useServerAction } from '@/lib/hooks/use-server-action';
@@ -16,18 +17,28 @@ const StaffAccessControls = ({ profileId, active }: StaffAccessControlsProps) =>
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant={active ? 'outline' : 'default'}
-          className={active ? 'border-destructive text-destructive hover:bg-destructive/10' : undefined}
-          disabled={isPending}
-          onClick={() => {
-            if (active && !confirm('Deactivate this account? They will be signed out and unable to log in.')) return;
-            run(() => setStaffActiveAction(profileId, !active), active ? 'Account deactivated.' : 'Account reactivated.');
-          }}
-        >
-          {active ? 'Deactivate' : 'Reactivate'}
-        </Button>
+        {active ? (
+          <ConfirmButton
+            variant="outline"
+            className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            title="Deactivate this account?"
+            description="They will be signed out and unable to log in until the account is reactivated."
+            confirmLabel="Deactivate"
+            confirmVariant="destructive"
+            isPending={isPending}
+            onConfirm={() => run(() => setStaffActiveAction(profileId, false), 'Account deactivated.')}
+          >
+            Deactivate
+          </ConfirmButton>
+        ) : (
+          <Button
+            type="button"
+            loading={isPending}
+            onClick={() => run(() => setStaffActiveAction(profileId, true), 'Account reactivated.')}
+          >
+            Reactivate
+          </Button>
+        )}
         <Button
           type="button"
           variant="outline"
@@ -38,7 +49,11 @@ const StaffAccessControls = ({ profileId, active }: StaffAccessControlsProps) =>
         </Button>
       </div>
       <FieldError message={error ?? undefined} />
-      {message ? <p className="text-sm text-success">{message}</p> : null}
+      {message ? (
+        <p role="status" className="text-sm text-success">
+          {message}
+        </p>
+      ) : null}
     </div>
   );
 };

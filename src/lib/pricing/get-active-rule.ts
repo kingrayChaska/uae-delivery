@@ -1,45 +1,73 @@
-import "server-only";
+import 'server-only';
 
-import { createClient } from "@/lib/supabase/server";
-import { DEFAULT_PRICING_RULE } from "@/lib/pricing/calculate";
+import { createClient } from '@/lib/supabase/server';
+import { DEFAULT_PRICING_RULES } from '@/lib/pricing/config';
 
-import type { PricingRule } from "@/lib/types";
+import type { AccountType, DeliveryType, PricingRule, PricingRuleSet } from '@/lib/types';
 
-// The active pricing_rules row is public-readable (see migration 0005), so
-// this can be called from any server context — the booking flow's live
-// quote, the landing page's pricing section, etc. Falls back to the
-// in-code default only if the table is ever empty (shouldn't happen once
-// the seed has run), so a misconfigured DB never hard-fails pricing.
-export const getActivePricingRule = async (): Promise<PricingRule> => {
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ) {
-    return DEFAULT_PRICING_RULE;
-  }
+export const PRICING_RULE_COLUMNS =
+  'id, name, delivery_type, account_type, base_distance_km, base_price, additional_price_per_km, included_weight_kg, additional_price_per_kg, cod_fee, max_distance_km, currency, is_active';
+
+export type PricingRuleRow = {
+  id: string;
+  name: string;
+  delivery_type: DeliveryType;
+  account_type: AccountType;
+  base_distance_km: number | string;
+  base_price: number | string;
+  additional_price_per_km: number | string;
+  included_weight_kg: number | string;
+  additional_price_per_kg: number | string;
+  cod_fee: number | string;
+  max_distance_km: number | string;
+  currency: string;
+  is_active: boolean;
+};
+
+export const mapPricingRule = (row: PricingRuleRow): PricingRule => ({
+  id: row.id,
+  name: row.name,
+  deliveryType: row.delivery_type,
+  accountType: row.account_type,
+  baseDistanceKm: Number(row.base_distance_km),
+  basePrice: Number(row.base_price),
+  additionalPricePerKm: Number(row.additional_price_per_km),
+  includedWeightKg: Number(row.included_weight_kg),
+  additionalPricePerKg: Number(row.additional_price_per_kg),
+  codFee: Number(row.cod_fee),
+  maxDistanceKm: Number(row.max_distance_km),
+  currency: row.currency,
+  isActive: row.is_active,
+});
+
+// Every active rule the caller may read (pricing_rules_select_active,
+// migration 0022): individual rates for everyone including anonymous
+// visitors, merchant rates only for merchants and staff. Any pair the
+// caller can't read — or a database that isn't configured — falls back to
+// the in-code defaults, so a quote can always be SHOWN. Bookings never use
+// a fallback (see isFallbackRule).
+export const getActivePricingRules = async (): Promise<PricingRuleSet> => {
+  const rules: PricingRuleSet = {
+    individual: { ...DEFAULT_PRICING_RULES.individual },
+    merchant: { ...DEFAULT_PRICING_RULES.merchant },
+  };
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return rules;
 
   try {
     const supabase = await createClient();
-    const { data } = await supabase
-      .from("pricing_rules")
-      .select(
-        "id, name, base_distance_km, base_price, additional_price_per_km, currency",
-      )
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (!data) return DEFAULT_PRICING_RULE;
-
-    return {
-      id: data.id,
-      name: data.name,
-      baseDistanceKm: data.base_distance_km,
-      basePrice: data.base_price,
-      additionalPricePerKm: data.additional_price_per_km,
-      currency: data.currency,
-      isActive: true,
-    };
+    const { data } = await supabase.from('pricing_rules').select(PRICING_RULE_COLUMNS).eq('is_active', true);
+    for (const row of (data ?? []) as PricingRuleRow[]) {
+      rules[row.account_type][row.delivery_type] = mapPricingRule(row);
+    }
   } catch {
-    return DEFAULT_PRICING_RULE;
+    // Keep the defaults.
   }
+
+  return rules;
 };
+
+export const getActivePricingRule = async (
+  accountType: AccountType,
+  deliveryType: DeliveryType,
+): Promise<PricingRule> => (await getActivePricingRules())[accountType][deliveryType];

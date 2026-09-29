@@ -130,3 +130,77 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Motion ─────────────────────────────────────────────────────────────
+   Every animation here is opt-in via prefers-reduced-motion: no-preference,
+   so people who ask for less motion get the static page. */
+
+html {
+  scroll-padding-top: 5.5rem; /* anchored sections clear the sticky header */
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Scroll reveal (components/marketing/reveal.tsx): a scroll-driven
+     animation, so visibility is tied to scroll position and needs no
+     JavaScript. Elements already in view at load are past the animation
+     range and render fully visible. */
+  @supports (animation-timeline: view()) {
+    [data-reveal] {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry var(--reveal-shift, 0%) entry calc(45% + var(--reveal-shift, 0%));
+    }
+  }
+
+  .route-dash {
+    animation: route-dash 1.4s linear infinite;
+  }
+
+  @supports (offset-path: path('M 0 0')) {
+    .route-driver {
+      transform: none;
+      offset-path: path('M 96 118 C 180 118, 168 232, 260 236 S 392 220, 420 300 S 400 372, 468 372');
+      offset-rotate: 0deg;
+      animation: route-drive 10s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    }
+  }
+}
+
+@keyframes route-dash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+@keyframes route-drive {
+  0% {
+    offset-distance: 4%;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  86% {
+    offset-distance: 96%;
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 96%;
+    opacity: 0;
+  }
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

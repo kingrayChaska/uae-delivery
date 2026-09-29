@@ -8,8 +8,16 @@ import type { Role } from '@/lib/types';
 
 const PUBLIC_ROUTES = ['/', '/tracking', '/login', '/register', '/forgot-password', '/reset-password', '/privacy', '/terms'];
 
+// Files crawlers and link previews fetch without a session.
+const PUBLIC_FILES = ['/robots.txt', '/sitemap.xml', '/opengraph-image', '/twitter-image', '/manifest.webmanifest'];
+
 export const isPublicRoute = (pathname: string) =>
-  PUBLIC_ROUTES.includes(pathname) || pathname.startsWith('/auth/') || pathname.startsWith('/tracking/');
+  PUBLIC_ROUTES.includes(pathname) ||
+  PUBLIC_FILES.includes(pathname) ||
+  pathname.startsWith('/auth/') ||
+  // Self-hosted static assets, e.g. the hero animation's WebAssembly renderer.
+  pathname.startsWith('/vendor/') ||
+  pathname.startsWith('/tracking/');
 
 export type RouteProfile = { role: Role; active: boolean } | null;
 

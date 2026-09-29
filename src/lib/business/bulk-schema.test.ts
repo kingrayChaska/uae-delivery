@@ -42,6 +42,17 @@ describe('bulk upload row validation', () => {
     expect(results[1].error).toBe('payment_method must be card or cod');
   });
 
+  it('defaults to same-day, prepaid and reads delivery_type / cod_amount when given', () => {
+    const header = `${HEADER},delivery_type,cod_amount`;
+    const { records } = parseCsvWithHeaders(
+      `${header}\nDubai Marina,Ali,0501234567,JBR Walk,Sara,0507654321,,Shoes,1,,no,card,,\nDubai Marina,Ali,0501234567,JBR Walk,Sara,0507654321,,Shoes,1,,no,card,Next-Day,450\nDubai Marina,Ali,0501234567,JBR Walk,Sara,0507654321,,Shoes,1,,no,card,tomorrow,`,
+    );
+    const [plain, nextDayCod, bad] = validateBulkRecords(records);
+    expect(plain.row).toMatchObject({ delivery_type: 'same_day', cod_amount: 0 });
+    expect(nextDayCod.row).toMatchObject({ delivery_type: 'next_day', cod_amount: 450 });
+    expect(bad.error).toBe('delivery_type must be same_day or next_day');
+  });
+
   it('lists missing required columns but not optional ones', () => {
     expect(missingBulkColumns(['pickup_address', 'dropoff_address'])).toEqual([
       'pickup_contact_name',

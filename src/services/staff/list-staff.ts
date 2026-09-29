@@ -32,6 +32,7 @@ export const listOperators = async (): Promise<OperatorSummary[]> => {
     .from('profiles')
     .select('id, full_name, email, phone, active, staff_profiles(employee_id)')
     .eq('role', 'operator')
+    .is('deleted_at', null)
     .order('full_name');
 
   if (!rows || rows.length === 0) return [];
@@ -84,11 +85,12 @@ export const getStaffDetail = async (profileId: string): Promise<StaffDetail | n
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role, full_name, email, phone, active')
+    .select('id, role, full_name, email, phone, active, deleted_at')
     .eq('id', profileId)
     .maybeSingle();
 
-  if (!profile || !['operator', 'driver'].includes(profile.role)) return null;
+  // A deleted account has no detail page (migration 0023).
+  if (!profile || !['operator', 'driver'].includes(profile.role) || profile.deleted_at) return null;
 
   const [{ data: staff }, { data: driver }, { data: logs }, lastLogins] = await Promise.all([
     supabase.from('staff_profiles').select('employee_id').eq('profile_id', profileId).maybeSingle(),

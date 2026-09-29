@@ -33,22 +33,22 @@ select id from profiles where id = '00000000-0000-0000-0000-000000000002';
 insert into shipments (
   customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
   dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
-  distance_km, duration_minutes, pricing_rule_id, price, currency, payment_method, package_type
+  distance_km, duration_minutes, pricing_rule_id, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type
 ) values (
   '00000000-0000-0000-0000-000000000001', 'Dubai Marina', 25.09, 55.14, 'Cust One', '0501111111',
   'JBR', 25.08, 55.13, 'Recipient', '0509999999',
-  14.6, 25, (select id from pricing_rules where is_active), 21.60, 'AED', 'card', 'parcel'
+  14.6, 25, (select id from pricing_rules where is_active and delivery_type = 'same_day' and account_type = 'individual'), 12, 9.60, 0, 0, 21.60, 'AED', 'card', 'parcel'
 ) returning tracking_number, status, price \gset booked_
 
 \echo 'ATTACK: customer books the same trip with price = 1'
 insert into shipments (
   customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
   dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
-  distance_km, duration_minutes, pricing_rule_id, price, currency, payment_method, package_type
+  distance_km, duration_minutes, pricing_rule_id, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type
 ) values (
   '00000000-0000-0000-0000-000000000001', 'Dubai Marina', 25.09, 55.14, 'Cust One', '0501111111',
   'JBR', 25.08, 55.13, 'Recipient', '0509999999',
-  14.6, 25, (select id from pricing_rules where is_active), 1.00, 'AED', 'card', 'parcel'
+  14.6, 25, (select id from pricing_rules where is_active and delivery_type = 'same_day' and account_type = 'individual'), 12, 9.60, 0, 0, 1.00, 'AED', 'card', 'parcel'
 );
 
 \echo 'ATTACK: customer jumps the booked shipment straight to delivered'
@@ -193,7 +193,7 @@ insert into audit_logs (actor_id, action, entity_type) values (auth.uid(), 'forg
 
 -- ── Phase 10: stale pricing, business membership, manager role lock ─────
 reset role;
-select id as p10_old_rule from pricing_rules where is_active \gset
+select id as p10_old_rule from pricing_rules where is_active and delivery_type = 'same_day' and account_type = 'individual' \gset
 set role authenticated;
 set request.jwt.uid = '00000000-0000-0000-0000-000000000004'; -- manager1
 insert into pricing_rules (name, base_distance_km, base_price, additional_price_per_km, currency, is_active)
@@ -207,23 +207,23 @@ set request.jwt.uid = '00000000-0000-0000-0000-000000000001'; -- customer1
 \echo 'ATTACK: customer1 books at the retired (cheaper) pricing rule'
 insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
   dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
-  distance_km, duration_minutes, pricing_rule_id, price, currency, payment_method, package_type)
-values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 10, 20, :'p10_old_rule', 17, 'AED', 'card', 'parcel');
+  distance_km, duration_minutes, pricing_rule_id, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
+values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 10, 20, :'p10_old_rule', 12, 5, 0, 0, 17, 'AED', 'card', 'parcel');
 
 \echo 'ATTACK: customer1 tags a shipment with a business they do not belong to'
 insert into shipments (customer_id, business_account_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
   dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
-  distance_km, duration_minutes, pricing_rule_id, price, currency, payment_method, package_type)
+  distance_km, duration_minutes, pricing_rule_id, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
 values (auth.uid(), :'p10_biz', 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 10, 20,
-  (select id from pricing_rules where is_active), 30, 'AED', 'card', 'parcel');
+  (select id from pricing_rules where is_active and delivery_type = 'same_day' and account_type = 'individual'), 20, 10, 0, 0, 30, 'AED', 'card', 'parcel');
 
 \echo 'LEGITIMATE: customer2 (member) books under their business at the current rate'
 set request.jwt.uid = '00000000-0000-0000-0000-000000000002';
 insert into shipments (customer_id, business_account_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
   dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
-  distance_km, duration_minutes, pricing_rule_id, price, currency, payment_method, package_type)
+  distance_km, duration_minutes, pricing_rule_id, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
 values (auth.uid(), :'p10_biz', 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 10, 20,
-  (select id from pricing_rules where is_active), 30, 'AED', 'card', 'parcel');
+  (select id from pricing_rules where is_active and delivery_type = 'same_day' and account_type = 'individual'), 20, 10, 0, 0, 30, 'AED', 'card', 'parcel');
 
 \echo 'ATTACK: manager1 promotes customer1 to manager'
 set request.jwt.uid = '00000000-0000-0000-0000-000000000004';
@@ -243,7 +243,7 @@ insert into shipments (
   distance_km, duration_minutes, pricing_rule_id, price, currency, payment_method, package_type
 ) values (
   '00000000-0000-0000-0000-000000000001', 'confirmed',
-  'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 5, 10, (select id from pricing_rules where is_active), 12, 'AED', 'cod', 'parcel'
+  'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 5, 10, (select id from pricing_rules where is_active and delivery_type = 'same_day' and account_type = 'individual'), 12, 'AED', 'cod', 'parcel'
 ) returning id \gset p11_
 update shipments set driver_id = '00000000-0000-0000-0000-000000000003', status = 'assigned' where id = :'p11_id';
 
@@ -321,6 +321,280 @@ insert into shipments (customer_id, client_request_id, status, pickup_address, p
   dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone, distance_km, duration_minutes, price, currency, payment_method, package_type)
 values ('00000000-0000-0000-0000-000000000002', '11111111-1111-4111-8111-111111111111', 'confirmed',
   'A', 25, 55, 'x', 'x', 'B', 25.1, 55.1, 'y', 'y', 5, 10, 12, 'AED', 'cod', 'parcel');
+
+-- ── Migration 0022: merchants, delivery types, weight/COD pricing, distance
+-- limit, product COD and short tracking codes ───────────────────────────
+reset role;
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-000000000007', 'customer3@test.com', '{"full_name":"Cust Three","phone":"0507777777"}');
+select id as v2_nd from pricing_rules where is_active and delivery_type = 'next_day' and account_type = 'individual' \gset
+select id as v2_sd from pricing_rules where is_active and delivery_type = 'same_day' and account_type = 'individual' \gset
+select id as v2_msd from pricing_rules where is_active and delivery_type = 'same_day' and account_type = 'merchant' \gset
+
+set role authenticated;
+set request.jwt.uid = '00000000-0000-0000-0000-000000000001'; -- customer1
+
+\echo 'ATTACK: customer1 makes themselves a merchant directly'
+update profiles set account_type = 'merchant' where id = auth.uid();
+
+\echo 'LEGITIMATE: customer1 records that they chose the individual account type'
+update profiles set account_type_selected_at = now() where id = auth.uid();
+
+\echo 'expect 0: an individual cannot read merchant pricing rules'
+select count(*) from pricing_rules where account_type = 'merchant';
+
+\echo 'ATTACK: customer1 books at merchant flat-rate pricing while an individual'
+insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, pricing_rule_id, delivery_type, package_weight_kg, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
+values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 30, 40, :'v2_msd', 'same_day', 5, 15, 0, 0, 0, 15, 'AED', 'card', 'parcel');
+
+\echo 'ATTACK: customer1 submits a merchant application that is already approved'
+insert into merchant_applications (profile_id, status, company_name, registration_number, license_number, company_address, country, city,
+  company_phone, business_email, contact_name, contact_position, contact_phone, contact_email, business_category, monthly_shipment_volume, pickup_address)
+values (auth.uid(), 'approved', 'Cust Co', 'REG-1', 'LIC-1', 'Business Bay, Dubai', 'United Arab Emirates', 'Dubai',
+  '0501111111', 'ops@custco.test', 'Cust One', 'Owner', '0501111111', 'c1@test.com', 'Retail', '51-200', 'Warehouse 4, Al Quoz');
+
+\echo 'LEGITIMATE: customer1 submits a merchant application'
+insert into merchant_applications (profile_id, company_name, registration_number, license_number, company_address, country, city,
+  company_phone, business_email, contact_name, contact_position, contact_phone, contact_email, business_category, monthly_shipment_volume, pickup_address)
+values (auth.uid(), 'Cust Co', 'REG-1', 'LIC-1', 'Business Bay, Dubai', 'United Arab Emirates', 'Dubai',
+  '0501111111', 'ops@custco.test', 'Cust One', 'Owner', '0501111111', 'c1@test.com', 'Retail', '51-200', 'Warehouse 4, Al Quoz')
+returning id as v2_app \gset
+
+\echo 'LEGITIMATE: customer1 uploads their trade licence into their own folder'
+insert into storage.objects (bucket_id, name, owner)
+values ('merchant-documents', '00000000-0000-0000-0000-000000000001/licence.pdf', auth.uid());
+
+\echo 'ATTACK: customer1 uploads a document into customer3''s folder'
+insert into storage.objects (bucket_id, name, owner)
+values ('merchant-documents', '00000000-0000-0000-0000-000000000007/licence.pdf', auth.uid());
+
+\echo 'expect 0: customer3 cannot read customer1''s trade licence'
+set request.jwt.uid = '00000000-0000-0000-0000-000000000007';
+select count(*) from storage.objects where bucket_id = 'merchant-documents';
+
+\echo 'ATTACK: customer3 applies pointing at customer1''s licence file'
+insert into merchant_applications (profile_id, trade_license_path, company_name, registration_number, license_number, company_address, country, city,
+  company_phone, business_email, contact_name, contact_position, contact_phone, contact_email, business_category, monthly_shipment_volume, pickup_address)
+values (auth.uid(), '00000000-0000-0000-0000-000000000001/licence.pdf', 'Three Co', 'REG-3', 'LIC-3', 'Deira, Dubai', 'United Arab Emirates', 'Dubai',
+  '0507777777', 'ops@three.test', 'Cust Three', 'Owner', '0507777777', 'c3@test.com', 'Retail', '1-50', 'Deira Warehouse');
+
+\echo 'LEGITIMATE: a manager can read the licence to review the application'
+set request.jwt.uid = '00000000-0000-0000-0000-000000000004';
+select count(*) from storage.objects where bucket_id = 'merchant-documents';
+set request.jwt.uid = '00000000-0000-0000-0000-000000000001';
+
+\echo 'ATTACK: customer1 approves their own application'
+update merchant_applications set status = 'approved' where id = :'v2_app';
+
+\echo 'ATTACK: customer1 edits their application while it is pending review'
+update merchant_applications set company_name = 'Edited Co' where id = :'v2_app';
+
+\echo 'ATTACK: customer1 calls the manager review function'
+select review_merchant_application(:'v2_app', 'approved', null);
+
+\echo 'expect 0: operator cannot read merchant company details'
+set request.jwt.uid = '00000000-0000-0000-0000-000000000005';
+select count(*) from merchant_applications;
+
+set request.jwt.uid = '00000000-0000-0000-0000-000000000004'; -- manager1
+\echo 'ATTACK: manager sends the application back without giving a reason'
+select review_merchant_application(:'v2_app', 'requires_changes', '  ');
+
+\echo 'LEGITIMATE: manager requests changes with a reason'
+select review_merchant_application(:'v2_app', 'requires_changes', 'Upload a valid trade licence number');
+
+\echo 'LEGITIMATE: customer1 fixes and resubmits'
+set request.jwt.uid = '00000000-0000-0000-0000-000000000001';
+update merchant_applications set license_number = 'LIC-2', status = 'pending' where id = :'v2_app' returning status;
+
+\echo 'ATTACK: customer1 clears the manager note while resubmitting'
+update merchant_applications set review_note = null where id = :'v2_app';
+
+\echo 'LEGITIMATE: manager approves'
+set request.jwt.uid = '00000000-0000-0000-0000-000000000004';
+select review_merchant_application(:'v2_app', 'approved', null);
+
+\echo 'LEGITIMATE: customer1 is now a merchant with its own business account'
+set request.jwt.uid = '00000000-0000-0000-0000-000000000001';
+select p.account_type, count(m.*) as memberships from profiles p
+left join business_account_members m on m.profile_id = p.id
+where p.id = auth.uid() group by p.account_type;
+
+\echo 'LEGITIMATE: the applicant was notified in-app of each decision'
+select count(*) from notifications where profile_id = auth.uid() and type like 'merchant.%';
+
+\echo 'ATTACK: merchant books without the compulsory weight'
+insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, pricing_rule_id, delivery_type, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
+values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 30, 40, :'v2_msd', 'same_day', 15, 0, 0, 0, 15, 'AED', 'card', 'parcel');
+
+\echo 'ATTACK: merchant books at individual pricing'
+insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, pricing_rule_id, delivery_type, package_weight_kg, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
+values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 10, 20, :'v2_nd', 'next_day', 5, 8, 3.75, 0, 0, 11.75, 'AED', 'card', 'parcel');
+
+\echo 'LEGITIMATE: merchant books 30 km, 25 kg at the flat rate (AED 15 + AED 5 weight)'
+insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, pricing_rule_id, delivery_type, package_weight_kg, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
+values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 30, 40, :'v2_msd', 'same_day', 25, 15, 0, 5, 0, 20, 'AED', 'card', 'parcel')
+returning price;
+
+set request.jwt.uid = '00000000-0000-0000-0000-000000000007'; -- customer3 (individual)
+
+\echo 'ATTACK: customer3 books a 60 km delivery (over the 50 km limit) with an otherwise correct price'
+insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, pricing_rule_id, delivery_type, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
+values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 60, 70, :'v2_sd', 'same_day', 12, 55, 0, 0, 67, 'AED', 'card', 'parcel');
+
+\echo 'ATTACK: customer3 prices a same-day delivery with the cheaper next-day rule'
+insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, pricing_rule_id, delivery_type, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
+values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 10, 20, :'v2_nd', 'same_day', 8, 3.75, 0, 0, 11.75, 'AED', 'card', 'parcel');
+
+\echo 'ATTACK: customer3 skips the weight charge for a 25 kg parcel'
+insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, pricing_rule_id, delivery_type, package_weight_kg, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
+values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 10, 20, :'v2_nd', 'next_day', 25, 8, 3.75, 0, 0, 11.75, 'AED', 'card', 'parcel');
+
+\echo 'ATTACK: customer3 marks a shipment postpaid with nothing to collect'
+insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, pricing_rule_id, delivery_type, recipient_payment_type, cod_amount, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
+values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 10, 20, :'v2_nd', 'next_day', 'postpaid', 0, 8, 3.75, 0, 0, 11.75, 'AED', 'card', 'parcel');
+
+\echo 'ATTACK: customer3 marks a shipment prepaid but asks the driver to collect cash'
+insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, pricing_rule_id, delivery_type, recipient_payment_type, cod_amount, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
+values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 10, 20, :'v2_nd', 'next_day', 'prepaid', 450, 8, 3.75, 0, 0, 11.75, 'AED', 'card', 'parcel');
+
+\echo 'LEGITIMATE: customer3 books next-day 10 km, 25 kg, postpaid AED 450 (AED 8 + 3.75 + 5 = 16.75), choosing their own tracking number'
+insert into shipments (customer_id, tracking_number, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, pricing_rule_id, delivery_type, package_weight_kg, recipient_payment_type, cod_amount, product_value,
+  base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
+values (auth.uid(), 'HACKED01', 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 10, 20, :'v2_nd', 'next_day', 25, 'postpaid', 450, 450,
+  8, 3.75, 5, 0, 16.75, 'AED', 'card', 'parcel')
+returning id as v2_cod_id, tracking_number as v2_code \gset
+
+\echo 'expect 0: the database ignored the client-chosen tracking number'
+select count(*) from shipments where tracking_number = 'HACKED01';
+
+\echo 'LEGITIMATE: tracking codes are 8 characters with no look-alike symbols'
+select count(*) from shipments where id = :'v2_cod_id' and tracking_number ~ '^[2-9A-HJKMNP-Z]{8}$';
+
+\echo 'LEGITIMATE: anonymous tracking finds the shipment by its code in lower case'
+set role anon;
+select status from get_shipment_tracking(lower(:'v2_code'));
+set role authenticated;
+
+\echo 'ATTACK: customer3 rewrites the tracking code'
+update shipments set tracking_number = 'ABCDEFGH' where id = :'v2_cod_id';
+
+\echo 'ATTACK: operator books a 70 km delivery on a customer''s behalf (distance limit applies to staff too)'
+set request.jwt.uid = '00000000-0000-0000-0000-000000000005';
+insert into shipments (customer_id, status, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, pricing_rule_id, delivery_type, price, currency, payment_method, package_type)
+values ('00000000-0000-0000-0000-000000000007', 'confirmed', 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 70, 80, :'v2_sd', 'same_day', 77, 'AED', 'cod', 'parcel');
+
+\echo 'LEGITIMATE: assigning a driver creates the expected COD record, split into goods and fee'
+reset role;
+update shipments set status = 'confirmed' where id = :'v2_cod_id';
+set role authenticated;
+update shipments set driver_id = '00000000-0000-0000-0000-000000000003', status = 'assigned' where id = :'v2_cod_id';
+select amount, product_amount, delivery_fee_amount from cod_transactions where shipment_id = :'v2_cod_id';
+
+\echo 'ATTACK: the driver lowers the goods amount they have to hand over'
+set request.jwt.uid = '00000000-0000-0000-0000-000000000003';
+update cod_transactions set product_amount = 1, amount = 1 where shipment_id = :'v2_cod_id';
+
+\echo 'LEGITIMATE: the driver marks the COD collected'
+update cod_transactions set status = 'collected', collected_at = now() where shipment_id = :'v2_cod_id' returning status;
+
+-- ── Migration 0023: deleting operator and driver accounts ───────────────
+reset role;
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-000000000008', 'driver3@test.com', '{"full_name":"Driver Three","phone":"0508888888"}'),
+  ('00000000-0000-0000-0000-000000000009', 'operator2@test.com', '{"full_name":"Operator Two","phone":"0509999999"}');
+update profiles set role = 'driver' where id = '00000000-0000-0000-0000-000000000008';
+update profiles set role = 'operator' where id = '00000000-0000-0000-0000-000000000009';
+insert into driver_profiles (profile_id, driver_code, license_number) values ('00000000-0000-0000-0000-000000000008', 'DRV-003', 'LIC-003');
+insert into staff_profiles (profile_id, employee_id) values ('00000000-0000-0000-0000-000000000009', 'EMP-009');
+set role authenticated;
+
+\echo 'ATTACK: an operator deletes a driver account'
+set request.jwt.uid = '00000000-0000-0000-0000-000000000005';
+select delete_staff_account('00000000-0000-0000-0000-000000000008');
+
+\echo 'ATTACK: a customer deletes a driver account'
+set request.jwt.uid = '00000000-0000-0000-0000-000000000007';
+select delete_staff_account('00000000-0000-0000-0000-000000000008');
+
+set request.jwt.uid = '00000000-0000-0000-0000-000000000004'; -- manager1
+\echo 'ATTACK: a manager deletes their own account'
+select delete_staff_account('00000000-0000-0000-0000-000000000004');
+
+\echo 'ATTACK: a manager deletes a customer account through the staff path'
+select delete_staff_account('00000000-0000-0000-0000-000000000007');
+
+\echo 'ATTACK: a manager deletes driver1, who still has a delivery in progress'
+select delete_staff_account('00000000-0000-0000-0000-000000000003');
+
+\echo 'ATTACK: shipments can''t be assigned to a customer profile'
+update shipments set driver_id = '00000000-0000-0000-0000-000000000007', status = 'assigned'
+where id = (select id from shipments where status = 'confirmed' and driver_id is null limit 1);
+
+\echo 'LEGITIMATE: manager deletes operator2'
+select delete_staff_account('00000000-0000-0000-0000-000000000009');
+
+\echo 'LEGITIMATE: manager deletes driver3 (no deliveries in progress)'
+select delete_staff_account('00000000-0000-0000-0000-000000000008');
+
+\echo 'LEGITIMATE: the deleted driver is scrubbed, inactive and gone from the fleet, but the profile row remains'
+select p.active, p.email like 'deleted-%@deleted.invalid', p.phone = '', p.deleted_at is not null,
+  (select count(*) from driver_profiles where profile_id = p.id)
+from profiles p where p.id = '00000000-0000-0000-0000-000000000008';
+
+\echo 'ATTACK: a deleted account is deleted again'
+select delete_staff_account('00000000-0000-0000-0000-000000000008');
+
+\echo 'ATTACK: a shipment is assigned to the deleted driver'
+update shipments set driver_id = '00000000-0000-0000-0000-000000000008', status = 'assigned'
+where id = (select id from shipments where status = 'confirmed' and driver_id is null limit 1);
+
+-- ── Migration 0024: deleting users from Supabase Auth (dashboard / admin API)
+reset role;
+
+\echo 'LEGITIMATE: deleting driver3 (already deleted in the app) from auth.users succeeds'
+delete from auth.users where id = '00000000-0000-0000-0000-000000000008';
+
+\echo 'LEGITIMATE: deleting customer3 from auth.users succeeds despite shipments, notifications and COD history'
+delete from auth.users where id = '00000000-0000-0000-0000-000000000007';
+
+\echo 'LEGITIMATE: customer3''s profile remains, anonymised, and their shipments still point at it'
+select p.active, p.deleted_at is not null as deleted, p.email like 'deleted-%' as scrubbed,
+  (select count(*) from shipments where customer_id = p.id) > 0 as history_kept
+from profiles p where p.id = '00000000-0000-0000-0000-000000000007';
+
+\echo 'ATTACK: deleting driver1 from auth.users while they still have a delivery in progress'
+delete from auth.users where id = '00000000-0000-0000-0000-000000000003';
+
+\echo 'expect 1: driver1 was not deleted'
+select count(*) from auth.users where id = '00000000-0000-0000-0000-000000000003';
+
+\echo 'ATTACK: a client calls the internal anonymize_profile() directly'
+set role authenticated;
+set request.jwt.uid = '00000000-0000-0000-0000-000000000004';
+select anonymize_profile('00000000-0000-0000-0000-000000000006', null);
 
 reset role;
 \echo 'Attack battery finished — see README for how to read the results.'

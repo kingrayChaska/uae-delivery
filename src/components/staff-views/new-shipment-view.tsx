@@ -1,14 +1,14 @@
 import OperatorBookingWizard from '@/components/operator/operator-booking-wizard';
-import { getActivePricingRule } from '@/lib/pricing/get-active-rule';
+import { getActivePricingRules } from '@/lib/pricing/get-active-rule';
 import { listCustomerOptions } from '@/services/customers/list-customers';
 
 import type { StaffActorViewProps } from '@/components/staff-views/types';
 
 const NewShipmentView = async ({ basePath, actorId }: StaffActorViewProps) => {
-  const [activeRule, customers] = await Promise.all([getActivePricingRule(), listCustomerOptions()]);
+  const [rules, customers] = await Promise.all([getActivePricingRules(), listCustomerOptions()]);
 
   return (
-    <OperatorBookingWizard operatorId={actorId} basePath={basePath} activeRule={activeRule} customers={customers} />
+    <OperatorBookingWizard operatorId={actorId} basePath={basePath} rules={rules} customers={customers} />
   );
 };
 

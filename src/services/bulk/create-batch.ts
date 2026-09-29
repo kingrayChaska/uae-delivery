@@ -134,6 +134,9 @@ export const createBatchShipments = async ({
         isFragile: row.fragile,
         packageImagePath: null,
         paymentMethod: row.payment_method,
+        deliveryType: row.delivery_type,
+        recipientPaymentType: row.cod_amount > 0 ? 'postpaid' : 'prepaid',
+        codAmount: row.cod_amount > 0 ? row.cod_amount : undefined,
       });
       if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'Invalid row');
 

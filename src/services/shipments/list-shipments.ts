@@ -83,3 +83,40 @@ export const getCustomerDashboardSummary = async (customerId: string): Promise<C
     recent: ((recentRes.data ?? []) as ShipmentRow[]).map(mapRowToShipment),
   };
 };
+
+export type CustomerBooking = { reference: string; createdAt: string; shipments: Shipment[] };
+
+// One multi-shipment booking (a shipment_batches row) and its shipments.
+// RLS (shipment_batches_select / shipments_select) limits this to the
+// customer's own bookings.
+export const getCustomerBooking = async (customerId: string, batchId: string): Promise<CustomerBooking | null> => {
+  const supabase = await createClient();
+  const [{ data: batch }, { data: rows }] = await Promise.all([
+    supabase.from('shipment_batches').select('reference, created_at').eq('id', batchId).eq('customer_id', customerId).maybeSingle(),
+    supabase
+      .from('shipments')
+      .select(SHIPMENT_SELECT_COLUMNS)
+      .eq('batch_id', batchId)
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: true }),
+  ]);
+  if (!batch) return null;
+  return {
+    reference: batch.reference,
+    createdAt: batch.created_at,
+    shipments: ((rows ?? []) as ShipmentRow[]).map(mapRowToShipment),
+  };
+};
+
+// Shipments still on their way, for the dashboard's tracking view.
+export const listCustomerActiveShipments = async (customerId: string, limit = 20): Promise<Shipment[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('shipments')
+    .select(SHIPMENT_SELECT_COLUMNS)
+    .eq('customer_id', customerId)
+    .in('status', ['pending_payment', ...ACTIVE_STATUSES])
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  return ((data ?? []) as ShipmentRow[]).map(mapRowToShipment);
+};
