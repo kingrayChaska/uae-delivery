@@ -30,7 +30,7 @@ export const useProfileForm = (defaultValues: UpdateProfileInput) => {
       return;
     }
 
-    setSuccessMessage('Profile updated.');
+    setSuccessMessage('customer.profile.updated');
     router.refresh();
   });
 

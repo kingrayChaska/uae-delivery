@@ -9,7 +9,7 @@ const robots = (): MetadataRoute.Robots => ({
     {
       userAgent: '*',
       allow: '/',
-      disallow: ['/dashboard', '/api', '/auth', '/reset-password', '/forgot-password'],
+      disallow: ['/dashboard', '/api', '/auth', '/reset-password', '/forgot-password', '/ar/forgot-password'],
     },
   ],
   sitemap: `${siteUrl()}/sitemap.xml`,

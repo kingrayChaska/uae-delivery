@@ -41,12 +41,15 @@ export const toLocationValue = (
 });
 
 // "Marina Gate" / "King Salman St, Marsa Dubai, Dubai, UAE" for display.
+// A dropped pin with no address is stored as "Pinned location (lat, lng)";
+// pinnedCoordinates is then set so the UI can label it in the reader's
+// language (lib/maps/use-address-parts.ts).
 export const splitAddress = (address: string) => {
   // The no-address fallback isn't comma-separated place names.
   const pinned = address.match(/^Pinned location \((.+)\)$/);
-  if (pinned) return { title: 'Pinned location', subtitle: `Coordinates ${pinned[1]}` };
+  if (pinned) return { title: 'Pinned location', subtitle: `Coordinates ${pinned[1]}`, pinnedCoordinates: pinned[1] };
   const [first, ...rest] = address.split(',').map((part) => part.trim());
-  return { title: first ?? address, subtitle: rest.join(', ') };
+  return { title: first ?? address, subtitle: rest.join(', '), pinnedCoordinates: null };
 };
 
 export { isInsideUae };

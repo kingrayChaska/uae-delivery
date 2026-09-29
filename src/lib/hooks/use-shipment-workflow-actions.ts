@@ -24,7 +24,7 @@ export const useShipmentWorkflowActions = (shipmentId: string) => {
     setIsPending(false);
 
     if (!result.success) {
-      setError(result.error ?? 'Something went wrong');
+      setError(result.error ?? 'driver.errors.generic');
       return;
     }
     router.refresh();

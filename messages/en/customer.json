@@ -1,0 +1,89 @@
+{
+  "home": {
+    "welcome": "Welcome, {name}",
+    "subtitle": "Here’s what’s happening with your deliveries.",
+    "subtitleMerchant": "Merchant account · Here’s what’s happening with your deliveries.",
+    "book": "Book delivery",
+    "application": "Merchant application for {company}",
+    "applicationPending": "Awaiting approval — we’ll let you know.",
+    "applicationAttention": "Needs your attention.",
+    "stats": {
+      "active": "Active deliveries",
+      "pending": "Awaiting payment",
+      "completed": "Completed",
+      "spent": "Total spent"
+    },
+    "recent": "Recent deliveries",
+    "viewAll": "View all",
+    "emptyTitle": "No deliveries yet",
+    "emptyBody": "Book your first delivery — it takes about a minute.",
+    "emptyCta": "Book a delivery",
+    "trackTitle": "Track a shipment",
+    "trackAll": "See everything on the way",
+    "businessTitle": "Shipping for a business?",
+    "businessBody": "Merchants get flat-rate pricing and cash-on-delivery collection.",
+    "businessCta": "Apply as a merchant"
+  },
+  "deliveries": {
+    "meta": "My deliveries · ParcelLink",
+    "title": "My Deliveries",
+    "track": "Track",
+    "book": "Book delivery",
+    "bookingConfirmed": "Booking confirmed · {reference}",
+    "booking": "Booking · {reference}",
+    "bookingSummary": "{count, plural, one {# shipment} other {# shipments}} · {total}",
+    "failed": "{count, plural, one {# shipment couldn’t be booked. Book it again from Book Delivery.} other {# shipments couldn’t be booked. Book them again from Book Delivery.}}",
+    "emptyTitle": "No deliveries yet",
+    "emptyBody": "Your booked shipments will appear here.",
+    "emptyCta": "Book your first delivery",
+    "all": "All deliveries"
+  },
+  "detail": {
+    "meta": "Shipment details · ParcelLink",
+    "back": "My deliveries",
+    "confirmedTitle": "Booking confirmed.",
+    "confirmedBody": "Share the tracking ID with your recipient so they can follow the delivery.",
+    "label": "Label",
+    "now": "Now: {status}"
+  },
+  "track": {
+    "meta": "Track shipments · ParcelLink",
+    "title": "Track shipments",
+    "subtitle": "Follow every parcel you’ve booked, from pickup to proof of delivery.",
+    "onTheWay": "On the way",
+    "empty": "No shipments on the way right now.",
+    "past": "See past deliveries",
+    "to": "To {address}",
+    "progress": "Progress for {code}",
+    "awaitingPayment": "Awaiting payment"
+  },
+  "lookup": {
+    "label": "Tracking ID",
+    "placeholder": "e.g. PL7K29X4",
+    "submit": "Track",
+    "searching": "Searching…"
+  },
+  "payments": {
+    "meta": "Payments · ParcelLink",
+    "title": "Payments",
+    "emptyTitle": "No payments yet",
+    "emptyBody": "Payment history for your deliveries appears here."
+  },
+  "profile": {
+    "meta": "Profile · ParcelLink",
+    "title": "Profile",
+    "email": "Email",
+    "fullName": "Full name",
+    "phone": "Phone number",
+    "save": "Save Changes",
+    "saving": "Saving…",
+    "updated": "Profile updated."
+  },
+  "cancel": {
+    "button": "Cancel delivery",
+    "title": "Cancel this delivery?",
+    "description": "The pickup will be called off and the driver, if one is assigned, is told straight away. This can’t be undone.",
+    "confirm": "Yes, cancel delivery",
+    "keep": "Keep delivery"
+  }
+}

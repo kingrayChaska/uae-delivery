@@ -29,10 +29,10 @@ const getOwnShipmentOrError = async (shipmentId: string, driverId: string) => {
 };
 
 export const acceptShipmentAction = async (shipmentId: string): Promise<DriverActionResult> => {
-  if (!isUuid(shipmentId)) return { success: false, error: 'Not found' };
+  if (!isUuid(shipmentId)) return { success: false, error: 'driver.errors.notFound' };
   const profile = await requireRole('driver');
   const shipment = await getOwnShipmentOrError(shipmentId, profile.id);
-  if (!shipment) return { success: false, error: 'Shipment not found' };
+  if (!shipment) return { success: false, error: 'driver.errors.shipmentNotFound' };
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -45,7 +45,7 @@ export const acceptShipmentAction = async (shipmentId: string): Promise<DriverAc
 };
 
 export const declineShipmentAction = async (shipmentId: string): Promise<DriverActionResult> => {
-  if (!isUuid(shipmentId)) return { success: false, error: 'Not found' };
+  if (!isUuid(shipmentId)) return { success: false, error: 'driver.errors.notFound' };
   await requireRole('driver');
   const supabase = await createClient();
 
@@ -65,15 +65,15 @@ export const advanceShipmentStatusAction = async (
   shipmentId: string,
   nextStatus: Exclude<ShipmentStatus, 'delivered'>,
 ): Promise<DriverActionResult> => {
-  if (!isUuid(shipmentId)) return { success: false, error: 'Not found' };
+  if (!isUuid(shipmentId)) return { success: false, error: 'driver.errors.notFound' };
   const profile = await requireRole('driver');
   const shipment = await getOwnShipmentOrError(shipmentId, profile.id);
-  if (!shipment) return { success: false, error: 'Shipment not found' };
+  if (!shipment) return { success: false, error: 'driver.errors.shipmentNotFound' };
 
   const supabase = await createClient();
   const { error } = await supabase.from('shipments').update({ status: nextStatus }).eq('id', shipmentId);
 
-  if (error) return { success: false, error: 'Could not update status — check this is a valid next step' };
+  if (error) return { success: false, error: 'driver.errors.statusUpdate' };
   return { success: true };
 };
 
@@ -82,10 +82,10 @@ export const reportDeliveryFailedAction = async (
 ): Promise<DriverActionResult> => {
   const profile = await requireRole('driver');
   const parsed = reportDeliveryFailedSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
 
   const shipment = await getOwnShipmentOrError(parsed.data.shipmentId, profile.id);
-  if (!shipment) return { success: false, error: 'Shipment not found' };
+  if (!shipment) return { success: false, error: 'driver.errors.shipmentNotFound' };
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -103,7 +103,7 @@ export const reportDeliveryFailedAction = async (
 // configured in this build (see .env.example) — the in-app notification
 // is the honest substitute until one is.
 export const requestDeliveryOtpAction = async (shipmentId: string): Promise<DriverActionResult> => {
-  if (!isUuid(shipmentId)) return { success: false, error: 'Not found' };
+  if (!isUuid(shipmentId)) return { success: false, error: 'driver.errors.notFound' };
   await requireRole('driver');
   const supabase = await createClient();
 
@@ -129,7 +129,7 @@ export const submitProofOfDeliveryAction = async (
   await requireRole('driver');
   const parsed = proofOfDeliverySchema.safeParse(input);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
   }
 
   const { shipmentId, recipientName, photoPath, signaturePath, otpCode, qrToken, notes } = parsed.data;
@@ -146,13 +146,13 @@ export const submitProofOfDeliveryAction = async (
   });
 
   if (error) return { success: false, error: safeErrorMessage(error) };
-  if (data === 'invalid_otp') return { success: false, error: 'Incorrect code. Check with the recipient and try again.' };
+  if (data === 'invalid_otp') return { success: false, error: 'driver.errors.incorrectCode' };
 
   return { success: true };
 };
 
 export const markCodCollectedAction = async (codTransactionId: string): Promise<DriverActionResult> => {
-  if (!isUuid(codTransactionId)) return { success: false, error: 'Not found' };
+  if (!isUuid(codTransactionId)) return { success: false, error: 'driver.errors.notFound' };
   await requireRole('driver');
   const supabase = await createClient();
 
@@ -188,7 +188,7 @@ export const updateAvailabilityAction = async (
   availability: (typeof AVAILABILITY_VALUES)[number],
 ): Promise<DriverActionResult> => {
   const profile = await requireRole('driver');
-  if (!AVAILABILITY_VALUES.includes(availability)) return { success: false, error: 'Invalid availability' };
+  if (!AVAILABILITY_VALUES.includes(availability)) return { success: false, error: 'driver.errors.invalidAvailability' };
 
   const supabase = await createClient();
   const { error } = await supabase

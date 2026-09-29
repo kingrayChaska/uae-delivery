@@ -18,7 +18,7 @@ export const checkServiceAreasAction = async (input: RouteRequestInput): Promise
   const profile = await requireUser();
   if (!(await checkRateLimit('mapsPerUser', profile.id))) return { success: false, error: RATE_LIMIT_MESSAGE };
   const parsed = routeRequestSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: 'Invalid coordinates' };
+  if (!parsed.success) return { success: false, error: 'maps.errors.invalidCoordinates' };
 
   return { success: true, areas: await lookUpTripServiceAreas(parsed.data.origin, parsed.data.destination) };
 };

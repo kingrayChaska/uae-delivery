@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import Select from '@/components/ui/select';
 import { updateTicketStatusAction } from '@/lib/support/actions';
@@ -11,6 +12,7 @@ import type { UpdateTicketStatusInput } from '@/lib/support/actions';
 const STATUSES: UpdateTicketStatusInput['status'][] = ['open', 'in_progress', 'resolved', 'closed'];
 
 const TicketStatusSelect = ({ ticketId, status }: { ticketId: string; status: string }) => {
+  const t = useTranslations('support');
   const router = useRouter();
   const [value, setValue] = useState(status);
   const [isPending, setIsPending] = useState(false);
@@ -30,10 +32,11 @@ const TicketStatusSelect = ({ ticketId, status }: { ticketId: string; status: st
       disabled={isPending}
       onChange={(event) => handleChange(event.target.value as UpdateTicketStatusInput['status'])}
       className="w-40"
+      aria-label={t('statusLabel')}
     >
       {STATUSES.map((option) => (
         <option key={option} value={option}>
-          {option.replace('_', ' ')}
+          {t(`status.${option}`)}
         </option>
       ))}
     </Select>

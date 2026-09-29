@@ -1,0 +1,148 @@
+{
+  "status": {
+    "pending_payment": "Pending Payment",
+    "confirmed": "Confirmed",
+    "assigned": "Driver Assigned",
+    "driver_accepted": "Driver Accepted",
+    "arrived_pickup": "Driver at Pickup",
+    "picked_up": "Picked Up",
+    "in_transit": "In Transit",
+    "arrived_destination": "Arrived at Destination",
+    "delivered": "Delivered",
+    "delivery_failed": "Delivery Failed",
+    "cancelled": "Cancelled",
+    "returned": "Returned"
+  },
+  "deliveryType": {
+    "same_day": {
+      "label": "Same-Day Delivery",
+      "short": "Same-day",
+      "description": "Collected and delivered today."
+    },
+    "next_day": {
+      "label": "Next-Day Delivery",
+      "short": "Next-day",
+      "description": "Delivered the next day, at a lower price."
+    }
+  },
+  "packageType": {
+    "document": "Document",
+    "parcel": "Parcel",
+    "fragile": "Fragile",
+    "bulk": "Bulk"
+  },
+  "paymentMethod": {
+    "card": "Card",
+    "cod": "Cash"
+  },
+  "paymentMethodLong": {
+    "card": "Pay by card",
+    "cod": "Pay in cash"
+  },
+  "recipientPayment": {
+    "prepaid": "Prepaid",
+    "postpaid": "Postpaid (cash on delivery)"
+  },
+  "recipientPaymentShort": {
+    "prepaid": "Prepaid",
+    "postpaid": "Postpaid"
+  },
+  "paymentStatus": {
+    "pending": "Pending",
+    "paid": "Paid",
+    "failed": "Failed",
+    "refunded": "Refunded"
+  },
+  "codStatus": {
+    "expected": "Expected",
+    "collected": "Collected",
+    "reconciled": "Reconciled",
+    "remitted": "Remitted"
+  },
+  "driverAvailability": {
+    "available": "Available",
+    "busy": "Busy",
+    "offline": "Offline"
+  },
+  "accountType": {
+    "individual": "Individual",
+    "merchant": "Merchant"
+  },
+  "roles": {
+    "customer": "Customer",
+    "driver": "Driver",
+    "operator": "Operator",
+    "manager": "Manager"
+  },
+  "trackingId": "Tracking ID",
+  "trackingIdSpoken": "tracking ID {code}",
+  "fragile": "Fragile",
+  "quantity": "{count, plural, one {# item} other {# items}}",
+  "detail": {
+    "tracking": "Tracking",
+    "pickup": "Pickup",
+    "delivery": "Delivery",
+    "package": "Package",
+    "contents": "Contents",
+    "quantity": "Quantity",
+    "weight": "Weight",
+    "dimensions": "Dimensions",
+    "markedFragile": "Marked fragile",
+    "photoAlt": "Package photo: {description}",
+    "history": "Full status history",
+    "to": "to",
+    "distance": "Distance",
+    "duration": "Estimated drive time"
+  },
+  "charges": {
+    "feePaidBy": "Delivery fee paid by",
+    "card": "Card",
+    "cash": "Cash to driver",
+    "paidWith": "{method} · {status}",
+    "recipientPayment": "Recipient payment for goods",
+    "postpaidCollect": "Postpaid — collect <mono>{amount}</mono>",
+    "prepaidNothing": "Prepaid — nothing to collect",
+    "productValue": "Product value"
+  },
+  "address": {
+    "unit": "Unit {unit}",
+    "floor": "Floor {floor}",
+    "locatedCurrent": "Located with current location",
+    "pinSelected": "Pin location selected",
+    "navigate": "Navigate to exact location"
+  },
+  "list": {
+    "cod": "· COD {amount}",
+    "to": "to"
+  },
+  "pod": {
+    "notYet": "Proof of delivery will be available here once your parcel is delivered.",
+    "view": "View Proof of Delivery",
+    "title": "Proof of Delivery",
+    "shipment": "Shipment {code}",
+    "delivered": "Delivered",
+    "receivedBy": "Received by",
+    "location": "Delivery location",
+    "confirmation": "Delivery confirmation",
+    "otp": "Recipient code verified",
+    "qr": "Label QR scanned",
+    "photo": "Photo taken",
+    "signature": "Signed for",
+    "photoAlt": "Photo taken by the driver at delivery of shipment {code}",
+    "photoCaption": "Delivery photo",
+    "signatureAlt": "Recipient signature",
+    "signatureAltNamed": "Recipient signature of {name}",
+    "signatureCaption": "Recipient signature",
+    "notes": "Driver’s note",
+    "missing": "This shipment is marked delivered, but no proof of delivery was recorded for it. If anything looks wrong, contact support and we’ll look into it."
+  },
+  "label": {
+    "trackingNumber": "Tracking Number",
+    "qrAlt": "QR code for {code}",
+    "from": "From",
+    "to": "To",
+    "contents": "Contents",
+    "fragile": "FRAGILE",
+    "print": "Print label"
+  }
+}

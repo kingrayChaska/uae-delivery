@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Card, CardContent } from '@/components/ui/card';
 import DispatchMap from '@/components/operator/lazy-dispatch-map';
@@ -19,6 +20,7 @@ type DispatchBoardProps = {
 };
 
 const DispatchBoard = ({ unassignedShipments, initialDriverLocations, driverLabels }: DispatchBoardProps) => {
+  const t = useTranslations('operator.dispatch');
   const [selectedId, setSelectedId] = useState<string | null>(unassignedShipments[0]?.id ?? null);
   const driverLocations = useRealtimeDriverLocations(initialDriverLocations);
   useRealtimeRefresh('shipments');
@@ -29,10 +31,10 @@ const DispatchBoard = ({ unassignedShipments, initialDriverLocations, driverLabe
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="flex min-w-0 flex-col gap-2 lg:col-span-1">
-        <p className="text-sm font-medium">Awaiting dispatch ({unassignedShipments.length})</p>
+        <p className="text-sm font-medium">{t('awaiting', { count: unassignedShipments.length })}</p>
         {unassignedShipments.length === 0 ? (
           <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-            Nothing waiting for a driver right now.
+            {t('nothingWaiting')}
           </div>
         ) : (
           <div className="flex flex-col gap-2">
@@ -41,13 +43,17 @@ const DispatchBoard = ({ unassignedShipments, initialDriverLocations, driverLabe
                 key={shipment.id}
                 type="button"
                 onClick={() => setSelectedId(shipment.id)}
-                className={`w-full min-w-0 rounded-md border p-3 text-left text-sm transition-colors ${
+                className={`w-full min-w-0 rounded-md border p-3 text-start text-sm transition-colors ${
                   selectedId === shipment.id ? 'border-primary bg-secondary/50' : 'hover:bg-secondary/30'
                 }`}
               >
-                <p className="font-brand-mono text-xs text-muted-foreground">{shipment.trackingNumber}</p>
-                <p className="truncate">
-                  {shipment.pickup.formattedAddress} → {shipment.dropoff.formattedAddress}
+                <p dir="ltr" className="font-brand-mono text-xs text-muted-foreground rtl:text-right">
+                  {shipment.trackingNumber}
+                </p>
+                <p className="flex min-w-0 items-center gap-1.5">
+                  <span dir="auto" className="truncate">{shipment.pickup.formattedAddress}</span>
+                  <span className="inline-block shrink-0 rtl:rotate-180" aria-hidden>→</span>
+                  <span dir="auto" className="truncate">{shipment.dropoff.formattedAddress}</span>
                 </p>
               </button>
             ))}
@@ -61,9 +67,9 @@ const DispatchBoard = ({ unassignedShipments, initialDriverLocations, driverLabe
         {selected ? (
           <Card>
             <CardContent className="pt-6">
-              <p className="mb-3 text-sm font-medium">Assign a driver to {selected.trackingNumber}</p>
+              <p className="mb-3 text-sm font-medium">{t('assignTo', { code: selected.trackingNumber })}</p>
               {isLoading ? (
-                <p className="text-sm text-muted-foreground">Finding available drivers…</p>
+                <p className="text-sm text-muted-foreground">{t('finding')}</p>
               ) : (
                 <AssignDriverPanel shipmentId={selected.id} drivers={drivers} mode="assign" />
               )}

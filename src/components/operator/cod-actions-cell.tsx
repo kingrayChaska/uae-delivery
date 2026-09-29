@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
+import FieldError from '@/components/ui/field-error';
 import { reconcileCodAction, remitCodAction } from '@/lib/cod/actions';
 
 const CodActionsCell = ({ codTransactionId, status }: { codTransactionId: string; status: string }) => {
+  const t = useTranslations('operator.cod');
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,15 +30,15 @@ const CodActionsCell = ({ codTransactionId, status }: { codTransactionId: string
     <div className="flex flex-col items-end gap-1">
       {status === 'collected' ? (
         <Button type="button" size="sm" disabled={isPending} onClick={() => run(reconcileCodAction)}>
-          Reconcile
+          {t('reconcile')}
         </Button>
       ) : null}
       {status === 'reconciled' ? (
         <Button type="button" size="sm" variant="outline" disabled={isPending} onClick={() => run(remitCodAction)}>
-          Mark Remitted
+          {t('remit')}
         </Button>
       ) : null}
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      <FieldError message={error} />
     </div>
   );
 };

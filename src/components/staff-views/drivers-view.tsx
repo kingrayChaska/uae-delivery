@@ -1,6 +1,9 @@
+import { getTranslations } from 'next-intl/server';
+
 import Badge from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { listAllDrivers } from '@/services/drivers/list-all-drivers';
+import { getFormat } from '@/i18n/server';
 
 
 const AVAILABILITY_VARIANT: Record<string, 'success' | 'secondary' | 'default'> = {
@@ -10,16 +13,21 @@ const AVAILABILITY_VARIANT: Record<string, 'success' | 'secondary' | 'default'> 
 };
 
 const DriversView = async () => {
-  const drivers = await listAllDrivers();
+  const [drivers, t, tAvailability, format] = await Promise.all([
+    listAllDrivers(),
+    getTranslations('operator.drivers'),
+    getTranslations('shipments.driverAvailability'),
+    getFormat(),
+  ]);
 
   return (
-    <main className="flex flex-1 flex-col gap-4 p-6">
-      <h1 className="text-2xl font-semibold">Drivers</h1>
+    <main className="flex flex-1 flex-col gap-4 p-4 sm:p-6">
+      <h1 className="text-2xl font-semibold">{t('title')}</h1>
 
       {drivers.length === 0 ? (
         <div className="rounded-md border border-dashed p-8 text-center">
-          <p className="font-medium">No drivers yet</p>
-          <p className="text-sm text-muted-foreground">Drivers are onboarded by a manager.</p>
+          <p className="font-medium">{t('emptyTitle')}</p>
+          <p className="text-sm text-muted-foreground">{t('emptyBody')}</p>
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
@@ -30,36 +38,36 @@ const DriversView = async () => {
                   <div>
                     <p className="font-medium">{driver.fullName}</p>
                     <p className="font-brand-mono text-xs text-muted-foreground">
-                      {driver.driverCode} · {driver.phone}
+                      <span dir="ltr">{driver.driverCode}</span> · <span dir="ltr">{driver.phone}</span>
                     </p>
                     {driver.vehicle ? <p className="text-xs text-muted-foreground">{driver.vehicle}</p> : null}
                   </div>
-                  <Badge variant={AVAILABILITY_VARIANT[driver.availability]}>{driver.availability}</Badge>
+                  <Badge variant={AVAILABILITY_VARIANT[driver.availability]}>{tAvailability(driver.availability)}</Badge>
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t pt-3 font-brand-mono text-xs">
                   <div>
-                    <p className="text-muted-foreground">Today</p>
-                    <p className="text-base">{driver.todayDeliveries}</p>
+                    <p className="font-sans text-muted-foreground">{t('stats.today')}</p>
+                    <p className="text-base">{format.number(driver.todayDeliveries)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Week</p>
-                    <p className="text-base">{driver.weekDeliveries}</p>
+                    <p className="font-sans text-muted-foreground">{t('stats.week')}</p>
+                    <p className="text-base">{format.number(driver.weekDeliveries)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Month</p>
-                    <p className="text-base">{driver.monthDeliveries}</p>
+                    <p className="font-sans text-muted-foreground">{t('stats.month')}</p>
+                    <p className="text-base">{format.number(driver.monthDeliveries)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Delivered</p>
-                    <p className="text-base">{driver.successfulDeliveries}</p>
+                    <p className="font-sans text-muted-foreground">{t('stats.delivered')}</p>
+                    <p className="text-base">{format.number(driver.successfulDeliveries)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Failed</p>
-                    <p className="text-base">{driver.failedDeliveries}</p>
+                    <p className="font-sans text-muted-foreground">{t('stats.failed')}</p>
+                    <p className="text-base">{format.number(driver.failedDeliveries)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">COD</p>
-                    <p className="text-base">AED {driver.codCollected.toFixed(2)}</p>
+                    <p className="font-sans text-muted-foreground">{t('stats.cod')}</p>
+                    <p className="text-base">{format.money(driver.codCollected)}</p>
                   </div>
                 </div>
               </CardContent>

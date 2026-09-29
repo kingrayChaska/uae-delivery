@@ -11,6 +11,7 @@ import {
   Send,
   Truck,
 } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 
 import Button from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,37 +20,35 @@ import MerchantStatusBadge from '@/components/merchant/merchant-status-badge';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { createClient } from '@/lib/supabase/server';
 import { getActivePricingRules } from '@/lib/pricing/get-active-rule';
-import { DELIVERY_TYPE_COPY, isFlatRate } from '@/lib/pricing/config';
+import { isFlatRate } from '@/lib/pricing/config';
 import { EDITABLE_MERCHANT_STATUSES } from '@/lib/merchant/schemas';
 import { getOwnMerchantApplication } from '@/services/merchant/applications';
 import { DELIVERY_TYPES } from '@/lib/types';
+import { getFormat } from '@/i18n/server';
 
 import type { Metadata } from 'next';
 import type { MerchantApplication } from '@/services/merchant/applications';
 
-export const metadata: Metadata = { title: 'Merchant account · ParcelLink' };
+export const generateMetadata = async (): Promise<Metadata> => ({
+  title: (await getTranslations('merchant.page'))('meta'),
+});
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat('en-AE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Dubai' }).format(new Date(value));
+const NEXT_STEP_KEYS = ['one', 'two', 'three'] as const;
 
-const NEXT_STEPS: Record<MerchantApplication['status'], string[]> = {
-  pending: [
-    'Our team checks your company details and trade licence.',
-    'You’ll get an email and a notification here as soon as there’s a decision.',
-    'Until then you can keep booking deliveries as an individual.',
-  ],
-  requires_changes: ['Read the message from our team below.', 'Update your application and resubmit it.', 'We’ll review it again straight away.'],
-  rejected: ['Read the reason below.', 'If your details have changed, update and resubmit the application.', 'Questions? Open a support ticket.'],
-  approved: [],
-};
-
-const ApplicationLobby = ({ application, submitted }: { application: MerchantApplication; submitted: boolean }) => {
+const ApplicationLobby = async ({ application, submitted }: { application: MerchantApplication; submitted: boolean }) => {
+  const [t, format] = await Promise.all([getTranslations('merchant.page.lobby'), getFormat()]);
   const editable = EDITABLE_MERCHANT_STATUSES.includes(application.status);
   const needsAttention = application.status === 'rejected' || application.status === 'requires_changes';
   const steps = [
-    { label: 'Application submitted', done: true, icon: Send },
-    { label: 'Under review', done: application.status !== 'pending', current: application.status === 'pending', icon: Hourglass },
-    { label: needsAttention ? 'Action needed' : 'Decision', done: false, current: needsAttention, icon: needsAttention ? CircleAlert : BadgeCheck },
+    { key: 'submitted', label: t('steps.submitted'), done: true, icon: Send },
+    { key: 'review', label: t('steps.review'), done: application.status !== 'pending', current: application.status === 'pending', icon: Hourglass },
+    {
+      key: 'decision',
+      label: needsAttention ? t('steps.action') : t('steps.decision'),
+      done: false,
+      current: needsAttention,
+      icon: needsAttention ? CircleAlert : BadgeCheck,
+    },
   ];
 
   return (
@@ -58,7 +57,7 @@ const ApplicationLobby = ({ application, submitted }: { application: MerchantApp
         <div role="status" className="flex items-start gap-3 rounded-2xl border border-success/50 bg-success/10 p-4 text-sm animate-in fade-in-0 slide-in-from-top-2 motion-reduce:animate-none">
           <BadgeCheck className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
           <p>
-            <span className="font-medium">Application sent.</span> Your Merchant account application has been submitted and is awaiting approval.
+            <span className="font-medium">{t('sentTitle')}</span> {t('sentBody')}
           </p>
         </div>
       ) : null}
@@ -67,20 +66,18 @@ const ApplicationLobby = ({ application, submitted }: { application: MerchantApp
         <CardContent className="flex flex-col gap-6 pt-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-sm text-muted-foreground">Application status</p>
+              <p className="text-sm text-muted-foreground">{t('statusLabel')}</p>
               <h2 className="text-xl font-semibold">
-                {application.status === 'pending'
-                  ? 'Your Merchant account application has been submitted and is awaiting approval.'
-                  : 'Your Merchant application requires attention.'}
+                {application.status === 'pending' ? t('pendingHeadline') : t('attentionHeadline')}
               </h2>
             </div>
             <MerchantStatusBadge status={application.status} />
           </div>
 
-          <ol className="grid gap-3 sm:grid-cols-3" aria-label="Application progress">
-            {steps.map(({ label, done, current, icon: Icon }) => (
+          <ol className="grid gap-3 sm:grid-cols-3" aria-label={t('progressLabel')}>
+            {steps.map(({ key, label, done, current, icon: Icon }) => (
               <li
-                key={label}
+                key={key}
                 aria-current={current ? 'step' : undefined}
                 className={`flex items-center gap-3 rounded-xl border p-3 text-sm ${
                   current ? 'border-primary bg-secondary/60 font-medium' : done ? 'bg-muted/40' : 'text-muted-foreground'
@@ -94,19 +91,19 @@ const ApplicationLobby = ({ application, submitted }: { application: MerchantApp
 
           <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <dt className="text-muted-foreground">Company</dt>
+              <dt className="text-muted-foreground">{t('company')}</dt>
               <dd className="font-medium">{application.companyName}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Account type</dt>
-              <dd className="font-medium">Merchant (applied)</dd>
+              <dt className="text-muted-foreground">{t('accountType')}</dt>
+              <dd className="font-medium">{t('applied')}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Submitted</dt>
-              <dd className="font-medium">{formatDate(application.submittedAt)}</dd>
+              <dt className="text-muted-foreground">{t('submitted')}</dt>
+              <dd className="font-medium">{format.dateTime(application.submittedAt)}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Status</dt>
+              <dt className="text-muted-foreground">{t('status')}</dt>
               <dd className="font-medium">
                 <MerchantStatusBadge status={application.status} />
               </dd>
@@ -115,33 +112,35 @@ const ApplicationLobby = ({ application, submitted }: { application: MerchantApp
 
           {application.reviewNote ? (
             <div className="rounded-xl border border-warning/60 bg-warning/10 p-4 text-sm">
-              <p className="font-medium">Message from our team</p>
+              <p className="font-medium">{t('teamMessage')}</p>
               <p>{application.reviewNote}</p>
             </div>
           ) : null}
 
-          <div>
-            <h3 className="mb-2 text-sm font-semibold">Next steps</h3>
-            <ol className="flex list-decimal flex-col gap-1 pl-5 text-sm text-muted-foreground">
-              {NEXT_STEPS[application.status].map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
-          </div>
+          {application.status !== 'approved' ? (
+            <div>
+              <h3 className="mb-2 text-sm font-semibold">{t('nextSteps')}</h3>
+              <ol className="flex list-decimal flex-col gap-1 ps-5 text-sm text-muted-foreground">
+                {NEXT_STEP_KEYS.map((step) => (
+                  <li key={step}>{t(`next.${application.status as 'pending' | 'requires_changes' | 'rejected'}.${step}`)}</li>
+                ))}
+              </ol>
+            </div>
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             {editable ? (
               <Button asChild>
                 <Link href="/dashboard/customer/merchant/apply">
                   <Pencil aria-hidden />
-                  Update & resubmit
+                  {t('update')}
                 </Link>
               </Button>
             ) : null}
             <Button asChild variant="outline">
               <Link href="/dashboard/customer/book">
                 <PackagePlus aria-hidden />
-                Book as an individual
+                {t('bookIndividual')}
               </Link>
             </Button>
           </div>
@@ -152,7 +151,7 @@ const ApplicationLobby = ({ application, submitted }: { application: MerchantApp
 };
 
 const MerchantHub = async ({ application }: { application: MerchantApplication | null }) => {
-  const [rules, stats] = await Promise.all([
+  const [rules, stats, t, tShipments, format] = await Promise.all([
     getActivePricingRules(),
     (async () => {
       if (!application?.businessAccountId) return null;
@@ -164,63 +163,67 @@ const MerchantHub = async ({ application }: { application: MerchantApplication |
         .maybeSingle();
       return data;
     })(),
+    getTranslations('merchant.page.hub'),
+    getTranslations('shipments'),
+    getFormat(),
   ]);
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-gradient-to-br from-secondary/80 to-accent/60 p-5 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-linear-to-br from-secondary/80 to-accent/60 p-5 sm:p-6">
         <div className="flex items-center gap-4">
           <span className="flex size-12 items-center justify-center rounded-2xl bg-background text-primary shadow-sm">
             <Building2 className="size-6" aria-hidden />
           </span>
           <div>
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              Merchant account <MerchantStatusBadge status="approved" />
+              {t('label')} <MerchantStatusBadge status="approved" />
             </p>
-            <h2 className="text-xl font-semibold">{application?.companyName ?? 'Your company'}</h2>
+            <h2 className="text-xl font-semibold">{application?.companyName ?? t('yourCompany')}</h2>
           </div>
         </div>
         <Button asChild size="lg">
           <Link href="/dashboard/customer/book">
             <PackagePlus aria-hidden />
-            Book merchant shipments
+            {t('book')}
           </Link>
         </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Merchant shipments" value={String(stats?.shipment_count ?? 0)} />
-        <StatCard label="Billed" value={`AED ${Number(stats?.billed ?? 0).toFixed(2)}`} />
-        <StatCard label="Outstanding" value={`AED ${Number(stats?.outstanding ?? 0).toFixed(2)}`} />
-        <StatCard label="Cash-paid fees" value={`AED ${Number(stats?.cod ?? 0).toFixed(2)}`} />
+        <StatCard label={t('stats.shipments')} value={format.number(stats?.shipment_count ?? 0)} />
+        <StatCard label={t('stats.billed')} value={format.money(Number(stats?.billed ?? 0))} />
+        <StatCard label={t('stats.outstanding')} value={format.money(Number(stats?.outstanding ?? 0))} />
+        <StatCard label={t('stats.cashFees')} value={format.money(Number(stats?.cod ?? 0))} />
       </div>
 
       <Card>
         <CardContent className="flex flex-col gap-4 pt-6">
-          <h2 className="text-lg font-semibold">Your merchant rates</h2>
+          <h2 className="text-lg font-semibold">{t('ratesTitle')}</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {DELIVERY_TYPES.map((type) => {
               const rule = rules.merchant[type];
               return (
                 <div key={type} className="rounded-xl border p-4">
                   <p className="flex items-center gap-2 font-medium">
-                    <Truck className="size-4 text-primary" aria-hidden />
-                    {DELIVERY_TYPE_COPY[type].label}
+                    <Truck className="size-4 text-primary rtl:-scale-x-100" aria-hidden />
+                    {tShipments(`deliveryType.${type}.label`)}
                   </p>
-                  <p className="mt-1 font-brand-mono text-2xl font-semibold">
-                    {rule.currency} {rule.basePrice.toFixed(2)}
-                  </p>
+                  <p className="mt-1 font-brand-mono text-2xl font-semibold">{format.money(rule.basePrice, rule.currency)}</p>
                   <p className="text-sm text-muted-foreground">
                     {isFlatRate(rule)
-                      ? `Flat rate for any distance up to ${rule.maxDistanceKm} km.`
-                      : `First ${rule.baseDistanceKm} km, then ${rule.currency} ${rule.additionalPricePerKm.toFixed(2)}/km.`}{' '}
-                    {rule.includedWeightKg} kg included, then {rule.currency} {rule.additionalPricePerKg.toFixed(2)} per kg.
+                      ? t('flatRate', { distance: format.km(rule.maxDistanceKm, 0) })
+                      : t('tiered', {
+                          distance: format.km(rule.baseDistanceKm, 0),
+                          perKm: format.money(rule.additionalPricePerKm, rule.currency),
+                        })}{' '}
+                    {t('weight', { weight: format.kg(rule.includedWeightKg), perKg: format.money(rule.additionalPricePerKg, rule.currency) })}
                   </p>
                 </div>
               );
             })}
           </div>
-          <p className="text-xs text-muted-foreground">Weight is required on every merchant shipment. Prices exclude the goods amount collected on delivery.</p>
+          <p className="text-xs text-muted-foreground">{t('ratesNote')}</p>
         </CardContent>
       </Card>
 
@@ -228,8 +231,8 @@ const MerchantHub = async ({ application }: { application: MerchantApplication |
         <Button asChild variant="outline">
           <Link href="/dashboard/customer/deliveries">
             <ClipboardList aria-hidden />
-            All shipments
-            <ArrowRight aria-hidden />
+            {t('allShipments')}
+            <ArrowRight className="rtl:rotate-180" aria-hidden />
           </Link>
         </Button>
       </div>
@@ -239,13 +242,17 @@ const MerchantHub = async ({ application }: { application: MerchantApplication |
 
 const MerchantPage = async ({ searchParams }: { searchParams: Promise<{ submitted?: string }> }) => {
   const profile = await requireRoleOrRedirect('customer');
-  const [application, params] = await Promise.all([getOwnMerchantApplication(profile.id), searchParams]);
+  const [application, params, t] = await Promise.all([
+    getOwnMerchantApplication(profile.id),
+    searchParams,
+    getTranslations('merchant.page'),
+  ]);
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:py-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Merchant account</h1>
-        <p className="text-muted-foreground">Flat-rate pricing and tools for businesses that ship regularly.</p>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('title')}</h1>
+        <p className="text-muted-foreground">{t('subtitle')}</p>
       </div>
 
       {profile.accountType === 'merchant' ? (
@@ -257,16 +264,13 @@ const MerchantPage = async ({ searchParams }: { searchParams: Promise<{ submitte
           <CardContent className="flex flex-col items-start gap-4 pt-6">
             <Building2 className="size-10 text-primary" aria-hidden />
             <div>
-              <h2 className="text-xl font-semibold">Ship as a business</h2>
-              <p className="max-w-xl text-muted-foreground">
-                Merchants get flat-rate pricing, bulk and recurring shipments, and cash-on-delivery collection. Applications are
-                reviewed by our team.
-              </p>
+              <h2 className="text-xl font-semibold">{t('empty.title')}</h2>
+              <p className="max-w-xl text-muted-foreground">{t('empty.body')}</p>
             </div>
             <Button asChild size="lg">
               <Link href="/dashboard/customer/merchant/apply">
-                Apply for a Merchant account
-                <ArrowRight aria-hidden />
+                {t('empty.cta')}
+                <ArrowRight className="rtl:rotate-180" aria-hidden />
               </Link>
             </Button>
           </CardContent>

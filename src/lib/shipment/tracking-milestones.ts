@@ -1,7 +1,12 @@
 import type { ShipmentStatus } from '@/lib/types';
 
+export const MILESTONE_KEYS = ['created', 'assigned', 'received', 'in_transit', 'out_for_delivery', 'delivered'] as const;
+export type MilestoneKey = (typeof MILESTONE_KEYS)[number];
+
+// label/description are the English copy; the UI shows the translation for
+// the milestone's key (tracking.milestones.<key>).
 export type TrackingMilestone = {
-  key: string;
+  key: MilestoneKey;
   label: string;
   description: string;
   done: boolean;
@@ -12,7 +17,7 @@ export type TrackingMilestone = {
 };
 
 type MilestoneDefinition = {
-  key: string;
+  key: MilestoneKey;
   label: string;
   description: string;
   // Statuses at which this milestone counts as reached.

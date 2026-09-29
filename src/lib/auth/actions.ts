@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { safeErrorMessage } from "@/lib/security/errors";
 import { verifyTurnstile } from "@/lib/security/turnstile";
 import { getPublicOrigin } from "@/lib/auth/public-url";
+import { authErrorMessage } from "@/lib/auth/errors";
 import {
   RATE_LIMIT_MESSAGE,
   checkIpRateLimit,
@@ -52,7 +53,7 @@ export const registerAction = async (
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid input",
+      error: parsed.error.issues[0]?.message ?? "validation.invalid",
     };
   }
 
@@ -74,8 +75,9 @@ export const registerAction = async (
   });
 
   // Supabase Auth's own messages ('Password should be at least 6 characters')
-  // are written for users; it's database errors that must not leak.
-  if (error) return { success: false, error: error.message };
+  // are written for users; it's database errors that must not leak. Known
+  // ones are shown in the reader's language (lib/auth/errors.ts).
+  if (error) return { success: false, error: authErrorMessage(error) };
 
   // If the Supabase project has email confirmation disabled, signUp
   // returns an active session immediately — otherwise the account exists
@@ -86,7 +88,7 @@ export const registerAction = async (
 
   return {
     success: true,
-    message: "Check your email to confirm your account before signing in.",
+    message: "auth.register.checkEmail",
   };
 };
 
@@ -98,7 +100,7 @@ export const loginAction = async (
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid input",
+      error: parsed.error.issues[0]?.message ?? "validation.invalid",
     };
   }
 
@@ -118,7 +120,7 @@ export const loginAction = async (
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
-  if (error) return { success: false, error: "Incorrect email or password" };
+  if (error) return { success: false, error: "auth.errors.incorrectCredentials" };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -130,7 +132,7 @@ export const loginAction = async (
     await supabase.auth.signOut();
     return {
       success: false,
-      error: "This account is not active. Contact support.",
+      error: "auth.errors.inactive",
     };
   }
 
@@ -151,7 +153,7 @@ export const requestPasswordResetAction = async (
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid input",
+      error: parsed.error.issues[0]?.message ?? "validation.invalid",
     };
   }
 
@@ -173,7 +175,7 @@ export const requestPasswordResetAction = async (
 
   return {
     success: true,
-    message: "If an account exists for that email, a reset link is on its way.",
+    message: "auth.forgot.sent",
   };
 };
 
@@ -189,7 +191,7 @@ export const updatePasswordAction = async (
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid input",
+      error: parsed.error.issues[0]?.message ?? "validation.invalid",
     };
   }
 
@@ -200,14 +202,14 @@ export const updatePasswordAction = async (
   } = await supabase.auth.getUser();
 
   if (!user)
-    return { success: false, error: "Reset link expired. Request a new one." };
+    return { success: false, error: "auth.errors.resetExpired" };
   if (!(await checkRateLimit("passwordUpdatePerUser", user.id)))
     return { success: false, error: RATE_LIMIT_MESSAGE };
 
   const { error } = await supabase.auth.updateUser({
     password: parsed.data.password,
   });
-  if (error) return { success: false, error: error.message };
+  if (error) return { success: false, error: authErrorMessage(error) };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -232,7 +234,7 @@ export const updateProfileAction = async (
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid input",
+      error: parsed.error.issues[0]?.message ?? "validation.invalid",
     };
   }
 
@@ -240,7 +242,7 @@ export const updateProfileAction = async (
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not signed in" };
+  if (!user) return { success: false, error: "errors.notSignedIn" };
 
   const { error } = await supabase
     .from("profiles")

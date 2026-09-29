@@ -1,5 +1,5 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -45,9 +45,15 @@
   --brand-route-deep: #2a1541;
   --brand-signal: var(--parcellink-teal);
   --brand-muted: #6b6776;
-  --brand-font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
-  --brand-font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-  --brand-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  /* Latin glyphs come from the brand fonts; Arabic glyphs fall through to
+     IBM Plex Sans Arabic (the Arabic companion of IBM Plex Sans). */
+  --brand-font-display:
+    "Space Grotesk", "IBM Plex Sans Arabic", ui-sans-serif, system-ui,
+    sans-serif;
+  --brand-font-sans:
+    "IBM Plex Sans", "IBM Plex Sans Arabic", ui-sans-serif, system-ui,
+    sans-serif;
+  --brand-font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 .dark {
@@ -131,6 +137,21 @@
   }
 }
 
+/* ── Arabic / right-to-left ────────────────────────────────────────────────
+   Layout mirrors through logical utilities (ms-/me-/ps-/pe-/start-/end-,
+   text-start) and dir="rtl" on <html>. Letter-spacing breaks the joins in
+   Arabic's connected script, so tracking-* is neutralised for Arabic text.
+   Technical values (tracking IDs, phone numbers, emails, coordinates,
+   amounts) are wrapped in dir="ltr" so they never read backwards. */
+html[lang="ar"] :where(body, body *) {
+  letter-spacing: 0 !important;
+}
+
+html[lang="ar"] body {
+  /* Arabic glyphs sit taller; a touch more leading keeps diacritics clear. */
+  line-height: 1.6;
+}
+
 /* ── Motion ─────────────────────────────────────────────────────────────
    Every animation here is opt-in via prefers-reduced-motion: no-preference,
    so people who ask for less motion get the static page. */
@@ -152,7 +173,8 @@ html {
     [data-reveal] {
       animation: reveal-in linear both;
       animation-timeline: view();
-      animation-range: entry var(--reveal-shift, 0%) entry calc(45% + var(--reveal-shift, 0%));
+      animation-range: entry var(--reveal-shift, 0%) entry
+        calc(45% + var(--reveal-shift, 0%));
     }
   }
 
@@ -160,10 +182,21 @@ html {
     animation: route-dash 1.4s linear infinite;
   }
 
-  @supports (offset-path: path('M 0 0')) {
+  .parcellink-hero-travel {
+    animation: hero-truck-travel 18s linear infinite;
+    will-change: transform;
+  }
+
+  [dir="rtl"] .parcellink-hero-travel {
+    animation-name: hero-truck-travel-rtl;
+  }
+
+  @supports (offset-path: path("M 0 0")) {
     .route-driver {
       transform: none;
-      offset-path: path('M 96 118 C 180 118, 168 232, 260 236 S 392 220, 420 300 S 400 372, 468 372');
+      offset-path: path(
+        "M 96 118 C 180 118, 168 232, 260 236 S 392 220, 420 300 S 400 372, 468 372"
+      );
       offset-rotate: 0deg;
       animation: route-drive 10s cubic-bezier(0.45, 0, 0.55, 1) infinite;
     }
@@ -173,6 +206,25 @@ html {
 @keyframes route-dash {
   to {
     stroke-dashoffset: -12;
+  }
+}
+
+@keyframes hero-truck-travel {
+  0% {
+    transform: translate3d(-140%, 30%, 0);
+  }
+  100% {
+    transform: translate3d(140vw, 30%, 0);
+  }
+}
+
+/* The same trip in the Arabic reading direction: right edge to left. */
+@keyframes hero-truck-travel-rtl {
+  0% {
+    transform: translate3d(140%, 30%, 0);
+  }
+  100% {
+    transform: translate3d(-140vw, 30%, 0);
   }
 }
 

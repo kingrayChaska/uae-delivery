@@ -1,6 +1,7 @@
 'use client';
 
 import { Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
@@ -12,21 +13,23 @@ import { useTrackingLookup } from '@/lib/hooks/use-tracking-lookup';
 
 const TrackingLookupForm = () => {
   const { register, errors, isSubmitting, result, onSubmit, turnstile } = useTrackingLookup();
+  const t = useTranslations('tracking.form');
 
   return (
     <div className="flex w-full max-w-xl flex-col gap-6">
       <form onSubmit={onSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-start" noValidate role="search">
         <div className="flex-1">
           <Label htmlFor="trackingNumber" className="sr-only">
-            Tracking ID
+            {t('label')}
           </Label>
           <Input
             id="trackingNumber"
-            placeholder="Tracking ID, e.g. PL7K29X4"
+            placeholder={t('placeholder')}
+            dir="ltr"
             autoCapitalize="characters"
             autoComplete="off"
             spellCheck={false}
-            className="h-12 bg-white font-brand-mono text-lg tracking-widest uppercase placeholder:normal-case placeholder:tracking-normal sm:h-12"
+            className="h-12 bg-white font-brand-mono text-lg tracking-widest uppercase placeholder:normal-case placeholder:tracking-normal sm:h-12 rtl:text-right rtl:placeholder:font-sans"
             aria-invalid={Boolean(errors.trackingNumber) || undefined}
             {...register('trackingNumber')}
           />
@@ -36,12 +39,12 @@ const TrackingLookupForm = () => {
           type="submit"
           size="lg"
           loading={isSubmitting}
-          loadingText="Tracking…"
+          loadingText={t('submitting')}
           disabled={!turnstile.ready}
           className="bg-brand-route text-brand-paper hover:bg-brand-route/90"
         >
           <Search aria-hidden />
-          Track
+          {t('submit')}
         </Button>
       </form>
       <TurnstileWidget turnstile={turnstile} />

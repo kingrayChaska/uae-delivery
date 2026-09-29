@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 
 import Label from '@/components/ui/label';
 import Button from '@/components/ui/button';
+import FieldError from '@/components/ui/field-error';
 import { usePackageImageUpload } from '@/lib/hooks/use-package-image-upload';
 
 type PackageImageUploadProps = {
@@ -12,6 +14,7 @@ type PackageImageUploadProps = {
 };
 
 const PackageImageUpload = ({ customerId, onChange }: PackageImageUploadProps) => {
+  const t = useTranslations('booking.photo');
   const { path, previewUrl, isUploading, error, upload, clear } = usePackageImageUpload(customerId);
 
   // Reports the uploaded path up to the booking form once the upload
@@ -32,12 +35,12 @@ const PackageImageUpload = ({ customerId, onChange }: PackageImageUploadProps) =
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor="package-image">Package photo (optional)</Label>
+      <Label htmlFor="package-image">{t('label')}</Label>
 
       {previewUrl ? (
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview, not a remote/optimizable image */}
-          <img src={previewUrl} alt="Package preview" className="size-16 rounded-md object-cover" />
+          <img src={previewUrl} alt={t('preview')} className="size-16 rounded-md object-cover" />
           <Button
             type="button"
             variant="outline"
@@ -47,7 +50,7 @@ const PackageImageUpload = ({ customerId, onChange }: PackageImageUploadProps) =
               onChange(null);
             }}
           >
-            Remove
+            {t('remove')}
           </Button>
         </div>
       ) : (
@@ -61,12 +64,12 @@ const PackageImageUpload = ({ customerId, onChange }: PackageImageUploadProps) =
             if (!file) return;
             await upload(file);
           }}
-          className="text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground"
+          className="text-sm text-muted-foreground file:me-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground"
         />
       )}
 
-      {isUploading ? <p className="text-xs text-muted-foreground">Uploading…</p> : null}
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {isUploading ? <p className="text-xs text-muted-foreground">{t('uploading')}</p> : null}
+      <FieldError message={error} />
     </div>
   );
 };

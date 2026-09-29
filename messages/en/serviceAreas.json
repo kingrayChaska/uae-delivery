@@ -1,0 +1,37 @@
+{
+  "emirates": {
+    "dubai": "Dubai",
+    "sharjah": "Sharjah",
+    "ajman": "Ajman",
+    "abuDhabi": "Abu Dhabi",
+    "rasAlKhaimah": "Ras Al Khaimah",
+    "fujairah": "Fujairah",
+    "ummAlQuwain": "Umm Al Quwain"
+  },
+  "notice": {
+    "pickupOnRequest": "Pickup available on request",
+    "deliveryOnRequest": "Delivery available on request",
+    "supported": "ParcelLink currently provides standard delivery services in {supported}.",
+    "pickupBody": "Pickups from {emirate} are available on request. Please contact ParcelLink to arrange this delivery.",
+    "deliveryBody": "Deliveries to {emirate} are available on request. Please contact ParcelLink to arrange this delivery.",
+    "unavailable": "Service area unavailable",
+    "unavailableBody": "We couldn’t confirm that this location is within ParcelLink’s current service area.",
+    "unavailableAction": "Please select another location or contact ParcelLink.",
+    "contact": "Contact ParcelLink"
+  },
+  "errors": {
+    "pickupOnRequest": "Pickup location: Pickup available on request. ParcelLink currently provides standard delivery services in {supported}. Pickups from {emirate} are available on request. Please contact ParcelLink to arrange this delivery.",
+    "deliveryOnRequest": "Delivery location: Delivery available on request. ParcelLink currently provides standard delivery services in {supported}. Deliveries to {emirate} are available on request. Please contact ParcelLink to arrange this delivery.",
+    "pickupUnavailable": "Pickup location: Service area unavailable. We couldn’t confirm that this location is within ParcelLink’s current service area. Please select another location or contact ParcelLink.",
+    "deliveryUnavailable": "Delivery location: Service area unavailable. We couldn’t confirm that this location is within ParcelLink’s current service area. Please select another location or contact ParcelLink.",
+    "cantBook": "This location can’t be booked."
+  },
+  "request": {
+    "subject": "Delivery request: {emirate}",
+    "subjectUnknown": "Delivery request: location outside the service area",
+    "body": "I’d like to arrange a delivery involving {emirate}.",
+    "bodyUnknown": "I’d like to arrange a delivery to or from a location the booking form couldn’t confirm.",
+    "from": "From: {address}",
+    "to": "To: {address}"
+  }
+}

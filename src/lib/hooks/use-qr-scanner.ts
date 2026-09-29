@@ -56,7 +56,7 @@ export const useQrScanner = (onScan: (value: string) => void) => {
       };
       requestAnimationFrame(tick);
     } catch {
-      setError('Camera access was denied or is unavailable.');
+      setError('driver.qr.cameraDenied');
     }
   };
 

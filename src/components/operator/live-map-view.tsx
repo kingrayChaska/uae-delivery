@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import DispatchMap from '@/components/operator/lazy-dispatch-map';
 import Button from '@/components/ui/button';
@@ -23,14 +24,9 @@ type LiveMapViewProps = {
 const FILTERS = ['all', 'available', 'in_transit', 'offline'] as const;
 type Filter = (typeof FILTERS)[number];
 
-const FILTER_LABELS: Record<Filter, string> = {
-  all: 'All',
-  available: 'Available',
-  in_transit: 'In Transit',
-  offline: 'Offline',
-};
-
 const LiveMapView = ({ drivers, initialLocations }: LiveMapViewProps) => {
+  const t = useTranslations('operator.liveMap');
+  const tAvailability = useTranslations('shipments.driverAvailability');
   const [filter, setFilter] = useState<Filter>('all');
   const locations = useRealtimeDriverLocations(initialLocations);
 
@@ -54,16 +50,17 @@ const LiveMapView = ({ drivers, initialLocations }: LiveMapViewProps) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2" role="group" aria-label={t('filterLabel')}>
         {FILTERS.map((option) => (
           <Button
             key={option}
             type="button"
             size="sm"
             variant={filter === option ? 'default' : 'outline'}
+            aria-pressed={filter === option}
             onClick={() => setFilter(option)}
           >
-            {FILTER_LABELS[option]}
+            {t(`filters.${option}`)}
           </Button>
         ))}
       </div>
@@ -76,8 +73,8 @@ const LiveMapView = ({ drivers, initialLocations }: LiveMapViewProps) => {
           .map((driver) => (
             <div key={driver.id} className="rounded-md border p-3 text-sm">
               <p className="font-medium">{driver.fullName}</p>
-              <p className="text-xs capitalize text-muted-foreground">
-                {driver.hasActiveShipment ? 'On delivery' : driver.availability}
+              <p className="text-xs text-muted-foreground">
+                {driver.hasActiveShipment ? t('onDelivery') : tAvailability(driver.availability)}
               </p>
             </div>
           ))}

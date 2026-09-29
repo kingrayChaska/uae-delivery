@@ -1,10 +1,14 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import Button from '@/components/ui/button';
+import FieldError from '@/components/ui/field-error';
 import { setBusinessActiveAction } from '@/lib/business/actions';
 import { useServerAction } from '@/lib/hooks/use-server-action';
 
 const BusinessActiveToggle = ({ businessId, active }: { businessId: string; active: boolean }) => {
+  const t = useTranslations('manager.business');
   const { run, isPending, error } = useServerAction();
 
   return (
@@ -16,9 +20,9 @@ const BusinessActiveToggle = ({ businessId, active }: { businessId: string; acti
         disabled={isPending}
         onClick={() => run(() => setBusinessActiveAction(businessId, !active))}
       >
-        {active ? 'Deactivate account' : 'Reactivate account'}
+        {active ? t('deactivate') : t('reactivate')}
       </Button>
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      <FieldError message={error} />
     </div>
   );
 };

@@ -1,0 +1,100 @@
+{
+  "meta": "Notifications · ParcelLink",
+  "title": "Notifications",
+  "emptyTitle": "No notifications yet",
+  "emptyCustomer": "Updates about your deliveries will appear here.",
+  "emptyDriver": "Assignments and delivery updates will appear here.",
+  "emptyStaff": "Operational alerts will appear here.",
+  "unread": "Unread",
+  "markingRead": "Marking read",
+  "markRead": "Mark as read",
+  "aCustomer": "A customer",
+  "types": {
+    "booked": {
+      "title": "Booking created",
+      "body": "Your shipment {code} has been booked."
+    },
+    "readyForDispatch": {
+      "title": "New shipment ready for dispatch",
+      "body": "{code} is confirmed and awaiting a driver."
+    },
+    "driverDeclined": {
+      "title": "Driver declined an assignment",
+      "body": "{code} needs a new driver."
+    },
+    "paymentSuccess": {
+      "title": "Payment successful",
+      "body": "Payment for {code} was received."
+    },
+    "driverArriving": {
+      "title": "Driver arriving",
+      "body": "Your driver has arrived for pickup of {code}."
+    },
+    "pickedUp": {
+      "title": "Parcel picked up",
+      "body": "{code} has been picked up."
+    },
+    "inTransit": {
+      "title": "Parcel in transit",
+      "body": "{code} is on its way."
+    },
+    "delivered": {
+      "title": "Delivery completed",
+      "body": "{code} has been delivered."
+    },
+    "deliveryFailed": {
+      "title": "Delivery failed",
+      "body": "A delivery attempt for {code} failed."
+    },
+    "deliveryFailedStaff": {
+      "title": "Delivery failed — needs attention",
+      "body": "{code} failed delivery and needs action."
+    },
+    "cancelled": {
+      "title": "Delivery cancelled",
+      "body": "{code} was cancelled by the customer."
+    },
+    "assigned": {
+      "title": "New delivery assigned",
+      "body": "You’ve been assigned {code}."
+    },
+    "deliveryOtp": {
+      "title": "Delivery verification code",
+      "body": "Share this code with your driver to confirm delivery of {code}: {otp}"
+    },
+    "batchBooked": {
+      "title": "Shipments booked",
+      "body": "{reference}: {created} of {total} shipments booked."
+    },
+    "batchSubmitted": {
+      "title": "Bulk list submitted",
+      "body": "{reference} ({name}): {created} of {total} shipments created."
+    },
+    "batchNewBooking": {
+      "title": "New multi-shipment booking",
+      "body": "{sender} booked {count} shipments ({reference}).",
+      "bodyWithDate": "{sender} booked {count} shipments ({reference}) for pickup on {date}."
+    },
+    "batchNewList": {
+      "title": "New bulk shipment list",
+      "body": "{sender} submitted {reference} with {count} shipments.",
+      "bodyWithDate": "{sender} submitted {reference} with {count} shipments for pickup on {date}."
+    },
+    "merchantApplied": {
+      "title": "New merchant application",
+      "body": "{company} applied for a merchant account."
+    },
+    "merchantApproved": {
+      "title": "Your ParcelLink Merchant account has been approved",
+      "body": "You now have merchant pricing and tools. Book your first merchant shipment from your dashboard."
+    },
+    "merchantChanges": {
+      "title": "Your Merchant application requires attention",
+      "body": "Update your application and resubmit it from the Merchant page."
+    },
+    "merchantRejected": {
+      "title": "Your Merchant application requires attention",
+      "body": "You can edit and resubmit your application from the Merchant page."
+    }
+  }
+}

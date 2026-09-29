@@ -1,0 +1,229 @@
+{
+  "status": {
+    "pending": "Pending approval",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "requires_changes": "Requires changes"
+  },
+  "categories": {
+    "retail": "Retail & e-commerce",
+    "food": "Food & groceries",
+    "health": "Health & beauty",
+    "electronics": "Electronics",
+    "fashion": "Fashion & apparel",
+    "documents": "Documents & legal",
+    "pharmacy": "Pharmacy & medical",
+    "wholesale": "Wholesale & distribution",
+    "other": "Other"
+  },
+  "onboarding": {
+    "meta": "Welcome · ParcelLink",
+    "welcome": "Welcome to ParcelLink, {name}",
+    "welcomeFallback": "Welcome to ParcelLink",
+    "title": "How will you use ParcelLink?",
+    "subtitle": "Choose the account that fits. You can apply to become a merchant later, too.",
+    "individual": {
+      "title": "Individual",
+      "description": "For personal deliveries.",
+      "points": {
+        "anytime": "Send parcels whenever you need",
+        "speeds": "Same-day and next-day delivery",
+        "payPer": "Pay per delivery, no commitment"
+      },
+      "cta": "Continue as Individual"
+    },
+    "merchant": {
+      "title": "Merchant",
+      "description": "For companies shipping regularly or in bulk.",
+      "points": {
+        "flatRate": "Flat-rate merchant pricing",
+        "bulk": "Bulk and regular business shipments",
+        "cod": "Cash-on-delivery collection for your orders"
+      },
+      "cta": "Apply for a Merchant account",
+      "note": "Merchant accounts are reviewed by our team. You can book as an individual while you wait."
+    }
+  },
+  "apply": {
+    "meta": "Merchant application · ParcelLink",
+    "back": "Merchant account",
+    "titleNew": "Apply for a Merchant account",
+    "titleUpdate": "Update your merchant application",
+    "subtitle": "Tell us about your company. Our team reviews every application and will email you with the decision.",
+    "teamMessage": "Message from our team"
+  },
+  "form": {
+    "company": {
+      "title": "Company information",
+      "description": "As shown on your trade licence."
+    },
+    "contact": {
+      "title": "Contact person",
+      "description": "Who we should talk to about your account."
+    },
+    "shipping": {
+      "title": "Shipping profile",
+      "description": "Helps us set up pickups and capacity for you."
+    },
+    "companyName": "Company name",
+    "registrationNumber": "Company registration number",
+    "licenseNumber": "Business / trade licence number",
+    "website": "Website (optional)",
+    "websitePlaceholder": "www.example.ae",
+    "companyAddress": "Company address",
+    "city": "City / emirate",
+    "country": "Country",
+    "companyPhone": "Company phone",
+    "businessEmail": "Business email",
+    "tradeLicense": "Trade licence (PDF or image, optional but speeds up approval)",
+    "remove": "Remove",
+    "uploading": "Uploading…",
+    "contactName": "Full name",
+    "contactPosition": "Position / role",
+    "contactPhone": "Phone number",
+    "contactEmail": "Email",
+    "category": "Business category",
+    "categoryPlaceholder": "Choose a category…",
+    "volume": "Expected shipments per month",
+    "volumePlaceholder": "Choose a range…",
+    "pickupAddress": "Main pickup / warehouse address",
+    "needsCod": "We’ll need cash-on-delivery collection for some orders",
+    "notes": "Anything else we should know? (optional)",
+    "confirm": "I confirm these details are accurate and I’m authorised to open a merchant account for this company.",
+    "submit": "Submit application",
+    "resubmit": "Resubmit application",
+    "submitting": "Submitting…"
+  },
+  "fields": {
+    "companyName": "company name",
+    "registrationNumber": "company registration number",
+    "licenseNumber": "trade licence number",
+    "companyAddress": "company address",
+    "country": "country",
+    "city": "city",
+    "companyPhone": "company phone number",
+    "businessEmail": "business email",
+    "contactName": "contact person’s full name",
+    "contactPosition": "contact person’s position",
+    "contactPhone": "contact phone number",
+    "contactEmail": "contact email",
+    "pickupAddress": "main pickup / warehouse address"
+  },
+  "validation": {
+    "required": "Enter the {field}",
+    "tooLong": "Keep the {field} under {max} characters",
+    "phone": "Enter a valid {field}",
+    "email": "Enter a valid {field}",
+    "websiteTooLong": "Keep the website under 200 characters",
+    "website": "Enter a valid website address",
+    "category": "Choose a business category",
+    "volume": "Choose your expected monthly shipments",
+    "notesTooLong": "Keep notes under 1000 characters",
+    "confirm": "Confirm that these details are accurate",
+    "reviewNoteTooLong": "Keep the message under 1000 characters",
+    "reviewNoteRequired": "Tell the applicant why (at least a few words)"
+  },
+  "errors": {
+    "alreadyMerchant": "Your account is already a merchant account.",
+    "checkFields": "Check the highlighted fields",
+    "uploadAgain": "Upload the document again",
+    "submitFailed": "Could not submit your application",
+    "resubmitFailed": "Could not resubmit your application",
+    "underReview": "Your application is already being reviewed.",
+    "invalidDecision": "Invalid decision",
+    "notFound": "Application not found",
+    "saveDecisionFailed": "Could not save the decision",
+    "uploadType": "Upload a PDF, JPEG, PNG or WebP file",
+    "uploadSize": "The file must be under 5MB",
+    "uploadFailed": "Upload failed. Please try again."
+  },
+  "page": {
+    "meta": "Merchant account · ParcelLink",
+    "title": "Merchant account",
+    "subtitle": "Flat-rate pricing and tools for businesses that ship regularly.",
+    "lobby": {
+      "sentTitle": "Application sent.",
+      "sentBody": "Your Merchant account application has been submitted and is awaiting approval.",
+      "statusLabel": "Application status",
+      "pendingHeadline": "Your Merchant account application has been submitted and is awaiting approval.",
+      "attentionHeadline": "Your Merchant application requires attention.",
+      "progressLabel": "Application progress",
+      "steps": {
+        "submitted": "Application submitted",
+        "review": "Under review",
+        "action": "Action needed",
+        "decision": "Decision"
+      },
+      "company": "Company",
+      "accountType": "Account type",
+      "applied": "Merchant (applied)",
+      "submitted": "Submitted",
+      "status": "Status",
+      "teamMessage": "Message from our team",
+      "nextSteps": "Next steps",
+      "next": {
+        "pending": {
+          "one": "Our team checks your company details and trade licence.",
+          "two": "You’ll get an email and a notification here as soon as there’s a decision.",
+          "three": "Until then you can keep booking deliveries as an individual."
+        },
+        "requires_changes": {
+          "one": "Read the message from our team below.",
+          "two": "Update your application and resubmit it.",
+          "three": "We’ll review it again straight away."
+        },
+        "rejected": {
+          "one": "Read the reason below.",
+          "two": "If your details have changed, update and resubmit the application.",
+          "three": "Questions? Open a support ticket."
+        }
+      },
+      "update": "Update & resubmit",
+      "bookIndividual": "Book as an individual"
+    },
+    "hub": {
+      "label": "Merchant account",
+      "yourCompany": "Your company",
+      "book": "Book merchant shipments",
+      "stats": {
+        "shipments": "Merchant shipments",
+        "billed": "Billed",
+        "outstanding": "Outstanding",
+        "cashFees": "Cash-paid fees"
+      },
+      "ratesTitle": "Your merchant rates",
+      "flatRate": "Flat rate for any distance up to {distance}.",
+      "tiered": "First {distance}, then {perKm}/km.",
+      "weight": "{weight} included, then {perKg} per kg.",
+      "ratesNote": "Weight is required on every merchant shipment. Prices exclude the goods amount collected on delivery.",
+      "allShipments": "All shipments"
+    },
+    "empty": {
+      "title": "Ship as a business",
+      "body": "Merchants get flat-rate pricing, bulk and recurring shipments, and cash-on-delivery collection. Applications are reviewed by our team.",
+      "cta": "Apply for a Merchant account"
+    }
+  },
+  "emails": {
+    "greeting": "Hi {name},",
+    "greetingFallback": "Hi there,",
+    "company": "Company: {company}",
+    "footer": "ParcelLink · Parcel delivery across the UAE",
+    "approved": {
+      "subject": "Your ParcelLink Merchant account has been approved",
+      "body": "Good news — your ParcelLink Merchant account has been approved.\n\nYou now have merchant flat-rate pricing and can book shipments as a merchant from your dashboard.",
+      "note": "Note from our team: {note}",
+      "action": "Book your first merchant shipment"
+    },
+    "rejected": {
+      "subject": "Your Merchant application requires attention",
+      "body": "We weren’t able to approve your ParcelLink Merchant application.\n\nReason: {note}\n\nYou can update your details and resubmit the application from the Merchant page in your dashboard, or reply to this email if you have questions.",
+      "action": "Review your application"
+    },
+    "requires_changes": {
+      "subject": "Your Merchant application requires attention",
+      "body": "Our team reviewed your ParcelLink Merchant application and needs a few changes before it can be approved.\n\nWhat to change: {note}\n\nNext step: open the Merchant page in your dashboard, update the details and resubmit.",
+      "action": "Update your application"
+    }
+  }
+}

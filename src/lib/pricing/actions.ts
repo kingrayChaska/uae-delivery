@@ -32,7 +32,7 @@ const getActiveRuleSnapshot = async (deliveryType: DeliveryType, accountType: Ac
 export const createPricingRuleAction = async (input: PricingRuleInput): Promise<PricingActionResult> => {
   const manager = await requireRole('manager');
   const parsed = pricingRuleSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
   const rule = parsed.data;
 
   const previous = rule.activate ? await getActiveRuleSnapshot(rule.deliveryType, rule.accountType) : null;
@@ -58,7 +58,7 @@ export const createPricingRuleAction = async (input: PricingRuleInput): Promise<
     .select('id')
     .single();
 
-  if (error || !data) return { success: false, error: safeErrorMessage(error, 'Could not save the rule') };
+  if (error || !data) return { success: false, error: safeErrorMessage(error, 'manager.pricing.errors.saveFailed') };
 
   await logAuditEvent({
     actorId: manager.id,
@@ -73,7 +73,7 @@ export const createPricingRuleAction = async (input: PricingRuleInput): Promise<
 };
 
 export const activatePricingRuleAction = async (ruleId: string): Promise<PricingActionResult> => {
-  if (!isUuid(ruleId)) return { success: false, error: 'Not found' };
+  if (!isUuid(ruleId)) return { success: false, error: 'errors.notFound' };
   const manager = await requireRole('manager');
   const supabase = await createClient();
 
@@ -82,7 +82,7 @@ export const activatePricingRuleAction = async (ruleId: string): Promise<Pricing
     .select('delivery_type, account_type, is_active')
     .eq('id', ruleId)
     .maybeSingle();
-  if (!target) return { success: false, error: 'Pricing rule not found' };
+  if (!target) return { success: false, error: 'manager.pricing.errors.notFound' };
   if (target.is_active) return { success: true };
 
   const previous = await getActiveRuleSnapshot(target.delivery_type, target.account_type);
@@ -94,7 +94,7 @@ export const activatePricingRuleAction = async (ruleId: string): Promise<Pricing
     .select(PRICING_RULE_COLUMNS)
     .maybeSingle();
 
-  if (error || !data) return { success: false, error: safeErrorMessage(error, 'Pricing rule not found') };
+  if (error || !data) return { success: false, error: safeErrorMessage(error, 'manager.pricing.errors.notFound') };
 
   await logAuditEvent({
     actorId: manager.id,

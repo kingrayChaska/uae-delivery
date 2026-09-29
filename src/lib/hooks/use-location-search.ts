@@ -92,7 +92,7 @@ export const useLocationSearch = (proximity?: Coordinates) => {
     setError(null);
     const result = await retrieveLocationAction({ id: suggestion.id, sessionToken: session() }).catch(() => ({
       success: false as const,
-      error: 'That place could not be loaded. Try another result or drop a pin on the map.',
+      error: 'maps.search.loadFailed',
     }));
     setResolvingId(null);
     // The session ends with a retrieve; the next search starts a new one.

@@ -15,18 +15,18 @@ describe('describeTurnstileError', () => {
     for (const code of ['110100', '110200']) {
       const message = describeTurnstileError(code, false);
       expect(message).not.toMatch(/Cloudflare|site key|NEXT_PUBLIC/);
-      expect(message).toMatch(/temporarily unavailable/);
+      expect(message).toBe('errors.turnstile.unavailableLater');
     }
   });
 
   it.each([
-    ['load', /couldn't load/],
-    ['timeout', /timed out/],
-    ['200500', /browser blocked/],
-    ['300010', /couldn't verify your browser/],
-    ['600010', /couldn't verify your browser/],
-    ['999999', /failed/],
+    ['load', 'errors.turnstile.load'],
+    ['timeout', 'errors.turnstile.timeout'],
+    ['200500', 'errors.turnstile.blocked'],
+    ['300010', 'errors.turnstile.browser'],
+    ['600010', 'errors.turnstile.browser'],
+    ['999999', 'errors.turnstile.checkFailed'],
   ])('describes %s', (failure, expected) => {
-    expect(describeTurnstileError(failure, false)).toMatch(expected);
+    expect(describeTurnstileError(failure, false)).toBe(expected);
   });
 });

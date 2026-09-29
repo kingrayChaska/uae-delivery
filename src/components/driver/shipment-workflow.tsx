@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
 import FieldError from '@/components/ui/field-error';
@@ -33,6 +34,8 @@ type ShipmentWorkflowProps = {
 };
 
 const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff }: ShipmentWorkflowProps) => {
+  const t = useTranslations('driver.workflow');
+  const tCommon = useTranslations('common.actions');
   const { isPending, error, accept, decline, advance, reportFailed } = useShipmentWorkflowActions(shipmentId);
   const [showFailureForm, setShowFailureForm] = useState(false);
   const [failureReason, setFailureReason] = useState('');
@@ -44,7 +47,8 @@ const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff }: ShipmentWorkf
       {showFailureForm ? (
         <div className="flex flex-col gap-2 rounded-md border border-destructive/40 p-3">
           <Input
-            placeholder="Reason the delivery failed"
+            placeholder={t('failureReason')}
+            aria-label={t('failureReason')}
             value={failureReason}
             onChange={(event) => setFailureReason(event.target.value)}
           />
@@ -56,10 +60,10 @@ const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff }: ShipmentWorkf
               disabled={isPending || !failureReason}
               onClick={() => reportFailed(failureReason)}
             >
-              Confirm Failed Delivery
+              {t('confirmFailed')}
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={() => setShowFailureForm(false)}>
-              Cancel
+              {tCommon('cancel')}
             </Button>
           </div>
         </div>
@@ -69,7 +73,7 @@ const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff }: ShipmentWorkf
           className="self-start text-sm text-muted-foreground underline-offset-2 hover:underline"
           onClick={() => setShowFailureForm(true)}
         >
-          Report failed delivery
+          {t('reportFailed')}
         </button>
       )}
     </div>
@@ -82,10 +86,10 @@ const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff }: ShipmentWorkf
       {status === 'assigned' ? (
         <div className="flex gap-2">
           <Button type="button" disabled={isPending} onClick={accept}>
-            Accept Delivery
+            {t('accept')}
           </Button>
           <Button type="button" variant="outline" disabled={isPending} onClick={decline}>
-            Decline
+            {t('decline')}
           </Button>
         </div>
       ) : null}
@@ -94,11 +98,11 @@ const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff }: ShipmentWorkf
         <div className="flex flex-col gap-2">
           <Button asChild variant="outline">
             <a href={navigationUrl(pickup)} target="_blank" rel="noreferrer">
-              Navigate to Pickup
+              {t('navigatePickup')}
             </a>
           </Button>
           <Button type="button" disabled={isPending} onClick={() => advance('arrived_pickup')}>
-            Arrived at Pickup
+            {t('arrivedPickup')}
           </Button>
         </div>
       ) : null}
@@ -107,7 +111,7 @@ const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff }: ShipmentWorkf
         <div className="flex flex-col gap-2">
           <VerifyPickupQr shipmentId={shipmentId} />
           <Button type="button" disabled={isPending} onClick={() => advance('picked_up')}>
-            Confirm Pickup
+            {t('confirmPickup')}
           </Button>
           {failureForm}
         </div>
@@ -115,7 +119,7 @@ const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff }: ShipmentWorkf
 
       {status === 'picked_up' ? (
         <Button type="button" disabled={isPending} onClick={() => advance('in_transit')}>
-          Start Delivery
+          {t('start')}
         </Button>
       ) : null}
 
@@ -123,11 +127,11 @@ const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff }: ShipmentWorkf
         <div className="flex flex-col gap-2">
           <Button asChild variant="outline">
             <a href={navigationUrl(dropoff)} target="_blank" rel="noreferrer">
-              Navigate to Customer
+              {t('navigateCustomer')}
             </a>
           </Button>
           <Button type="button" disabled={isPending} onClick={() => advance('arrived_destination')}>
-            Arrived
+            {t('arrived')}
           </Button>
           {failureForm}
         </div>

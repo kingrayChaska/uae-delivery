@@ -1,4 +1,7 @@
 import { getPublicOrigin } from '@/lib/auth/public-url';
+import { DEFAULT_LOCALE, LOCALES, localizedPath } from '@/i18n/config';
+
+import type { Locale } from '@/i18n/config';
 
 // Single source for the site's search/social metadata.
 export const SITE_NAME = 'ParcelLink';
@@ -23,6 +26,17 @@ export const SITE_KEYWORDS = [
 // No trailing slash, so `${siteUrl()}/tracking` never becomes "//tracking"
 // when NEXT_PUBLIC_APP_URL is configured with one.
 export const siteUrl = () => getPublicOrigin().replace(/\/+$/, '');
+
+// Canonical + hreflang for a public page: English at the existing URL,
+// Arabic under /ar. Each language version is canonical for itself, so the
+// two aren't duplicate content — they're translations of each other.
+export const localizedAlternates = (path: string, locale: Locale) => ({
+  canonical: localizedPath(path, locale),
+  languages: {
+    ...Object.fromEntries(LOCALES.map((l) => [l, localizedPath(path, l)])),
+    'x-default': localizedPath(path, DEFAULT_LOCALE),
+  },
+});
 
 // Public, indexable pages (everything else is behind sign-in or is an auth flow).
 export const PUBLIC_PAGES: { path: string; priority: number; changeFrequency: 'weekly' | 'monthly' | 'yearly' }[] = [

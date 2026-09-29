@@ -5,21 +5,26 @@
 //
 // To open or close an emirate, move it between these two lists.
 
+import { msg, ref } from '@/i18n/message';
+
 export const EMIRATES = [
   // code: ISO 3166-2:AE, which Mapbox returns as region_code / region_code_full.
   // aliases: spellings Mapbox (and people) use for the emirate's name.
-  { name: 'Dubai', code: 'DU', aliases: ['dubai', 'dubayy'] },
-  { name: 'Sharjah', code: 'SH', aliases: ['sharjah', 'sharja', 'ash shariqah', 'al shariqah', 'al sharjah'] },
-  { name: 'Ajman', code: 'AJ', aliases: ['ajman', 'ujman'] },
-  { name: 'Abu Dhabi', code: 'AZ', aliases: ['abu dhabi', 'abu zabi', 'abu zaby', 'abudhabi'] },
+  // key: its translated name, serviceAreas.emirates.<key>.
+  { name: 'Dubai', key: 'dubai', code: 'DU', aliases: ['dubai', 'dubayy'] },
+  { name: 'Sharjah', key: 'sharjah', code: 'SH', aliases: ['sharjah', 'sharja', 'ash shariqah', 'al shariqah', 'al sharjah'] },
+  { name: 'Ajman', key: 'ajman', code: 'AJ', aliases: ['ajman', 'ujman'] },
+  { name: 'Abu Dhabi', key: 'abuDhabi', code: 'AZ', aliases: ['abu dhabi', 'abu zabi', 'abu zaby', 'abudhabi'] },
   {
     name: 'Ras Al Khaimah',
+    key: 'rasAlKhaimah',
     code: 'RK',
     aliases: ['ras al khaimah', 'ras al khaima', 'ras al khaymah', 'ras alkhaimah', 'rak'],
   },
-  { name: 'Fujairah', code: 'FU', aliases: ['fujairah', 'al fujairah', 'fujeirah', 'al fujayrah'] },
+  { name: 'Fujairah', key: 'fujairah', code: 'FU', aliases: ['fujairah', 'al fujairah', 'fujeirah', 'al fujayrah'] },
   {
     name: 'Umm Al Quwain',
+    key: 'ummAlQuwain',
     code: 'UQ',
     aliases: ['umm al quwain', 'umm al qaiwain', 'umm al qiwain', 'umm al quwayn', 'uaq'],
   },
@@ -96,12 +101,20 @@ export const classifyServiceArea = (place: EmiratePlace | null | undefined): Ser
   serviceAreaFor(identifyEmirate(place));
 
 // ── Customer-facing wording ─────────────────────────────────────────────────
+// Everything below is a translatable message (i18n/message.ts), shown in the
+// reader's language wherever it ends up: the booking form, a refused
+// booking, a failed CSV row.
 
-const listOf = (items: readonly string[]) =>
-  items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`;
+export type EmirateKey = (typeof EMIRATES)[number]['key'];
 
-// "Dubai, Sharjah and Ajman"
-export const SUPPORTED_EMIRATES_TEXT = listOf(SERVICE_AREAS.fullySupported);
+export const emirateKey = (emirate: Emirate): EmirateKey => EMIRATES.find((entry) => entry.name === emirate)!.key;
+
+// ref() to an emirate's translated name.
+export const emirateRef = (emirate: Emirate) => ref(`serviceAreas.emirates.${emirateKey(emirate)}`);
+
+// "Dubai, Sharjah and Ajman", as a list value for msg() (joined in the
+// reader's language).
+export const SUPPORTED_EMIRATES = SERVICE_AREAS.fullySupported.map(emirateRef);
 
 export type LocationEnd = 'pickup' | 'dropoff';
 
@@ -116,49 +129,53 @@ export const serviceAreaNotice = (area: ServiceArea, end: LocationEnd): ServiceA
   if (area.status === 'supported') return null;
   if (area.status === 'request_only') {
     return {
-      title: end === 'pickup' ? 'Pickup available on request' : 'Delivery available on request',
+      title: msg(end === 'pickup' ? 'serviceAreas.notice.pickupOnRequest' : 'serviceAreas.notice.deliveryOnRequest'),
       body: [
-        `ParcelLink currently provides standard delivery services in ${SUPPORTED_EMIRATES_TEXT}.`,
-        end === 'pickup'
-          ? `Pickups from ${area.emirate} are available on request. Please contact ParcelLink to arrange this delivery.`
-          : `Deliveries to ${area.emirate} are available on request. Please contact ParcelLink to arrange this delivery.`,
+        msg('serviceAreas.notice.supported', { supported: SUPPORTED_EMIRATES }),
+        msg(end === 'pickup' ? 'serviceAreas.notice.pickupBody' : 'serviceAreas.notice.deliveryBody', {
+          emirate: emirateRef(area.emirate),
+        }),
       ],
     };
   }
   return {
-    title: 'Service area unavailable',
-    body: [
-      'We couldn’t confirm that this location is within ParcelLink’s current service area.',
-      'Please select another location or contact ParcelLink.',
-    ],
+    title: msg('serviceAreas.notice.unavailable'),
+    body: [msg('serviceAreas.notice.unavailableBody'), msg('serviceAreas.notice.unavailableAction')],
   };
 };
 
 // The same notice as one sentence-run, for places that show a single error
 // string (a refused booking, a failed CSV row).
 export const serviceAreaError = (area: ServiceArea, end: LocationEnd): string | null => {
-  const notice = serviceAreaNotice(area, end);
-  if (!notice) return null;
-  const label = end === 'pickup' ? 'Pickup location' : 'Delivery location';
-  return `${label}: ${notice.title}. ${notice.body.join(' ')}`;
+  if (area.status === 'supported') return null;
+  if (area.status === 'request_only') {
+    return msg(end === 'pickup' ? 'serviceAreas.errors.pickupOnRequest' : 'serviceAreas.errors.deliveryOnRequest', {
+      emirate: emirateRef(area.emirate),
+      supported: SUPPORTED_EMIRATES,
+    });
+  }
+  return msg(end === 'pickup' ? 'serviceAreas.errors.pickupUnavailable' : 'serviceAreas.errors.deliveryUnavailable');
 };
 
-// Pre-fills a support request for a request-only delivery.
+// Pre-fills a support request for a request-only delivery: a subject and
+// the message's lines, each a translatable message.
 export const serviceAreaRequest = (
   area: ServiceArea,
   addresses: { pickup?: string; dropoff?: string },
-): { subject: string; message: string } => {
-  const route = [addresses.pickup && `From: ${addresses.pickup}`, addresses.dropoff && `To: ${addresses.dropoff}`]
-    .filter(Boolean)
-    .join('\n');
+): { subject: string; lines: string[] } => {
+  const route = [
+    addresses.pickup ? msg('serviceAreas.request.from', { address: addresses.pickup }) : null,
+    addresses.dropoff ? msg('serviceAreas.request.to', { address: addresses.dropoff }) : null,
+  ].filter((line): line is string => line !== null);
   if (area.status === 'request_only') {
+    const emirate = emirateRef(area.emirate);
     return {
-      subject: `Delivery request: ${area.emirate}`,
-      message: `I'd like to arrange a delivery involving ${area.emirate}.\n\n${route}`.trim(),
+      subject: msg('serviceAreas.request.subject', { emirate }),
+      lines: [msg('serviceAreas.request.body', { emirate }), ...route],
     };
   }
   return {
-    subject: 'Delivery request: location outside the service area',
-    message: `I'd like to arrange a delivery to or from a location the booking form couldn't confirm.\n\n${route}`.trim(),
+    subject: msg('serviceAreas.request.subjectUnknown'),
+    lines: [msg('serviceAreas.request.bodyUnknown'), ...route],
   };
 };

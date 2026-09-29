@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "items": {
+      "dashboard": "Dashboard",
+      "book": "Book Delivery",
+      "deliveries": "My Deliveries",
+      "track": "Track Shipment",
+      "merchant": "Merchant Account",
+      "payments": "Payments",
+      "notifications": "Notifications",
+      "profile": "Profile",
+      "support": "Support",
+      "current": "Current Delivery",
+      "history": "Delivery History",
+      "cod": "Cash on Delivery",
+      "shipments": "Shipments",
+      "bulk": "Grouped Bookings",
+      "dispatch": "Dispatch",
+      "drivers": "Drivers",
+      "customers": "Customers",
+      "map": "Live Map",
+      "activity": "Activity Log",
+      "operators": "Operators",
+      "business": "Business Accounts",
+      "merchants": "Merchant Applications",
+      "pricing": "Pricing",
+      "reports": "Reports",
+      "settings": "Settings"
+    },
+    "sections": {
+      "account": "Account",
+      "operations": "Operations",
+      "people": "People",
+      "customersMerchants": "Customers & merchants",
+      "team": "Team",
+      "business": "Business"
+    },
+    "roles": {
+      "customer": "Customer",
+      "merchant": "Merchant",
+      "driver": "Driver",
+      "operator": "Operator",
+      "manager": "Manager"
+    },
+    "portal": "{role} portal",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu",
+    "navigation": "Navigation",
+    "label": "Dashboard",
+    "home": "Dashboard home",
+    "collapse": "Collapse",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "signOut": "Sign out",
+    "signingOut": "Signing out…"
+  }
+}

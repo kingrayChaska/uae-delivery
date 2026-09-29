@@ -1,11 +1,14 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import Button from '@/components/ui/button';
 
 const PrintButton = () => {
+  const t = useTranslations('shipments.label');
   return (
     <Button type="button" className="print:hidden" onClick={() => window.print()}>
-      Print label
+      {t('print')}
     </Button>
   );
 };

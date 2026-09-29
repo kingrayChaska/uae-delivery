@@ -20,14 +20,14 @@ const getAppUrl = () => getPublicOrigin();
 
 const friendlyDbError = (message: string) => {
   if (message.includes("staff_profiles_employee_id_key"))
-    return "That employee ID is already in use";
+    return "manager.staff.errors.employeeIdTaken";
   if (message.includes("driver_profiles_driver_code_key"))
-    return "That driver ID is already in use";
+    return "manager.staff.errors.driverIdTaken";
   if (message.includes("vehicles_plate_number_key"))
-    return "A vehicle with that plate number already exists";
+    return "manager.staff.errors.plateTaken";
   if (message.toLowerCase().includes("already been registered"))
-    return "An account with that email already exists";
-  return "Could not complete the request. Please check the details and try again.";
+    return "manager.staff.errors.emailTaken";
+  return "manager.staff.errors.generic";
 };
 
 // Staff onboarding runs with the service-role client because it has to
@@ -47,7 +47,7 @@ export const createStaffAction = async (
   if (!parsed.success)
     return {
       success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid input",
+      error: parsed.error.issues[0]?.message ?? "validation.invalid",
     };
 
   const data = parsed.data;
@@ -166,7 +166,7 @@ export const updateStaffAction = async (
   if (!parsed.success)
     return {
       success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid input",
+      error: parsed.error.issues[0]?.message ?? "validation.invalid",
     };
 
   const data = parsed.data;
@@ -178,7 +178,7 @@ export const updateStaffAction = async (
     .eq("id", data.profileId)
     .maybeSingle();
   if (!target || !["operator", "driver"].includes(target.role)) {
-    return { success: false, error: "Staff member not found" };
+    return { success: false, error: "manager.staff.errors.notFound" };
   }
 
   const { error } = await supabase
@@ -226,10 +226,10 @@ export const setStaffActiveAction = async (
   profileId: string,
   active: boolean,
 ): Promise<StaffActionResult> => {
-  if (!isUuid(profileId)) return { success: false, error: "Not found" };
+  if (!isUuid(profileId)) return { success: false, error: "errors.notFound" };
   const manager = await requireRole("manager");
   if (profileId === manager.id)
-    return { success: false, error: "You cannot deactivate your own account" };
+    return { success: false, error: "manager.staff.errors.cannotDeactivateSelf" };
 
   const supabase = await createClient();
   const { data: target } = await supabase
@@ -238,7 +238,7 @@ export const setStaffActiveAction = async (
     .eq("id", profileId)
     .maybeSingle();
   if (!target || !["operator", "driver"].includes(target.role)) {
-    return { success: false, error: "Staff member not found" };
+    return { success: false, error: "manager.staff.errors.notFound" };
   }
 
   const { error } = await supabase
@@ -254,7 +254,7 @@ export const setStaffActiveAction = async (
   if (banError)
     return {
       success: false,
-      error: "Could not update sign-in access. Please try again.",
+      error: "manager.staff.errors.accessUpdateFailed",
     };
 
   if (!active && target.role === "driver") {
@@ -277,7 +277,7 @@ export const setStaffActiveAction = async (
 export const resetStaffAccessAction = async (
   profileId: string,
 ): Promise<StaffActionResult> => {
-  if (!isUuid(profileId)) return { success: false, error: "Not found" };
+  if (!isUuid(profileId)) return { success: false, error: "errors.notFound" };
   const manager = await requireRole("manager");
   const supabase = await createClient();
 
@@ -287,7 +287,7 @@ export const resetStaffAccessAction = async (
     .eq("id", profileId)
     .maybeSingle();
   if (!target || !["operator", "driver"].includes(target.role)) {
-    return { success: false, error: "Staff member not found" };
+    return { success: false, error: "manager.staff.errors.notFound" };
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(target.email, {
@@ -313,10 +313,10 @@ export const resetStaffAccessAction = async (
 export const deleteStaffAction = async (
   profileId: string,
 ): Promise<StaffActionResult> => {
-  if (!isUuid(profileId)) return { success: false, error: "Not found" };
+  if (!isUuid(profileId)) return { success: false, error: "errors.notFound" };
   const manager = await requireRole("manager");
   if (profileId === manager.id)
-    return { success: false, error: "You cannot delete your own account" };
+    return { success: false, error: "manager.staff.errors.cannotDeleteSelf" };
 
   const supabase = await createClient();
   const { data: target } = await supabase
@@ -329,7 +329,7 @@ export const deleteStaffAction = async (
     !["operator", "driver"].includes(target.role) ||
     target.deleted_at
   ) {
-    return { success: false, error: "Staff member not found" };
+    return { success: false, error: "manager.staff.errors.notFound" };
   }
 
   const { error } = await supabase.rpc("delete_staff_account", {
@@ -340,7 +340,7 @@ export const deleteStaffAction = async (
   if (error)
     return {
       success: false,
-      error: safeErrorMessage(error, "Could not delete this account"),
+      error: safeErrorMessage(error, "manager.staff.errors.deleteFailed"),
     };
 
   // Removes the user from Supabase Auth entirely. The profile no longer
@@ -385,8 +385,7 @@ export const deleteStaffAction = async (
   if (authError) {
     return {
       success: false,
-      error:
-        "The profile was deactivated, but permanent deletion from Supabase Auth failed. Check server logs or delete the user from Supabase Auth.",
+      error: "manager.staff.errors.authDeleteFailed",
     };
   }
 

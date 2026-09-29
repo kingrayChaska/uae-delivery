@@ -1,0 +1,100 @@
+{
+  "meta": "الإشعارات · ParcelLink",
+  "title": "الإشعارات",
+  "emptyTitle": "لا توجد إشعارات بعد",
+  "emptyCustomer": "ستظهر هنا التحديثات الخاصة بتوصيلاتك.",
+  "emptyDriver": "ستظهر هنا المهام الجديدة وتحديثات التوصيل.",
+  "emptyStaff": "ستظهر هنا التنبيهات التشغيلية.",
+  "unread": "غير مقروء",
+  "markingRead": "جارٍ التحديد كمقروء",
+  "markRead": "تحديد كمقروء",
+  "aCustomer": "أحد العملاء",
+  "types": {
+    "booked": {
+      "title": "تم إنشاء الحجز",
+      "body": "تم حجز شحنتك {code}."
+    },
+    "readyForDispatch": {
+      "title": "شحنة جديدة جاهزة للتوزيع",
+      "body": "الشحنة {code} مؤكدة وبانتظار سائق."
+    },
+    "driverDeclined": {
+      "title": "رفض سائق مهمة",
+      "body": "تحتاج الشحنة {code} إلى سائق جديد."
+    },
+    "paymentSuccess": {
+      "title": "تم الدفع بنجاح",
+      "body": "تم استلام الدفعة الخاصة بالشحنة {code}."
+    },
+    "driverArriving": {
+      "title": "السائق وصل",
+      "body": "وصل سائقك لاستلام الشحنة {code}."
+    },
+    "pickedUp": {
+      "title": "تم استلام الطرد",
+      "body": "تم استلام الشحنة {code}."
+    },
+    "inTransit": {
+      "title": "الطرد في الطريق",
+      "body": "الشحنة {code} في طريقها إليك."
+    },
+    "delivered": {
+      "title": "اكتمل التوصيل",
+      "body": "تم تسليم الشحنة {code}."
+    },
+    "deliveryFailed": {
+      "title": "تعذّر التسليم",
+      "body": "تعذّرت محاولة تسليم الشحنة {code}."
+    },
+    "deliveryFailedStaff": {
+      "title": "تعذّر التسليم — يحتاج إلى متابعة",
+      "body": "تعذّر تسليم الشحنة {code} وتحتاج إلى إجراء."
+    },
+    "cancelled": {
+      "title": "أُلغيت التوصيلة",
+      "body": "ألغى العميل الشحنة {code}."
+    },
+    "assigned": {
+      "title": "مهمة توصيل جديدة",
+      "body": "تم إسناد الشحنة {code} إليك."
+    },
+    "deliveryOtp": {
+      "title": "رمز التحقق من التسليم",
+      "body": "شارك هذا الرمز مع سائقك لتأكيد تسليم الشحنة {code}: {otp}"
+    },
+    "batchBooked": {
+      "title": "تم حجز الشحنات",
+      "body": "{reference}: تم حجز {created} من أصل {total} شحنة."
+    },
+    "batchSubmitted": {
+      "title": "تم إرسال القائمة المجمّعة",
+      "body": "{reference} ({name}): تم إنشاء {created} من أصل {total} شحنة."
+    },
+    "batchNewBooking": {
+      "title": "حجز جديد متعدد الشحنات",
+      "body": "حجز {sender} عدد {count} شحنة ({reference}).",
+      "bodyWithDate": "حجز {sender} عدد {count} شحنة ({reference}) للاستلام في {date}."
+    },
+    "batchNewList": {
+      "title": "قائمة شحنات مجمّعة جديدة",
+      "body": "أرسل {sender} القائمة {reference} وتضم {count} شحنة.",
+      "bodyWithDate": "أرسل {sender} القائمة {reference} وتضم {count} شحنة للاستلام في {date}."
+    },
+    "merchantApplied": {
+      "title": "طلب تاجر جديد",
+      "body": "تقدّمت شركة {company} بطلب حساب تاجر."
+    },
+    "merchantApproved": {
+      "title": "تم اعتماد حساب التاجر الخاص بك في ParcelLink",
+      "body": "أصبحت لديك الآن أسعار التجار وأدواتهم. احجز أول شحنة تاجر من لوحة التحكم."
+    },
+    "merchantChanges": {
+      "title": "طلب التاجر الخاص بك يحتاج إلى متابعة",
+      "body": "حدّث طلبك وأعد إرساله من صفحة التاجر."
+    },
+    "merchantRejected": {
+      "title": "طلب التاجر الخاص بك يحتاج إلى متابعة",
+      "body": "يمكنك تعديل طلبك وإعادة إرساله من صفحة التاجر."
+    }
+  }
+}

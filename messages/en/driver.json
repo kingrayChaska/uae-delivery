@@ -1,0 +1,121 @@
+{
+  "home": {
+    "welcome": "Welcome, {name}",
+    "subtitle": "Here’s your delivery activity.",
+    "stats": {
+      "today": "Today’s Deliveries",
+      "completed": "Completed",
+      "pending": "Pending",
+      "cod": "COD Collected"
+    },
+    "current": "Current assignment",
+    "continue": "Continue your active delivery",
+    "recent": "Recent deliveries",
+    "emptyTitle": "No deliveries yet",
+    "emptyBody": "Assignments from dispatch will appear here."
+  },
+  "current": {
+    "meta": "Current delivery · ParcelLink",
+    "emptyTitle": "No current delivery",
+    "emptyBody": "You’ll see your next assignment here."
+  },
+  "deliveries": {
+    "meta": "My deliveries · ParcelLink",
+    "title": "My Deliveries",
+    "emptyTitle": "No active deliveries",
+    "emptyBody": "New assignments from dispatch will appear here."
+  },
+  "history": {
+    "meta": "Delivery history · ParcelLink",
+    "title": "Delivery History",
+    "empty": "No completed deliveries yet"
+  },
+  "cod": {
+    "meta": "Cash on delivery · ParcelLink",
+    "title": "Cash on Delivery",
+    "empty": "No COD collections",
+    "mark": "Mark Collected",
+    "marking": "Marking…"
+  },
+  "profile": {
+    "meta": "Profile · ParcelLink",
+    "title": "Profile",
+    "driverId": "Driver ID",
+    "license": "License",
+    "vehicle": "Vehicle",
+    "availability": "Availability"
+  },
+  "detail": {
+    "meta": "Delivery · ParcelLink",
+    "complete": "This delivery is complete.",
+    "failed": "This delivery attempt failed.",
+    "cancelled": "This delivery was cancelled.",
+    "returned": "This shipment was returned.",
+    "distance": "Distance",
+    "estimatedTime": "Estimated time",
+    "package": "Package",
+    "quantity": "Quantity",
+    "fragile": "Marked fragile",
+    "photoAlt": "Package",
+    "collectTitle": "Collect on delivery",
+    "goods": "Goods (from recipient)",
+    "fee": "Delivery fee (cash)",
+    "total": "Total cash",
+    "prepaid": "Prepaid — nothing to collect."
+  },
+  "workflow": {
+    "failureReason": "Reason the delivery failed",
+    "confirmFailed": "Confirm Failed Delivery",
+    "reportFailed": "Report failed delivery",
+    "accept": "Accept Delivery",
+    "decline": "Decline",
+    "navigatePickup": "Navigate to Pickup",
+    "arrivedPickup": "Arrived at Pickup",
+    "confirmPickup": "Confirm Pickup",
+    "start": "Start Delivery",
+    "navigateCustomer": "Navigate to Customer",
+    "arrived": "Arrived"
+  },
+  "pod": {
+    "title": "Proof of Delivery",
+    "recipientName": "Recipient name",
+    "photo": "Package photo",
+    "photoAttached": "Photo attached",
+    "signature": "Recipient signature",
+    "signatureCaptured": "Signature captured",
+    "signaturePad": "Signature pad. Ask the recipient to sign here.",
+    "clear": "Clear",
+    "otp": "Recipient OTP",
+    "sendCode": "Send code to customer",
+    "codePlaceholder": "4-digit code",
+    "qr": "Scan shipment QR",
+    "qrCaptured": "QR captured",
+    "notes": "Notes (optional)",
+    "complete": "Complete Delivery",
+    "completing": "Completing…"
+  },
+  "qr": {
+    "verifyTitle": "Verify shipment QR (optional)",
+    "verified": "✓ Shipment verified",
+    "mismatch": "This code doesn’t match this shipment.",
+    "unsupported": "QR camera scanning isn’t supported on this browser — enter the code shown under the shipment’s QR label instead.",
+    "manualPlaceholder": "QR code value",
+    "verify": "Verify",
+    "scan": "Scan QR Code",
+    "stop": "Stop Scanning",
+    "cameraDenied": "Camera access was denied or is unavailable."
+  },
+  "validation": {
+    "reason": "Enter a reason",
+    "recipient": "Enter who received the package",
+    "proof": "Provide at least one proof: photo, signature, code or QR scan"
+  },
+  "errors": {
+    "notFound": "Not found",
+    "shipmentNotFound": "Shipment not found",
+    "statusUpdate": "Could not update status — check this is a valid next step",
+    "incorrectCode": "Incorrect code. Check with the recipient and try again.",
+    "invalidAvailability": "Invalid availability",
+    "generic": "Something went wrong"
+  }
+}

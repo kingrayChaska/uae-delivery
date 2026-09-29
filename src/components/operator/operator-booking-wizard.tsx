@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import Label from '@/components/ui/label';
 import Select from '@/components/ui/select';
@@ -24,6 +25,7 @@ const OperatorBookingWizard = ({
   customers,
   basePath = '/dashboard/operator',
 }: OperatorBookingWizardProps) => {
+  const t = useTranslations('operator.booking');
   const [customerId, setCustomerId] = useState('');
   const customer = customers.find((option) => option.id === customerId);
   // Quotes follow the selected customer's account type; the server prices
@@ -32,13 +34,14 @@ const OperatorBookingWizard = ({
 
   const header = (
     <div className="flex flex-col gap-1.5 rounded-2xl border bg-card p-4 shadow-sm">
-      <Label htmlFor="customer">Booking on behalf of</Label>
+      <Label htmlFor="customer">{t('onBehalfOf')}</Label>
       <Select id="customer" value={customerId} onChange={(event) => setCustomerId(event.target.value)}>
-        <option value="">Select a customer…</option>
+        <option value="">{t('selectCustomer')}</option>
         {customers.map((option) => (
           <option key={option.id} value={option.id}>
-            {option.fullName} — {option.email}
-            {option.accountType === 'merchant' ? ' (merchant)' : ''}
+            {option.accountType === 'merchant'
+              ? t('customerMerchant', { name: option.fullName, email: option.email })
+              : t('customer', { name: option.fullName, email: option.email })}
           </option>
         ))}
       </Select>
@@ -54,7 +57,7 @@ const OperatorBookingWizard = ({
       rules={rules[accountType]}
       accountType={accountType}
       header={header}
-      validateBeforeSubmit={() => (customerId ? null : 'Select the customer this booking is for')}
+      validateBeforeSubmit={() => (customerId ? null : 'booking.errors.selectCustomerFirst')}
       onSubmit={(input) => createBookingForCustomerAction(customerId, input)}
       getSuccessPath={(result) =>
         result.batchId ? `${basePath}/bulk/${result.batchId}` : `${basePath}/shipments/${result.shipmentIds[0]}`

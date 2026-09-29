@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
 import Label from '@/components/ui/label';
@@ -8,6 +9,7 @@ import Select from '@/components/ui/select';
 import FieldError from '@/components/ui/field-error';
 import { BULK_COLUMNS, BULK_MAX_ROWS } from '@/lib/business/schemas';
 import { useBulkUpload } from '@/lib/hooks/use-bulk-upload';
+import { useMessage } from '@/i18n/hooks';
 
 type BulkUploadProps = {
   businessId: string;
@@ -19,27 +21,28 @@ const TEMPLATE_HREF = `data:text/csv;charset=utf-8,${encodeURIComponent(
 )}`;
 
 const BulkUpload = ({ businessId, members }: BulkUploadProps) => {
+  const t = useTranslations('manager.bulk');
+  const translate = useMessage();
   const [ownerId, setOwnerId] = useState(members[0]?.id ?? '');
   const { selectFile, upload, fileName, preview, validCount, fileError, results, summary, isUploading } =
     useBulkUpload(businessId);
 
   if (members.length === 0) {
-    return <p className="text-sm text-muted-foreground">Add at least one member before uploading shipments.</p>;
+    return <p className="text-sm text-muted-foreground">{t('addMembersFirst')}</p>;
   }
 
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        Up to {BULK_MAX_ROWS} shipments per file. Addresses are geocoded and every shipment is priced server-side
-        with the active pricing rule.{' '}
+        {t('intro', { max: BULK_MAX_ROWS })}{' '}
         <a href={TEMPLATE_HREF} download="bulk-shipments-template.csv" className="underline">
-          Download template
+          {t('template')}
         </a>
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="owner">Book shipments as</Label>
+          <Label htmlFor="owner">{t('owner')}</Label>
           <Select id="owner" value={ownerId} onChange={(event) => setOwnerId(event.target.value)}>
             {members.map((member) => (
               <option key={member.id} value={member.id}>
@@ -49,7 +52,7 @@ const BulkUpload = ({ businessId, members }: BulkUploadProps) => {
           </Select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="csv">CSV file</Label>
+          <Label htmlFor="csv">{t('file')}</Label>
           <input
             id="csv"
             type="file"
@@ -58,7 +61,7 @@ const BulkUpload = ({ businessId, members }: BulkUploadProps) => {
               const file = event.target.files?.[0];
               if (file) selectFile(file);
             }}
-            className="text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium"
+            className="text-sm text-muted-foreground file:me-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium"
           />
         </div>
       </div>
@@ -68,20 +71,31 @@ const BulkUpload = ({ businessId, members }: BulkUploadProps) => {
       {preview.length > 0 && !results ? (
         <div className="flex flex-col gap-3">
           <p className="text-sm">
-            <span className="font-medium">{fileName}</span> — {validCount} of {preview.length} rows valid
-            {validCount < preview.length ? '; invalid rows will be skipped.' : '.'}
+            {t.rich('preview', {
+              file: fileName ?? '',
+              valid: validCount,
+              total: preview.length,
+              strong: (chunks) => <span className="font-medium">{chunks}</span>,
+            })}
+            {validCount < preview.length ? t('previewSkipped') : '.'}
           </p>
           <div className="max-h-64 overflow-y-auto rounded-md border text-sm">
             <table className="w-full">
               <tbody>
                 {preview.map((row) => (
                   <tr key={row.rowNumber} className="border-t first:border-t-0">
-                    <td className="px-3 py-1.5 font-brand-mono text-xs text-muted-foreground">Row {row.rowNumber}</td>
+                    <td className="px-3 py-1.5 font-brand-mono text-xs whitespace-nowrap text-muted-foreground">
+                      {t('row', { number: row.rowNumber })}
+                    </td>
                     <td className="px-3 py-1.5">
-                      {row.row ? `${row.row.pickup_address} → ${row.row.dropoff_address}` : null}
+                      {row.row ? (
+                        <>
+                          {row.row.pickup_address} <span className="inline-block rtl:rotate-180">→</span> {row.row.dropoff_address}
+                        </>
+                      ) : null}
                     </td>
                     <td className={`px-3 py-1.5 text-xs ${row.error ? 'text-destructive' : 'text-success'}`}>
-                      {row.error ?? 'OK'}
+                      {row.error ? translate(row.error) : t('ok')}
                     </td>
                   </tr>
                 ))}
@@ -89,21 +103,23 @@ const BulkUpload = ({ businessId, members }: BulkUploadProps) => {
             </table>
           </div>
           <Button type="button" className="self-start" disabled={isUploading || validCount === 0} onClick={() => upload(ownerId)}>
-            {isUploading ? `Creating ${validCount} shipments…` : `Create ${validCount} shipments`}
+            {isUploading ? t('creating', { count: validCount }) : t('create', { count: validCount })}
           </Button>
         </div>
       ) : null}
 
       {results ? (
         <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium">{summary}</p>
+          <p className="text-sm font-medium">{translate(summary)}</p>
           <div className="max-h-64 overflow-y-auto rounded-md border text-sm">
             <table className="w-full">
               <tbody>
                 {results.map((row) => (
                   <tr key={row.rowNumber} className="border-t first:border-t-0">
-                    <td className="px-3 py-1.5 font-brand-mono text-xs text-muted-foreground">Row {row.rowNumber}</td>
-                    <td className={`px-3 py-1.5 ${row.ok ? '' : 'text-destructive'}`}>{row.message}</td>
+                    <td className="px-3 py-1.5 font-brand-mono text-xs whitespace-nowrap text-muted-foreground">
+                      {t('row', { number: row.rowNumber })}
+                    </td>
+                    <td className={`px-3 py-1.5 ${row.ok ? '' : 'text-destructive'}`}>{translate(row.message)}</td>
                   </tr>
                 ))}
               </tbody>

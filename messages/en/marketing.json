@@ -1,0 +1,277 @@
+{
+  "hero": {
+    "badge": "Parcel delivery across the UAE",
+    "title": "Same-day and next-day courier service, <highlight>tracked door to door</highlight>",
+    "subtitle": "Book a pickup in minutes, see the price before you confirm, and follow every parcel live — for personal deliveries and for businesses shipping every day.",
+    "bookCta": "Book a delivery",
+    "trackCta": "Track a shipment",
+    "nextDayFrom": "Next-day from {price}",
+    "sameDay": "Same-day delivery",
+    "proof": "Proof of delivery"
+  },
+  "routeGraphic": {
+    "label": "A live delivery route from pickup to drop-off, with the driver partway along and the shipment's tracking ID",
+    "pickup": "PICKUP",
+    "dropoff": "DROP-OFF",
+    "inTransit": "IN TRANSIT",
+    "trackingId": "TRACKING ID",
+    "distance": "DISTANCE"
+  },
+  "facts": {
+    "label": "ParcelLink at a glance",
+    "nextDay": "Next-day delivery, first {distance}",
+    "includedWeight": "Included in every delivery price",
+    "range": "Delivery range per shipment",
+    "proofValue": "4 ways",
+    "proof": "We prove delivery: photo, signature, code or QR"
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "title": "Simple delivery pricing, shown before you book",
+    "subtitle": "A base price that covers the first few kilometres, a small charge per extra kilometre, and heavy parcels priced by weight. No surge pricing.",
+    "bestValue": "Best value",
+    "firstDistance": "First {distance}",
+    "perExtraKm": "For each additional km",
+    "includedWeight": "Up to {weight} included in the base price",
+    "trackingFeature": "Live tracking and proof of delivery",
+    "range": "Deliveries up to {distance}",
+    "plans": {
+      "nextDay": {
+        "name": "Next-Day Delivery",
+        "tagline": "Our lowest price — delivered tomorrow.",
+        "cta": "Book next-day delivery"
+      },
+      "sameDay": {
+        "name": "Same-Day Delivery",
+        "tagline": "Collected and delivered today.",
+        "cta": "Book same-day delivery"
+      }
+    },
+    "heavier": {
+      "title": "Heavier parcels",
+      "included": "Included in the base price",
+      "perKg": "For every kg above {weight}",
+      "note": "Your final price depends on the service you choose, the road distance, the weight and any cash-on-delivery handling. You always see the full breakdown before you confirm."
+    },
+    "merchantLead": "Shipping for a business?",
+    "merchantBody": "Approved merchants get flat-rate pricing.",
+    "merchantLink": "Learn about merchant accounts",
+    "calculatorHeading": "Delivery price calculator"
+  },
+  "services": {
+    "eyebrow": "Services",
+    "title": "Parcel delivery for people and businesses across the UAE",
+    "subtitle": "One courier network for a single envelope or a warehouse full of orders — booked, priced and tracked online.",
+    "items": {
+      "sameDay": {
+        "name": "Same-day delivery",
+        "description": "Collected and delivered on the same day — for documents, gifts and anything that can’t wait.",
+        "cta": "Book same-day"
+      },
+      "nextDay": {
+        "name": "Next-day delivery",
+        "description": "Our best price for parcels that can arrive tomorrow. Book today, delivered the next day.",
+        "cta": "See next-day pricing"
+      },
+      "merchant": {
+        "name": "Merchant logistics",
+        "description": "Flat-rate pricing, multi-shipment bookings and one account for every order your business ships.",
+        "cta": "Ship as a merchant"
+      },
+      "cod": {
+        "name": "Cash on delivery",
+        "description": "We collect the payment for your goods from the recipient, recorded and reconciled for you.",
+        "cta": "How COD works"
+      },
+      "tracking": {
+        "name": "Shipment tracking",
+        "description": "Every parcel gets a short tracking ID and live status from booking to delivery.",
+        "cta": "Track a shipment"
+      },
+      "proof": {
+        "name": "Proof of delivery",
+        "description": "Photo, signature, recipient code or label scan — see exactly how and when it was delivered.",
+        "cta": "See how it works"
+      }
+    }
+  },
+  "howItWorks": {
+    "eyebrow": "How it works",
+    "title": "From booking to proof of delivery in four steps",
+    "step": "Step {number}",
+    "steps": {
+      "add": {
+        "title": "Add your shipments",
+        "description": "Enter pickup and delivery addresses. Sending several parcels? Add them all to one booking."
+      },
+      "price": {
+        "title": "Pick a service, see the price",
+        "description": "Choose same-day or next-day. The price is calculated from the real road distance and weight before you pay."
+      },
+      "deliver": {
+        "title": "We collect and deliver",
+        "description": "A ParcelLink driver picks up from your door and heads straight to the recipient."
+      },
+      "proof": {
+        "title": "Track it, get proof",
+        "description": "Follow each step with your tracking ID, then view the photo, signature or code that confirms delivery."
+      }
+    }
+  },
+  "merchants": {
+    "eyebrow": "For merchants",
+    "title": "Business logistics for UAE merchants that ship every day",
+    "subtitle": "From a single online store to a multi-branch operation: send regular and bulk shipments through one merchant account instead of chasing couriers order by order.",
+    "steps": {
+      "account": "Create a free account",
+      "apply": "Apply as a merchant with your company details",
+      "review": "Our team reviews and approves",
+      "ship": "Ship at merchant rates"
+    },
+    "cta": "Apply for a merchant account",
+    "licenceNote": "Have your trade licence details ready — every application is reviewed by our team.",
+    "benefits": {
+      "flatRate": {
+        "title": "Flat-rate merchant pricing",
+        "description": "One predictable price per shipment instead of distance-based rates."
+      },
+      "oneBooking": {
+        "title": "Many shipments, one booking",
+        "description": "Add every order to a single booking and see the total before you confirm."
+      },
+      "cod": {
+        "title": "Cash on delivery",
+        "description": "We collect payment for your goods from the recipient and record every collection."
+      },
+      "account": {
+        "title": "One business account",
+        "description": "All your shipments, billing and delivery history in one dashboard."
+      }
+    },
+    "sameTracking": "Merchant shipments include the same tracking and proof of delivery as every ParcelLink delivery."
+  },
+  "trackingDemo": {
+    "eyebrow": "Shipment tracking",
+    "title": "Know where your parcel is, every step of the way",
+    "subtitle": "Every shipment gets a short, easy-to-share tracking ID. Senders and recipients follow it from booking to the doorstep — and senders can open the proof of delivery once it arrives.",
+    "cta": "Track a shipment",
+    "trackingId": "Tracking ID",
+    "inTransit": "In transit"
+  },
+  "testimonials": {
+    "eyebrow": "Customer reviews",
+    "title": "What senders say about ParcelLink",
+    "average": "<strong>{average}</strong> / 5 average from {count, plural, one {# review} other {# reviews}}",
+    "devNotice": "Development preview: sample testimonials are shown here and hidden in production. Replace them with real customer reviews in <code>src/lib/marketing/testimonials.ts</code>.",
+    "carouselLabel": "Customer testimonials",
+    "slideLabel": "{index} of {total}",
+    "rating": "Rated {rating} out of 5",
+    "sample": "Sample",
+    "showSlide": "Show testimonial {index}",
+    "pause": "Pause automatic scrolling",
+    "play": "Play automatic scrolling",
+    "previous": "Previous testimonial",
+    "next": "Next testimonial",
+    "services": {
+      "sameDay": "Same-day",
+      "nextDay": "Next-day",
+      "merchant": "Merchant",
+      "cod": "Cash on delivery"
+    },
+    "quote": "“{quote}”"
+  },
+  "faq": {
+    "eyebrow": "FAQ",
+    "title": "Questions about sending a parcel",
+    "items": {
+      "cost": {
+        "question": "How much does parcel delivery cost?",
+        "answer": "Next-day delivery is {nextDayBase} for the first {nextDayDistance}, then {nextDayPerKm} for each additional km. Same-day delivery is {sameDayBase} for the first {sameDayDistance}, then {sameDayPerKm} per km. Up to {includedWeight} is included; each extra kg adds {perKg}. You see the full price before you book."
+      },
+      "difference": {
+        "question": "What is the difference between same-day and next-day delivery?",
+        "answer": "Same-day parcels are collected and delivered on the day you book. Next-day parcels are delivered the following day at a lower price."
+      },
+      "range": {
+        "question": "How far can you deliver?",
+        "answer": "We deliver within the UAE for trips of up to {distance} by road between pickup and delivery. For longer distances, contact our support team."
+      },
+      "track": {
+        "question": "How do I track my shipment?",
+        "answer": "Every shipment gets a short tracking ID of up to 8 characters. Enter it on the tracking page, or sign in to follow all your shipments and view proof of delivery."
+      },
+      "cod": {
+        "question": "Can the driver collect payment from the recipient?",
+        "answer": "Yes. When booking, mark the parcel as postpaid (cash on delivery) and enter the amount to collect. The driver collects it from the recipient, separately from your delivery fee."
+      },
+      "merchant": {
+        "question": "How do I open a merchant account?",
+        "answer": "Create a free account, choose “Merchant” and submit your company details. Our team reviews every application; once approved you get flat-rate merchant pricing."
+      },
+      "multiple": {
+        "question": "Can I send several parcels in one booking?",
+        "answer": "Yes. Add as many shipments as you need to one booking — each can go to a different address — and pay for them together."
+      }
+    }
+  },
+  "contact": {
+    "eyebrow": "ParcelLink · UAE support",
+    "title": "Let’s move your parcels.",
+    "subtitle": "Ready to ship or have a question? Reach our team in Arabic or English about deliveries, business logistics or cash on delivery.",
+    "form": {
+      "eyebrow": "Send us a message",
+      "title": "Tell us what you need",
+      "subtitle": "Share a few details and we’ll prepare a message for our WhatsApp team. We support customers in Arabic and English.",
+      "name": "Full name",
+      "namePlaceholder": "Your name",
+      "phone": "Phone / WhatsApp",
+      "topic": "What can we help with?",
+      "topicPlaceholder": "Select a topic",
+      "topics": {
+        "sameDay": "Same-day delivery",
+        "nextDay": "Next-day delivery",
+        "business": "Business and e-commerce deliveries",
+        "cod": "Cash on delivery",
+        "agent": "Commission Agent program",
+        "other": "Other enquiry"
+      },
+      "message": "Message",
+      "messagePlaceholder": "Tell us how we can help.",
+      "submit": "Continue in WhatsApp",
+      "sent": "WhatsApp opened with your message. Send it there to reach our team.",
+      "whatsappMessage": "Hello ParcelLink, my name is {name}.\nMy phone / WhatsApp number is {phone}.\nI'm contacting you about: {topic}.\n\n{message}"
+    },
+    "details": {
+      "label": "Contact details",
+      "eyebrow": "Talk to our team",
+      "title": "Here when your parcel needs us.",
+      "phone": "Phone / WhatsApp",
+      "email": "Email",
+      "hours": "Support hours",
+      "days": "Monday–Saturday",
+      "time": "8:00 AM–6:00 PM",
+      "base": "Base",
+      "location": "Dubai, United Arab Emirates",
+      "coverageTitle": "Service coverage",
+      "coverage": "Same-day delivery in Dubai, Sharjah and Ajman. Abu Dhabi, Ras Al Khaimah, Fujairah and Umm Al Quwain are available on request."
+    },
+    "whatsapp": {
+      "button": "WhatsApp us",
+      "label": "Chat with ParcelLink on WhatsApp at {phone}",
+      "greeting": "Hello ParcelLink, I have a delivery enquiry."
+    }
+  },
+  "finalCta": {
+    "title": "Ready to send your next parcel?",
+    "subtitle": "Create a free account and book your first delivery in a couple of minutes.",
+    "book": "Book a delivery",
+    "track": "Track a shipment"
+  },
+  "structuredData": {
+    "nextDayService": "Next-Day Parcel Delivery",
+    "sameDayService": "Same-Day Parcel Delivery",
+    "serviceType": "Courier service",
+    "offer": "First {distance}; {perKm} per additional km.",
+    "country": "United Arab Emirates"
+  }
+}

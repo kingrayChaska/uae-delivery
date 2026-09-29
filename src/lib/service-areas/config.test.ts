@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   EMIRATES,
   SERVICE_AREAS,
-  SUPPORTED_EMIRATES_TEXT,
   classifyServiceArea,
   identifyEmirate,
   serviceAreaError,
@@ -11,6 +10,10 @@ import {
   serviceAreaRequest,
 } from '@/lib/service-areas/config';
 import { parseRetrieveResponse, parseReverseGeocodeResponse } from '@/lib/maps/mapbox-client';
+import { renderMessage } from '@/i18n/test-utils';
+
+const en = renderMessage('en');
+const ar = renderMessage('ar');
 
 describe('SERVICE_AREAS', () => {
   it('covers every emirate exactly once', () => {
@@ -21,7 +24,6 @@ describe('SERVICE_AREAS', () => {
 
   it('fully supports only Dubai, Sharjah and Ajman', () => {
     expect(SERVICE_AREAS.fullySupported).toEqual(['Dubai', 'Sharjah', 'Ajman']);
-    expect(SUPPORTED_EMIRATES_TEXT).toBe('Dubai, Sharjah and Ajman');
   });
 });
 
@@ -72,26 +74,33 @@ describe('classifyServiceArea', () => {
   });
 });
 
-describe('customer messages', () => {
+describe('customer messages (as English and Arabic readers see them)', () => {
   it('names the actual emirate for request-only deliveries', () => {
     const notice = serviceAreaNotice({ status: 'request_only', emirate: 'Fujairah' }, 'dropoff');
-    expect(notice?.title).toBe('Delivery available on request');
-    expect(notice?.body).toEqual([
-      'ParcelLink currently provides standard delivery services in Dubai, Sharjah and Ajman.',
+    expect(en(notice?.title)).toBe('Delivery available on request');
+    expect(notice?.body.map(en)).toEqual([
+      'ParcelLink currently provides standard delivery services in Dubai, Sharjah, and Ajman.',
       'Deliveries to Fujairah are available on request. Please contact ParcelLink to arrange this delivery.',
+    ]);
+    expect(ar(notice?.title)).toBe('التوصيل متاح عند الطلب');
+    expect(notice?.body.map(ar)).toEqual([
+      'تقدّم ParcelLink حاليًا خدمات التوصيل القياسية في دبي والشارقة وعجمان.',
+      'التوصيل إلى الفجيرة متاح عند الطلب. يُرجى التواصل مع ParcelLink لترتيب هذه التوصيلة.',
     ]);
   });
 
   it('words a request-only pickup as a pickup', () => {
     const notice = serviceAreaNotice({ status: 'request_only', emirate: 'Abu Dhabi' }, 'pickup');
-    expect(notice?.title).toBe('Pickup available on request');
-    expect(notice?.body[1]).toContain('Pickups from Abu Dhabi are available on request.');
+    expect(en(notice?.title)).toBe('Pickup available on request');
+    expect(en(notice?.body[1])).toContain('Pickups from Abu Dhabi are available on request.');
+    expect(ar(notice?.body[1])).toContain('الاستلام من أبوظبي متاح عند الطلب.');
   });
 
   it('explains an unconfirmed location', () => {
     const notice = serviceAreaNotice({ status: 'unknown', emirate: null }, 'dropoff');
-    expect(notice?.title).toBe('Service area unavailable');
-    expect(notice?.body.join(' ')).toContain('couldn’t confirm that this location is within ParcelLink’s current service area');
+    expect(en(notice?.title)).toBe('Service area unavailable');
+    expect(notice?.body.map(en).join(' ')).toContain('couldn’t confirm that this location is within ParcelLink’s current service area');
+    expect(ar(notice?.title)).toBe('منطقة الخدمة غير متاحة');
   });
 
   it('has nothing to say about supported locations', () => {
@@ -100,9 +109,9 @@ describe('customer messages', () => {
   });
 
   it('gives the server a single sentence-run that says which end is the problem', () => {
-    expect(serviceAreaError({ status: 'request_only', emirate: 'Umm Al Quwain' }, 'dropoff')).toMatch(
-      /^Delivery location: Delivery available on request\. .*Deliveries to Umm Al Quwain are available on request/,
-    );
+    const error = serviceAreaError({ status: 'request_only', emirate: 'Umm Al Quwain' }, 'dropoff');
+    expect(en(error)).toMatch(/^Delivery location: Delivery available on request\. .*Deliveries to Umm Al Quwain are available on request/);
+    expect(ar(error)).toMatch(/^موقع التسليم: .*التوصيل إلى أم القيوين متاح عند الطلب/);
   });
 
   it('pre-fills a support request with the emirate and the addresses', () => {
@@ -110,9 +119,10 @@ describe('customer messages', () => {
       { status: 'request_only', emirate: 'Ras Al Khaimah' },
       { pickup: 'Dubai Marina Mall, Dubai, UAE', dropoff: 'Al Hamra Village, Ras Al Khaimah, UAE' },
     );
-    expect(request.subject).toBe('Delivery request: Ras Al Khaimah');
-    expect(request.message).toContain('From: Dubai Marina Mall, Dubai, UAE');
-    expect(request.message).toContain('To: Al Hamra Village, Ras Al Khaimah, UAE');
+    expect(en(request.subject)).toBe('Delivery request: Ras Al Khaimah');
+    expect(request.lines.map(en)).toContain('From: Dubai Marina Mall, Dubai, UAE');
+    expect(request.lines.map(en)).toContain('To: Al Hamra Village, Ras Al Khaimah, UAE');
+    expect(ar(request.subject)).toBe('طلب توصيل: رأس الخيمة');
   });
 });
 

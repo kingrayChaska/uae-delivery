@@ -1,0 +1,162 @@
+{
+  "booking": {
+    "onBehalfOf": "الحجز نيابةً عن",
+    "selectCustomer": "اختر عميلًا…",
+    "customer": "{name} — {email}",
+    "customerMerchant": "{name} — {email} (تاجر)"
+  },
+  "home": {
+    "title": "العمليات",
+    "signedInAs": "مسجّل الدخول باسم {name}",
+    "newShipment": "شحنة جديدة",
+    "stats": {
+      "awaitingDispatch": "بانتظار التوزيع",
+      "inProgress": "قيد التنفيذ",
+      "failed": "متعذّرة — تحتاج إلى إجراء",
+      "cod": "مبالغ دفع عند الاستلام للتسوية"
+    },
+    "recentLists": "أحدث القوائم المجمّعة",
+    "viewAll": "عرض الكل",
+    "noLists": "لم تُرسل أي قوائم مجمّعة بعد"
+  },
+  "dispatch": {
+    "meta": "التوزيع · ParcelLink",
+    "title": "التوزيع",
+    "awaiting": "بانتظار التوزيع ({count})",
+    "nothingWaiting": "لا توجد شحنات بانتظار سائق حاليًا.",
+    "assignTo": "إسناد سائق للشحنة {code}",
+    "finding": "جارٍ البحث عن السائقين المتاحين…",
+    "noDrivers": "لم يتم العثور على سائقين.",
+    "fromPickup": "على بُعد {distance} من موقع الاستلام",
+    "locationUnknown": "الموقع غير معروف",
+    "active": "{count, plural, zero {لا توجد توصيلات نشطة} one {توصيلة نشطة واحدة} two {توصيلتان نشطتان} few {# توصيلات نشطة} many {# توصيلة نشطة} other {# توصيلة نشطة}}",
+    "assign": "إسناد",
+    "reassign": "إعادة الإسناد",
+    "driver": "سائق"
+  },
+  "liveMap": {
+    "meta": "الخريطة المباشرة · ParcelLink",
+    "title": "الخريطة المباشرة",
+    "filters": {
+      "all": "الكل",
+      "available": "متاح",
+      "in_transit": "في الطريق",
+      "offline": "غير متصل"
+    },
+    "filterLabel": "عرض السائقين",
+    "onDelivery": "في مهمة توصيل"
+  },
+  "shipments": {
+    "meta": "الشحنات · ParcelLink",
+    "title": "الشحنات",
+    "new": "شحنة جديدة",
+    "total": "الإجمالي: {count}",
+    "empty": "لا توجد شحنات بعد",
+    "newMeta": "شحنة جديدة · ParcelLink"
+  },
+  "shipmentDetail": {
+    "meta": "الشحنة · ParcelLink",
+    "viewLabel": "عرض الملصق",
+    "driver": "السائق",
+    "unassigned": "غير مُسندة",
+    "distance": "المسافة",
+    "driveTime": "مدة القيادة التقديرية",
+    "package": "الطرد",
+    "packageLine": "{quantity} × {description}",
+    "assign": "إسناد سائق",
+    "reassign": "إعادة إسناد السائق",
+    "history": "سجل الحالات",
+    "markReturned": "تحديد كمُعادة",
+    "marking": "جارٍ التحديد…"
+  },
+  "customers": {
+    "meta": "العملاء · ParcelLink",
+    "title": "العملاء",
+    "empty": "لا يوجد عملاء بعد",
+    "shipments": "{count, plural, zero {لا شحنات} one {شحنة واحدة} two {شحنتان} few {# شحنات} many {# شحنة} other {# شحنة}}",
+    "paid": "مدفوع {amount}",
+    "stats": {
+      "shipments": "الشحنات",
+      "paid": "إجمالي المدفوع"
+    },
+    "history": "سجل الشحنات",
+    "noShipments": "لا توجد شحنات بعد."
+  },
+  "drivers": {
+    "meta": "السائقون · ParcelLink",
+    "title": "السائقون",
+    "emptyTitle": "لا يوجد سائقون بعد",
+    "emptyBody": "يُضاف السائقون من قِبل المدير.",
+    "stats": {
+      "today": "اليوم",
+      "week": "الأسبوع",
+      "month": "الشهر",
+      "delivered": "تم تسليمها",
+      "failed": "متعذّرة",
+      "cod": "دفع عند الاستلام"
+    }
+  },
+  "cod": {
+    "meta": "الدفع عند الاستلام · ParcelLink",
+    "title": "الدفع عند الاستلام",
+    "export": "تصدير CSV",
+    "empty": "لا توجد معاملات دفع عند الاستلام",
+    "driver": "السائق: {name}",
+    "reconcile": "تسوية",
+    "remit": "تحديد كمُحوَّل"
+  },
+  "activity": {
+    "meta": "سجل النشاط · ParcelLink",
+    "title": "سجل النشاط",
+    "empty": "لم يُسجَّل أي نشاط بعد",
+    "when": "الوقت",
+    "who": "المستخدم",
+    "action": "الإجراء",
+    "entity": "العنصر",
+    "system": "النظام"
+  },
+  "bulk": {
+    "meta": "الشحنات المجمّعة · ParcelLink",
+    "title": "الشحنات المجمّعة",
+    "subtitle": "قوائم الشحنات المرسلة من العملاء والحسابات التجارية.",
+    "stats": {
+      "lists": "القوائم",
+      "listsToDispatch": "قوائم فيها طرود للتوزيع",
+      "awaiting": "شحنات بانتظار التوزيع"
+    },
+    "empty": "لا توجد قوائم مجمّعة بعد",
+    "pickup": "الاستلام {date}",
+    "noDate": "لم يُحدَّد تاريخ",
+    "counts": "{shipments, plural, zero {لا شحنات} one {شحنة واحدة} two {شحنتان} few {# شحنات} many {# شحنة} other {# شحنة}} · {items, plural, zero {لا قطع} one {قطعة واحدة} two {قطعتان} few {# قطع} many {# قطعة} other {# قطعة}}",
+    "awaiting": "{count} بانتظار التوزيع",
+    "bookingOf": "حجز يضم {count} شحنة",
+    "status": {
+      "processing": "قيد المعالجة",
+      "submitted": "تم الإرسال",
+      "partially_failed": "تعذّر إنشاء بعض الصفوف",
+      "failed": "فشل"
+    },
+    "back": "جميع القوائم المجمّعة",
+    "submitted": "أُرسلت في {date} · الاستلام {pickup}",
+    "detailStats": {
+      "shipments": "الشحنات",
+      "shipmentsValue": "{shipments} ({items} قطعة)",
+      "awaiting": "بانتظار التوزيع",
+      "progress": "قيد التنفيذ / تم التسليم",
+      "total": "الإجمالي"
+    },
+    "sender": "المرسل",
+    "notes": "ملاحظات",
+    "failedRows": "الصفوف التي لم تُنشأ ({count})",
+    "row": "الصف {number}",
+    "shipments": "الشحنات",
+    "processing": "لا تزال هذه القائمة قيد المعالجة — حدّث الصفحة بعد قليل.",
+    "none": "لم تُنشأ أي شحنات من هذه القائمة."
+  },
+  "errors": {
+    "notFound": "غير موجود",
+    "shipmentNotFound": "لم يتم العثور على الشحنة",
+    "notAwaiting": "هذه الشحنة ليست بانتظار الإسناد",
+    "cannotReassign": "لم يعد بالإمكان إعادة إسناد هذه الشحنة"
+  }
+}

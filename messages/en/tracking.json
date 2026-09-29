@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "title": "Track a Shipment — ParcelLink Parcel Tracking UAE",
+    "description": "Track your ParcelLink parcel with its tracking ID. See every step from booking to delivery, anywhere in the UAE.",
+    "ogTitle": "Track a Shipment — ParcelLink"
+  },
+  "page": {
+    "eyebrow": "Shipment tracking",
+    "title": "Track a shipment",
+    "subtitle": "Enter the tracking ID from your booking confirmation or label. Capital letters and spaces don’t matter."
+  },
+  "form": {
+    "label": "Tracking ID",
+    "placeholder": "Tracking ID, e.g. PL7K29X4",
+    "submit": "Track",
+    "submitting": "Tracking…"
+  },
+  "result": {
+    "liveLocation": "Your driver is on the move — last seen {time}.",
+    "liveLocationRecently": "Your driver is on the move — last seen recently.",
+    "signInHint": "Sent this parcel? Sign in to see proof of delivery and full shipment details."
+  },
+  "timeline": {
+    "label": "Shipment progress",
+    "done": "done",
+    "notYet": "not yet"
+  },
+  "milestones": {
+    "created": {
+      "label": "Booking created",
+      "description": "We have your booking."
+    },
+    "assigned": {
+      "label": "Driver assigned",
+      "description": "A driver is on the way to collect it."
+    },
+    "received": {
+      "label": "Shipment received",
+      "description": "The driver has collected your parcel."
+    },
+    "in_transit": {
+      "label": "In transit",
+      "description": "On the road to the recipient."
+    },
+    "out_for_delivery": {
+      "label": "Out for delivery",
+      "description": "The driver is at the delivery address."
+    },
+    "delivered": {
+      "label": "Delivered",
+      "description": "Handed over to the recipient."
+    }
+  },
+  "terminal": {
+    "cancelled": "This shipment was cancelled.",
+    "delivery_failed": "The last delivery attempt failed. Our team will be in touch to arrange another attempt.",
+    "returned": "This shipment was returned to the sender."
+  },
+  "errors": {
+    "required": "Enter a tracking ID",
+    "tooLong": "That doesn’t look like a tracking ID",
+    "notFound": "No shipment found for that tracking number.",
+    "notYours": "None of your shipments has that tracking ID."
+  }
+}

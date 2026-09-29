@@ -2,6 +2,7 @@
 
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 
@@ -29,7 +30,9 @@ type DialogContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
   hideClose?: boolean;
 };
 
-export const DialogContent = ({ className = '', children, hideClose = false, ...props }: DialogContentProps) => (
+export const DialogContent = ({ className = '', children, hideClose = false, ...props }: DialogContentProps) => {
+  const t = useTranslations('common.dialog');
+  return (
   <DialogPrimitive.Portal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -45,18 +48,19 @@ export const DialogContent = ({ className = '', children, hideClose = false, ...
       {children}
       {hideClose ? null : (
         <DialogPrimitive.Close
-          className="absolute right-3 top-3 flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          aria-label="Close"
+          className="absolute end-3 top-3 flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          aria-label={t('close')}
         >
           <X className="size-5" />
         </DialogPrimitive.Close>
       )}
     </DialogPrimitive.Content>
   </DialogPrimitive.Portal>
-);
+  );
+};
 
 export const DialogHeader = ({ className = '', ...props }: ComponentProps<'div'>) => (
-  <div className={cn('flex flex-col gap-1.5 pr-10', className)} {...props} />
+  <div className={cn('flex flex-col gap-1.5 pe-10', className)} {...props} />
 );
 
 export const DialogFooter = ({ className = '', ...props }: ComponentProps<'div'>) => (

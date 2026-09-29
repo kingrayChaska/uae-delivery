@@ -1,17 +1,24 @@
+import { useTranslations } from 'next-intl';
+
 // Original SVG illustration — no stock imagery, per the brief's own
 // instruction to avoid generic photography for the hero. Depicts the
 // literal product moment (a live route between pickup and drop-off) rather
 // than an abstract decorative graphic, and its route-line motif is reused
 // (not just repeated) in the How It Works and Live Tracking sections below.
+//
+// The drawing itself is a map, so it isn't mirrored in Arabic (direction is
+// pinned to ltr so the text anchors stay put); only its labels translate.
 const RouteMapGraphic = () => {
+  const t = useTranslations('marketing.routeGraphic');
   return (
     <svg
+      direction="ltr"
       viewBox="0 0 560 460"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className="h-auto w-full"
       role="img"
-      aria-label="A live delivery route from pickup to drop-off, with the driver partway along and the shipment's tracking ID"
+      aria-label={t('label')}
     >
       {/* Faint road grid — evokes a dispatch map without being literal streets */}
       <g stroke="#ffffff" strokeOpacity="0.06" strokeWidth="1">
@@ -48,7 +55,7 @@ const RouteMapGraphic = () => {
         fontSize="13"
         fontFamily="var(--brand-font-mono)"
       >
-        PICKUP
+        {t('pickup')}
       </text>
 
       {/* Drop-off pin */}
@@ -65,7 +72,7 @@ const RouteMapGraphic = () => {
         fontSize="13"
         fontFamily="var(--brand-font-mono)"
       >
-        DROP-OFF
+        {t('dropoff')}
       </text>
 
       {/* Driver marker. Static at the midpoint by default; globals.css moves
@@ -85,21 +92,21 @@ const RouteMapGraphic = () => {
 
         <circle cx="20" cy="22" r="4" fill="var(--brand-signal)" />
         <text x="32" y="26" fill="var(--brand-paper)" fontSize="11" fontFamily="var(--brand-font-mono)" fillOpacity="0.65" letterSpacing="0.5">
-          IN TRANSIT
+          {t('inTransit')}
         </text>
 
         <line x1="0" y1="42" x2="248" y2="42" stroke="var(--brand-paper)" strokeOpacity="0.12" />
         <line x1="124" y1="52" x2="124" y2="70" stroke="var(--brand-paper)" strokeOpacity="0.12" />
 
         <text x="20" y="58" fill="var(--brand-paper)" fontSize="10" fontFamily="var(--brand-font-mono)" fillOpacity="0.55">
-          TRACKING ID
+          {t('trackingId')}
         </text>
         <text x="20" y="74" fill="var(--brand-paper)" fontSize="17" fontFamily="var(--brand-font-mono)" fontWeight="500" letterSpacing="1.5">
           PL7K29X4
         </text>
 
         <text x="144" y="58" fill="var(--brand-paper)" fontSize="10" fontFamily="var(--brand-font-mono)" fillOpacity="0.55">
-          DISTANCE
+          {t('distance')}
         </text>
         <text x="144" y="74" fill="var(--brand-paper)" fontSize="17" fontFamily="var(--brand-font-mono)" fontWeight="500">
           14.6 km

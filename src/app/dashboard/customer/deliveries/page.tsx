@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { CircleAlert, CircleCheck, PackagePlus, PackageSearch } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 
 import Button from '@/components/ui/button';
 import ShipmentListItem from '@/components/shipment/shipment-list-item';
@@ -9,10 +10,13 @@ import { parsePage } from '@/lib/pagination';
 import { isUuid } from '@/lib/security/validate';
 import { sumPrices } from '@/lib/pricing/calculate';
 import { getCustomerBooking, listCustomerShipments } from '@/services/shipments/list-shipments';
+import { getFormat } from '@/i18n/server';
 
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'My deliveries · ParcelLink' };
+export const generateMetadata = async (): Promise<Metadata> => ({
+  title: (await getTranslations('customer.deliveries'))('meta'),
+});
 
 const DeliveriesPage = async ({
   searchParams,
@@ -22,27 +26,29 @@ const DeliveriesPage = async ({
   const profile = await requireRoleOrRedirect('customer');
   const params = await searchParams;
   const bookingId = params.booking && isUuid(params.booking) ? params.booking : null;
-  const [shipments, booking] = await Promise.all([
+  const [shipments, booking, t, format] = await Promise.all([
     listCustomerShipments(profile.id, parsePage(params.page)),
     bookingId ? getCustomerBooking(profile.id, bookingId) : Promise.resolve(null),
+    getTranslations('customer.deliveries'),
+    getFormat(),
   ]);
   const failed = Number(params.failed ?? 0);
 
   return (
     <main className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">My Deliveries</h1>
+        <h1 className="text-2xl font-semibold">{t('title')}</h1>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline">
             <Link href="/dashboard/customer/track">
               <PackageSearch aria-hidden />
-              Track
+              {t('track')}
             </Link>
           </Button>
           <Button asChild>
             <Link href="/dashboard/customer/book">
               <PackagePlus aria-hidden />
-              Book delivery
+              {t('book')}
             </Link>
           </Button>
         </div>
@@ -56,16 +62,21 @@ const DeliveriesPage = async ({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <h2 id="booking-heading" className="flex items-center gap-2 font-semibold">
               <CircleCheck className="size-5 text-success" aria-hidden />
-              {params.booked === '1' ? 'Booking confirmed' : 'Booking'} · {booking.reference}
+              {params.booked === '1'
+                ? t('bookingConfirmed', { reference: booking.reference })
+                : t('booking', { reference: booking.reference })}
             </h2>
             <span className="font-brand-mono text-sm font-medium">
-              {booking.shipments.length} shipments · AED {sumPrices(booking.shipments.map((s) => s.price)).toFixed(2)}
+              {t('bookingSummary', {
+                count: booking.shipments.length,
+                total: format.money(sumPrices(booking.shipments.map((s) => s.price))),
+              })}
             </span>
           </div>
           {failed > 0 ? (
             <p role="alert" className="flex items-start gap-2 text-sm text-destructive">
               <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-              {failed} {failed === 1 ? 'shipment' : 'shipments'} couldn’t be booked. Book {failed === 1 ? 'it' : 'them'} again from Book Delivery.
+              {t('failed', { count: failed })}
             </p>
           ) : null}
           <div className="flex flex-col gap-2">
@@ -80,16 +91,16 @@ const DeliveriesPage = async ({
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed p-10 text-center">
           <PackageSearch className="size-8 text-muted-foreground" aria-hidden />
           <div>
-            <p className="font-medium">No deliveries yet</p>
-            <p className="text-sm text-muted-foreground">Your booked shipments will appear here.</p>
+            <p className="font-medium">{t('emptyTitle')}</p>
+            <p className="text-sm text-muted-foreground">{t('emptyBody')}</p>
           </div>
           <Button asChild>
-            <Link href="/dashboard/customer/book">Book your first delivery</Link>
+            <Link href="/dashboard/customer/book">{t('emptyCta')}</Link>
           </Button>
         </div>
       ) : (
-        <section aria-label="All deliveries" className="flex flex-col gap-2">
-          {booking ? <h2 className="mt-2 text-lg font-medium">All deliveries</h2> : null}
+        <section aria-label={t('all')} className="flex flex-col gap-2">
+          {booking ? <h2 className="mt-2 text-lg font-medium">{t('all')}</h2> : null}
           {shipments.items.map((shipment) => (
             <ShipmentListItem key={shipment.id} shipment={shipment} />
           ))}

@@ -1,5 +1,6 @@
+import { useTranslations } from 'next-intl';
+
 import Badge from '@/components/ui/badge';
-import { formatShipmentStatus } from '@/lib/shipment/format';
 
 import type { ShipmentStatus } from '@/lib/types';
 
@@ -19,7 +20,8 @@ const STATUS_VARIANT: Record<ShipmentStatus, 'default' | 'secondary' | 'success'
 };
 
 const ShipmentStatusBadge = ({ status }: { status: ShipmentStatus }) => {
-  return <Badge variant={STATUS_VARIANT[status]}>{formatShipmentStatus(status)}</Badge>;
+  const t = useTranslations('shipments.status');
+  return <Badge variant={STATUS_VARIANT[status]}>{t(status)}</Badge>;
 };
 
 export default ShipmentStatusBadge;

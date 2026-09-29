@@ -10,14 +10,23 @@ import 'server-only';
 // skipped and logged, and the in-app notification (created by a database
 // trigger, migration 0022) is still delivered. Email failures never block
 // the action that triggered them.
+//
+// We don't know which language a recipient reads, so messages can carry an
+// Arabic version too: it follows the English one in the same email, laid
+// out right to left.
 
-export type EmailMessage = {
-  to: string;
+export type EmailContent = {
   subject: string;
   // Plain text is the source of truth; HTML is a simple rendering of it.
   text: string;
-  actionUrl?: string;
   actionLabel?: string;
+  footer?: string;
+};
+
+export type EmailMessage = EmailContent & {
+  to: string;
+  actionUrl?: string;
+  arabic?: EmailContent;
 };
 
 export type EmailResult = { sent: true } | { sent: false; reason: string };
@@ -25,17 +34,30 @@ export type EmailResult = { sent: true } | { sent: false; reason: string };
 const escapeHtml = (value: string) =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-const renderHtml = ({ subject, text, actionUrl, actionLabel }: EmailMessage) => {
+const DEFAULT_FOOTER = 'ParcelLink · Parcel delivery across the UAE';
+
+const renderBlock = ({ subject, text, actionLabel, footer }: EmailContent, actionUrl: string | undefined) => {
   const paragraphs = text
     .split(/\n{2,}/)
-    .map((p) => `<p style="margin:0 0 16px;line-height:1.5">${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
+    .map((p) => `<p style="margin:0 0 16px;line-height:1.6">${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
     .join('');
   const button =
     actionUrl && actionLabel
       ? `<p style="margin:24px 0"><a href="${escapeHtml(actionUrl)}" style="background:#7b3fa7;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">${escapeHtml(actionLabel)}</a></p>`
       : '';
-  return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#1d1a24;background:#f8f6fb;padding:24px"><div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:32px"><h1 style="font-size:20px;margin:0 0 20px">${escapeHtml(subject)}</h1>${paragraphs}${button}<p style="margin:32px 0 0;color:#6b6776;font-size:12px">ParcelLink · Parcel delivery across the UAE</p></div></body></html>`;
+  return `<h1 style="font-size:20px;margin:0 0 20px">${escapeHtml(subject)}</h1>${paragraphs}${button}<p style="margin:32px 0 0;color:#6b6776;font-size:12px">${escapeHtml(footer ?? DEFAULT_FOOTER)}</p>`;
 };
+
+const renderHtml = (message: EmailMessage) => {
+  const english = renderBlock(message, message.actionUrl);
+  const arabic = message.arabic
+    ? `<div dir="rtl" lang="ar" style="margin-top:32px;padding-top:32px;border-top:1px solid #e5e2ea;text-align:right;font-family:Tahoma,Arial,sans-serif">${renderBlock(message.arabic, message.actionUrl)}</div>`
+    : '';
+  return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#1d1a24;background:#f8f6fb;padding:24px"><div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:32px"><div lang="en" dir="ltr">${english}</div>${arabic}</div></body></html>`;
+};
+
+const renderText = (content: EmailContent, actionUrl: string | undefined) =>
+  actionUrl ? `${content.text}\n\n${content.actionLabel ?? 'Open'}: ${actionUrl}` : content.text;
 
 export const sendEmail = async (message: EmailMessage): Promise<EmailResult> => {
   const apiKey = process.env.RESEND_API_KEY;
@@ -52,8 +74,10 @@ export const sendEmail = async (message: EmailMessage): Promise<EmailResult> => 
       body: JSON.stringify({
         from,
         to: [message.to],
-        subject: message.subject,
-        text: message.actionUrl ? `${message.text}\n\n${message.actionLabel ?? 'Open'}: ${message.actionUrl}` : message.text,
+        subject: message.arabic ? `${message.subject} | ${message.arabic.subject}` : message.subject,
+        text: message.arabic
+          ? `${renderText(message, message.actionUrl)}\n\n———\n\n${renderText(message.arabic, message.actionUrl)}`
+          : renderText(message, message.actionUrl),
         html: renderHtml(message),
       }),
       signal: AbortSignal.timeout(10000),

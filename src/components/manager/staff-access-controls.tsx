@@ -1,10 +1,13 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import Button from '@/components/ui/button';
 import ConfirmButton from '@/components/ui/confirm-button';
 import FieldError from '@/components/ui/field-error';
 import { resetStaffAccessAction, setStaffActiveAction } from '@/lib/staff/actions';
 import { useServerAction } from '@/lib/hooks/use-server-action';
+import { useMessage } from '@/i18n/hooks';
 
 type StaffAccessControlsProps = {
   profileId: string;
@@ -12,6 +15,8 @@ type StaffAccessControlsProps = {
 };
 
 const StaffAccessControls = ({ profileId, active }: StaffAccessControlsProps) => {
+  const t = useTranslations('manager.staff.accessControls');
+  const translate = useMessage();
   const { run, isPending, error, message } = useServerAction();
 
   return (
@@ -21,37 +26,37 @@ const StaffAccessControls = ({ profileId, active }: StaffAccessControlsProps) =>
           <ConfirmButton
             variant="outline"
             className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            title="Deactivate this account?"
-            description="They will be signed out and unable to log in until the account is reactivated."
-            confirmLabel="Deactivate"
+            title={t('deactivateTitle')}
+            description={t('deactivateBody')}
+            confirmLabel={t('deactivate')}
             confirmVariant="destructive"
             isPending={isPending}
-            onConfirm={() => run(() => setStaffActiveAction(profileId, false), 'Account deactivated.')}
+            onConfirm={() => run(() => setStaffActiveAction(profileId, false), 'manager.staff.accessControls.deactivated')}
           >
-            Deactivate
+            {t('deactivate')}
           </ConfirmButton>
         ) : (
           <Button
             type="button"
             loading={isPending}
-            onClick={() => run(() => setStaffActiveAction(profileId, true), 'Account reactivated.')}
+            onClick={() => run(() => setStaffActiveAction(profileId, true), 'manager.staff.accessControls.reactivated')}
           >
-            Reactivate
+            {t('reactivate')}
           </Button>
         )}
         <Button
           type="button"
           variant="outline"
           disabled={isPending || !active}
-          onClick={() => run(() => resetStaffAccessAction(profileId), 'Password reset email sent.')}
+          onClick={() => run(() => resetStaffAccessAction(profileId), 'manager.staff.accessControls.resetSent')}
         >
-          Send password reset
+          {t('reset')}
         </Button>
       </div>
       <FieldError message={error ?? undefined} />
       {message ? (
         <p role="status" className="text-sm text-success">
-          {message}
+          {translate(message)}
         </p>
       ) : null}
     </div>

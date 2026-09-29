@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -33,7 +34,9 @@ const copyText = async (text: string) => {
   if (!ok) throw new Error('copy failed');
 };
 
-const CopyButton = ({ value, label = 'Copy', description, className = '' }: CopyButtonProps) => {
+const CopyButton = ({ value, label, description, className = '' }: CopyButtonProps) => {
+  const t = useTranslations('common');
+  const buttonLabel = label ?? t('actions.copy');
   const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   useEffect(() => {
@@ -49,7 +52,7 @@ const CopyButton = ({ value, label = 'Copy', description, className = '' }: Copy
         variant="outline"
         size="sm"
         className={cn(state === 'copied' ? 'border-success/60 text-success hover:text-success' : '', className)}
-        aria-label={description ? `${label} ${description}` : undefined}
+        aria-label={description ? `${buttonLabel} ${description}` : undefined}
         onClick={async () => {
           try {
             await copyText(value);
@@ -64,10 +67,10 @@ const CopyButton = ({ value, label = 'Copy', description, className = '' }: Copy
         ) : (
           <Copy aria-hidden />
         )}
-        {state === 'copied' ? 'Copied' : state === 'failed' ? 'Copy failed' : label}
+        {state === 'copied' ? t('actions.copied') : state === 'failed' ? t('copy.failed') : buttonLabel}
       </Button>
       <span className="sr-only" role="status" aria-live="polite">
-        {state === 'copied' ? 'Copied to clipboard' : state === 'failed' ? 'Could not copy. Select the text and copy it manually.' : ''}
+        {state === 'copied' ? t('copy.copiedToClipboard') : state === 'failed' ? t('copy.copyManually') : ''}
       </span>
     </>
   );

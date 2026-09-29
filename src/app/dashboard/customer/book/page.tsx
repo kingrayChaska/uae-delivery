@@ -2,9 +2,13 @@ import CustomerBookingWizard from '@/components/shipment/booking/customer-bookin
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { getActivePricingRules } from '@/lib/pricing/get-active-rule';
 
+import { getTranslations } from 'next-intl/server';
+
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'Book a delivery · ParcelLink' };
+export const generateMetadata = async (): Promise<Metadata> => ({
+  title: (await getTranslations('booking.meta'))('title'),
+});
 
 const BookDeliveryPage = async () => {
   const profile = await requireRoleOrRedirect('customer');

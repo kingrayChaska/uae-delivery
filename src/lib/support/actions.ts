@@ -53,7 +53,7 @@ export const createTicketAction = async (input: CreateTicketInput): Promise<Crea
   if (!(await checkRateLimit('ticketPerUser', profile.id))) return { success: false, error: RATE_LIMIT_MESSAGE };
   const parsed = createTicketSchema.safeParse(input);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
   }
 
   const supabase = await createClient();
@@ -65,7 +65,7 @@ export const createTicketAction = async (input: CreateTicketInput): Promise<Crea
     .single();
 
   if (ticketError || !ticket) {
-    return { success: false, error: safeErrorMessage(ticketError, 'Could not open a ticket') };
+    return { success: false, error: safeErrorMessage(ticketError, 'support.errors.openFailed') };
   }
 
   const { error: messageError } = await supabase
@@ -120,7 +120,7 @@ export const replyToTicketAction = async (input: ReplyToTicketInput): Promise<Re
   const profile = await requireUser();
   const parsed = replyToTicketSchema.safeParse(input);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
   }
 
   const supabase = await createClient();
@@ -138,7 +138,7 @@ export const replyToTicketAction = async (input: ReplyToTicketInput): Promise<Re
 // support_tickets_select's RLS already returns every ticket for is_staff()
 // callers, not just the caller's own — that's what makes this "all
 // tickets" rather than requiring a separate admin query path.
-export const listAllTicketsAction = async (): Promise<(TicketSummary & { customerName: string })[]> => {
+export const listAllTicketsAction = async (): Promise<(TicketSummary & { customerName: string | null })[]> => {
   await requireRole('operator', 'manager');
   const supabase = await createClient();
 
@@ -155,7 +155,8 @@ export const listAllTicketsAction = async (): Promise<(TicketSummary & { custome
       status: row.status,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      customerName: customer?.full_name ?? 'Customer',
+      // null: the page shows "Customer" in the reader's language.
+      customerName: customer?.full_name ?? null,
     };
   });
 };

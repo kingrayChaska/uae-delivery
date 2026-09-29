@@ -1,4 +1,9 @@
+import createNextIntlPlugin from "next-intl/plugin";
+
 import type { NextConfig } from "next";
+
+// English/Arabic: src/i18n/request.ts picks the language for each request.
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const isProduction = process.env.NODE_ENV === "production";
 const enableHsts = isProduction && process.env.ENABLE_HSTS === "true";
@@ -53,4 +58,4 @@ const nextConfig: NextConfig = {
   ],
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

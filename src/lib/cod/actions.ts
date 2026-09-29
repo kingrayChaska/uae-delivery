@@ -9,7 +9,7 @@ import { logAuditEvent } from '@/lib/audit/log';
 export type CodActionResult = { success: true } | { success: false; error: string };
 
 export const reconcileCodAction = async (codTransactionId: string): Promise<CodActionResult> => {
-  if (!isUuid(codTransactionId)) return { success: false, error: 'Not found' };
+  if (!isUuid(codTransactionId)) return { success: false, error: 'operator.errors.notFound' };
   const profile = await requireRole('operator', 'manager');
   const supabase = await createClient();
 
@@ -32,7 +32,7 @@ export const reconcileCodAction = async (codTransactionId: string): Promise<CodA
 };
 
 export const remitCodAction = async (codTransactionId: string): Promise<CodActionResult> => {
-  if (!isUuid(codTransactionId)) return { success: false, error: 'Not found' };
+  if (!isUuid(codTransactionId)) return { success: false, error: 'operator.errors.notFound' };
   const profile = await requireRole('operator', 'manager');
   const supabase = await createClient();
 

@@ -51,7 +51,8 @@ export const useLoginForm = () => {
 
     if (error) {
       setIsGoogleSubmitting(false);
-      setServerError(error.message);
+      console.error('Google sign-in failed', error.message);
+      setServerError('auth.errors.googleFailed');
     }
   };
 

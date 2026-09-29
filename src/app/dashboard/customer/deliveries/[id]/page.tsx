@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, CircleCheck, Printer } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 
 import { Card, CardContent } from '@/components/ui/card';
 import Button from '@/components/ui/button';
@@ -16,18 +17,17 @@ import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { isUuid } from '@/lib/security/validate';
 import { getShipmentDetail } from '@/services/shipments/get-shipment';
 import { getProofOfDelivery } from '@/services/shipments/get-proof-of-delivery';
-import { formatShipmentStatus } from '@/lib/shipment/format';
-import { getTerminalNegativeMessage, getTrackingMilestones } from '@/lib/shipment/tracking-milestones';
+import { getTrackingMilestones } from '@/lib/shipment/tracking-milestones';
+import { getFormat } from '@/i18n/server';
 
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'Shipment details · ParcelLink' };
+export const generateMetadata = async (): Promise<Metadata> => ({
+  title: (await getTranslations('customer.detail'))('meta'),
+});
 
 const CANCELLABLE_STATUSES = ['pending_payment', 'confirmed', 'assigned', 'driver_accepted'];
 const ROUTE_VISIBLE_STATUSES = ['assigned', 'driver_accepted', 'arrived_pickup', 'picked_up', 'in_transit', 'arrived_destination', 'delivered'];
-
-const formatTime = (value: string) =>
-  new Intl.DateTimeFormat('en-AE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Dubai' }).format(new Date(value));
 
 const ShipmentDetailPage = async ({
   params,
@@ -43,24 +43,28 @@ const ShipmentDetailPage = async ({
   const detail = await getShipmentDetail(id);
   if (!detail) notFound();
 
+  const [t, tShipments, format] = await Promise.all([
+    getTranslations('customer.detail'),
+    getTranslations('shipments'),
+    getFormat(),
+  ]);
   const { shipment, history, packageImageUrl } = detail;
   const proof = shipment.status === 'delivered' ? await getProofOfDelivery(shipment.id) : null;
-  const terminalMessage = getTerminalNegativeMessage(shipment.status);
   const milestones = getTrackingMilestones(shipment.status, history);
   const dimensions = [shipment.packageLengthCm, shipment.packageWidthCm, shipment.packageHeightCm];
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <Link href="/dashboard/customer/deliveries" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" aria-hidden />
-        My deliveries
+        <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden />
+        {t('back')}
       </Link>
 
       {booked === '1' ? (
         <div role="status" className="flex items-start gap-3 rounded-2xl border border-success/50 bg-success/10 p-4 text-sm animate-in fade-in-0 slide-in-from-top-2 motion-reduce:animate-none">
           <CircleCheck className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
           <p>
-            <span className="font-medium">Booking confirmed.</span> Share the tracking ID with your recipient so they can follow the delivery.
+            <span className="font-medium">{t('confirmedTitle')}</span> {t('confirmedBody')}
           </p>
         </div>
       ) : null}
@@ -69,9 +73,12 @@ const ShipmentDetailPage = async ({
         <div className="flex min-w-0 flex-col gap-3">
           <TrackingCode code={shipment.trackingNumber} size="lg" />
           <h1 className="text-xl font-semibold leading-snug sm:text-2xl">
-            <span className="break-words">{shipment.pickup.formattedAddress}</span>
-            <span className="text-primary" aria-label="to"> → </span>
-            <span className="break-words">{shipment.dropoff.formattedAddress}</span>
+            <span className="wrap-break-word">{shipment.pickup.formattedAddress}</span>
+            <span className="text-primary" aria-label={tShipments('detail.to')}>
+              {' '}
+              <span className="inline-block rtl:rotate-180">→</span>{' '}
+            </span>
+            <span className="wrap-break-word">{shipment.dropoff.formattedAddress}</span>
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -79,7 +86,7 @@ const ShipmentDetailPage = async ({
           <Button asChild variant="outline" size="sm">
             <Link href={`/dashboard/customer/deliveries/${shipment.id}/label`}>
               <Printer aria-hidden />
-              Label
+              {t('label')}
             </Link>
           </Button>
           {CANCELLABLE_STATUSES.includes(shipment.status) ? <CancelShipmentButton shipmentId={shipment.id} /> : null}
@@ -91,10 +98,12 @@ const ShipmentDetailPage = async ({
           <Card>
             <CardContent className="flex flex-col gap-5 pt-6">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold">Tracking</h2>
-                <span className="text-sm text-muted-foreground">Now: {formatShipmentStatus(shipment.status)}</span>
+                <h2 className="text-lg font-semibold">{tShipments('detail.tracking')}</h2>
+                <span className="text-sm text-muted-foreground">
+                  {t('now', { status: tShipments(`status.${shipment.status}`) })}
+                </span>
               </div>
-              <TrackingTimeline milestones={milestones} terminalMessage={terminalMessage} />
+              <TrackingTimeline milestones={milestones} terminalStatus={shipment.status} />
               <div className="border-t pt-4">
                 <ProofOfDeliveryButton proof={proof} status={shipment.status} trackingCode={shipment.trackingNumber} />
               </div>
@@ -103,40 +112,46 @@ const ShipmentDetailPage = async ({
 
           <Card>
             <CardContent className="grid gap-5 pt-6 text-sm sm:grid-cols-2">
-              <AddressBlock heading="Pickup" address={shipment.pickup} />
-              <AddressBlock heading="Delivery" address={shipment.dropoff} />
+              <AddressBlock heading={tShipments('detail.pickup')} address={shipment.pickup} />
+              <AddressBlock heading={tShipments('detail.delivery')} address={shipment.dropoff} />
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="flex flex-col gap-3 pt-6 text-sm">
-              <h2 className="text-lg font-semibold">Package</h2>
+              <h2 className="text-lg font-semibold">{tShipments('detail.package')}</h2>
               <dl className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <dt className="text-xs text-muted-foreground">Contents</dt>
+                  <dt className="text-xs text-muted-foreground">{tShipments('detail.contents')}</dt>
                   <dd className="font-medium">{shipment.packageDescription}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-muted-foreground">Quantity</dt>
-                  <dd className="font-medium">{shipment.packageQuantity}</dd>
+                  <dt className="text-xs text-muted-foreground">{tShipments('detail.quantity')}</dt>
+                  <dd className="font-medium">{format.number(shipment.packageQuantity)}</dd>
                 </div>
                 {shipment.packageWeightKg ? (
                   <div>
-                    <dt className="text-xs text-muted-foreground">Weight</dt>
-                    <dd className="font-medium">{shipment.packageWeightKg} kg</dd>
+                    <dt className="text-xs text-muted-foreground">{tShipments('detail.weight')}</dt>
+                    <dd className="font-medium">{format.kg(shipment.packageWeightKg)}</dd>
                   </div>
                 ) : null}
                 {dimensions.every((d) => d !== null) ? (
                   <div>
-                    <dt className="text-xs text-muted-foreground">Dimensions</dt>
-                    <dd className="font-medium">{dimensions.join(' × ')} cm</dd>
+                    <dt className="text-xs text-muted-foreground">{tShipments('detail.dimensions')}</dt>
+                    <dd dir="ltr" className="font-medium rtl:text-right">
+                      {dimensions.map((d) => format.number(d as number)).join(' × ')} cm
+                    </dd>
                   </div>
                 ) : null}
               </dl>
-              {shipment.isFragile ? <p className="font-medium text-warning-foreground">Marked fragile</p> : null}
+              {shipment.isFragile ? <p className="font-medium text-warning-foreground">{tShipments('detail.markedFragile')}</p> : null}
               {packageImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- signed Supabase Storage URL, not a static/remote-optimizable asset
-                <img src={packageImageUrl} alt={`Package photo: ${shipment.packageDescription}`} className="mt-1 size-32 rounded-xl object-cover" />
+                <img
+                  src={packageImageUrl}
+                  alt={tShipments('detail.photoAlt', { description: shipment.packageDescription })}
+                  className="mt-1 size-32 rounded-xl object-cover"
+                />
               ) : null}
             </CardContent>
           </Card>
@@ -150,13 +165,13 @@ const ShipmentDetailPage = async ({
           ) : null}
 
           <details className="rounded-2xl border bg-card p-4 text-sm shadow-sm">
-            <summary className="cursor-pointer select-none font-medium">Full status history</summary>
+            <summary className="cursor-pointer select-none font-medium">{tShipments('detail.history')}</summary>
             <ul className="mt-3 flex flex-col gap-1.5">
               {history.map((entry) => (
                 <li key={`${entry.status}-${entry.createdAt}`} className="flex justify-between gap-4">
-                  <span className="text-muted-foreground">{formatShipmentStatus(entry.status)}</span>
+                  <span className="text-muted-foreground">{tShipments(`status.${entry.status}`)}</span>
                   <time dateTime={entry.createdAt} className="font-brand-mono text-xs">
-                    {formatTime(entry.createdAt)}
+                    {format.dateTime(entry.createdAt)}
                   </time>
                 </li>
               ))}

@@ -1,28 +1,19 @@
-import NotificationItem from '@/components/dashboard/notification-item';
+import { getTranslations } from 'next-intl/server';
+
+import NotificationsView from '@/components/dashboard/notifications-view';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { listNotificationsAction } from '@/lib/notifications/actions';
+
+import type { Metadata } from 'next';
+
+export const generateMetadata = async (): Promise<Metadata> => ({
+  title: (await getTranslations('notifications'))('meta'),
+});
 
 const DriverNotificationsPage = async () => {
   await requireRoleOrRedirect('driver');
   const notifications = await listNotificationsAction();
-
-  return (
-    <main className="flex flex-1 flex-col gap-4 p-6">
-      <h1 className="text-2xl font-semibold">Notifications</h1>
-
-      {notifications.length === 0 ? (
-        <div className="rounded-md border border-dashed p-8 text-center">
-          <p className="font-medium">No notifications yet</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {notifications.map((notification) => (
-            <NotificationItem key={notification.id} notification={notification} />
-          ))}
-        </div>
-      )}
-    </main>
-  );
+  return <NotificationsView notifications={notifications} audience="driver" />;
 };
 
 export default DriverNotificationsPage;

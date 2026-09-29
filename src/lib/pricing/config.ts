@@ -56,11 +56,6 @@ export const DEFAULT_PRICING_RULES: PricingRuleSet = {
 // against one (the database would reject it anyway).
 export const isFallbackRule = (pricingRule: PricingRule) => pricingRule.id.startsWith('default-');
 
-export const DELIVERY_TYPE_COPY: Record<DeliveryType, { label: string; description: string }> = {
-  same_day: { label: 'Same-Day Delivery', description: 'Collected and delivered today.' },
-  next_day: { label: 'Next-Day Delivery', description: 'Delivered the next day, at a lower price.' },
-};
-
 // Upper bound on what a driver is asked to collect for the goods — matches
 // shipments_cod_amount_check (migration 0022).
 export const MAX_COD_AMOUNT = 100000;

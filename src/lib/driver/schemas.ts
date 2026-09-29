@@ -2,7 +2,7 @@ import { z } from '@/lib/zod';
 
 export const reportDeliveryFailedSchema = z.object({
   shipmentId: z.string().uuid(),
-  reason: z.string().min(1, 'Enter a reason'),
+  reason: z.string().min(1, 'driver.validation.reason'),
 });
 
 export type ReportDeliveryFailedInput = z.infer<typeof reportDeliveryFailedSchema>;
@@ -13,7 +13,7 @@ export type ReportDeliveryFailedInput = z.infer<typeof reportDeliveryFailedSchem
 export const proofOfDeliverySchema = z
   .object({
     shipmentId: z.string().uuid(),
-    recipientName: z.string().min(1, 'Enter who received the package'),
+    recipientName: z.string().min(1, 'driver.validation.recipient'),
     photoPath: z.string().nullable().optional(),
     signaturePath: z.string().nullable().optional(),
     otpCode: z.string().nullable().optional(),
@@ -21,7 +21,7 @@ export const proofOfDeliverySchema = z
     notes: z.string().optional(),
   })
   .refine((data) => Boolean(data.photoPath || data.signaturePath || data.otpCode || data.qrToken), {
-    message: 'Provide at least one proof: photo, signature, OTP, or QR scan',
+    message: 'driver.validation.proof',
     path: ['photoPath'],
   });
 

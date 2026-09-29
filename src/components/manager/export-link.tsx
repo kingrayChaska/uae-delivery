@@ -1,3 +1,5 @@
+import { useTranslations } from 'next-intl';
+
 import Button from '@/components/ui/button';
 
 type ExportLinkProps = {
@@ -7,12 +9,13 @@ type ExportLinkProps = {
   label?: string;
 };
 
-const ExportLink = ({ type, from, to, label = 'Export CSV' }: ExportLinkProps) => {
+const ExportLink = ({ type, from, to, label }: ExportLinkProps) => {
+  const t = useTranslations('manager.reports');
   const params = new URLSearchParams({ type, from, to });
   return (
     <Button asChild size="sm" variant="outline">
       <a href={`/api/manager/reports/export?${params.toString()}`} download>
-        {label}
+        {label ?? t('export')}
       </a>
     </Button>
   );

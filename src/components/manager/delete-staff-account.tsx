@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
@@ -32,6 +33,7 @@ type DeleteStaffAccountProps = {
 // Deleting can't be undone, so the manager types the person's name to
 // confirm — a plain "Are you sure?" is too easy to click through.
 const DeleteStaffAccount = ({ profileId, fullName, role, compact = false }: DeleteStaffAccountProps) => {
+  const t = useTranslations('manager.staff.delete');
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
@@ -71,10 +73,10 @@ const DeleteStaffAccount = ({ profileId, fullName, role, compact = false }: Dele
             variant="ghost"
             size="sm"
             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            aria-label={`Delete ${fullName}'s account`}
+            aria-label={t('compactLabel', { name: fullName })}
           >
             <Trash2 aria-hidden />
-            Delete
+            {t('button')}
           </Button>
         ) : (
           <Button
@@ -83,29 +85,24 @@ const DeleteStaffAccount = ({ profileId, fullName, role, compact = false }: Dele
             className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
           >
             <Trash2 aria-hidden />
-            Delete {role} account
+            {role === 'driver' ? t('buttonDriver') : t('buttonOperator')}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete {fullName}’s account?</DialogTitle>
+          <DialogTitle>{t('title', { name: fullName })}</DialogTitle>
           <DialogDescription asChild>
             <div className="flex flex-col gap-2">
-              <p>This permanently removes their sign-in, contact details{role === 'driver' ? ', vehicle link and location history' : ''}. It can’t be undone.</p>
-              <p>
-                Past {role === 'driver' ? 'deliveries, proof of delivery and COD records' : 'actions in the activity log'} are kept and
-                still show their name.
-              </p>
-              {role === 'driver' ? (
-                <p>A driver with deliveries in progress or unreconciled cash can’t be deleted until those are dealt with.</p>
-              ) : null}
+              <p>{role === 'driver' ? t('removesDriver') : t('removesOperator')}</p>
+              <p>{role === 'driver' ? t('keptDriver') : t('keptOperator')}</p>
+              {role === 'driver' ? <p>{t('driverBlocked')}</p> : null}
             </div>
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="confirm-name">
-            Type <span className="font-semibold">{fullName}</span> to confirm
+            {t.rich('confirm', { name: fullName, strong: (chunks) => <span className="font-semibold">{chunks}</span> })}
           </Label>
           <Input
             id="confirm-name"
@@ -119,12 +116,12 @@ const DeleteStaffAccount = ({ profileId, fullName, role, compact = false }: Dele
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline" disabled={isDeleting}>
-              Keep account
+              {t('keep')}
             </Button>
           </DialogClose>
-          <Button type="button" variant="destructive" disabled={!matches} loading={isDeleting} loadingText="Deleting…" onClick={remove}>
+          <Button type="button" variant="destructive" disabled={!matches} loading={isDeleting} loadingText={t('deleting')} onClick={remove}>
             <Trash2 aria-hidden />
-            Delete permanently
+            {t('deletePermanently')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,13 +1,21 @@
-import Logo from '@/components/brand/logo';
+import { getTranslations } from 'next-intl/server';
+
+import AuthShell from '@/components/auth/auth-shell';
 import ForgotPasswordForm from '@/components/auth/forgot-password-form';
 
-const ForgotPasswordPage = () => {
+import type { Metadata } from 'next';
+
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations('auth.meta');
+  return { title: t('forgotTitle') };
+};
+
+const ForgotPasswordPage = async () => {
+  const t = await getTranslations('auth.forgot');
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
-      <Logo height={40} priority />
-      <h1 className="text-2xl font-semibold">Reset Password</h1>
+    <AuthShell title={t('title')}>
       <ForgotPasswordForm />
-    </main>
+    </AuthShell>
   );
 };
 

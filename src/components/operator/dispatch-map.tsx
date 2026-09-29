@@ -2,8 +2,11 @@
 
 import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
+import { useTranslations } from 'next-intl';
 
 import { UAE_DEFAULT_CENTER, UAE_DEFAULT_ZOOM } from '@/lib/maps/config';
+import { useMapI18n } from '@/lib/maps/use-map-i18n';
+import { useAppLocale } from '@/i18n/hooks';
 
 import type { DriverLocationState } from '@/lib/dispatch/driver-location-reducer';
 
@@ -15,7 +18,9 @@ type DispatchMapProps = {
   className?: string;
 };
 
-const DispatchMap = ({ driverLocations, driverLabels, className }: DispatchMapProps) => {
+const DispatchMapCanvas = ({ driverLocations, driverLabels, className }: DispatchMapProps) => {
+  const t = useTranslations('operator.dispatch');
+  const mapI18n = useMapI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Record<string, mapboxgl.Marker>>({});
@@ -35,12 +40,15 @@ const DispatchMap = ({ driverLocations, driverLabels, className }: DispatchMapPr
       style: 'mapbox://styles/mapbox/light-v11',
       center: UAE_DEFAULT_CENTER,
       zoom: UAE_DEFAULT_ZOOM,
+      ...mapI18n.options(),
     });
 
     return () => {
       mapRef.current?.remove();
       mapRef.current = null;
     };
+    // Created once per language (DispatchMap below remounts it on a switch).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -71,14 +79,18 @@ const DispatchMap = ({ driverLocations, driverLabels, className }: DispatchMapPr
 
       const marker = new mapboxgl.Marker({ element: el })
         .setLngLat([location.coordinates.lng, location.coordinates.lat])
-        .setPopup(new mapboxgl.Popup({ offset: 16 }).setText(driverLabels[driverId] ?? 'Driver'))
+        .setPopup(new mapboxgl.Popup({ offset: 16 }).setText(driverLabels[driverId] ?? t('driver')))
         .addTo(map);
 
       markersRef.current[driverId] = marker;
     }
-  }, [driverLocations, driverLabels]);
+  }, [driverLocations, driverLabels, t]);
 
   return <div ref={containerRef} className={className ?? 'h-96 w-full rounded-md'} />;
 };
+
+// A new map for each language: labels and control text are fixed when a
+// map is created.
+const DispatchMap = (props: DispatchMapProps) => <DispatchMapCanvas key={useAppLocale()} {...props} />;
 
 export default DispatchMap;

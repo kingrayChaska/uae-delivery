@@ -54,7 +54,7 @@ export const usePricingRuleForm = (current: PricingRuleSet) => {
       setServerError(result.error);
       return;
     }
-    setSavedMessage(input.activate ? 'Saved and activated — new bookings use it now.' : 'Saved. Activate it from the history below.');
+    setSavedMessage(input.activate ? 'manager.pricing.form.savedActive' : 'manager.pricing.form.saved');
     form.reset({ ...input, name: '' });
     router.refresh();
   });

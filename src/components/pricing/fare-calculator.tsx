@@ -2,12 +2,13 @@
 
 import { useId, useState } from 'react';
 import { CircleAlert } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import PriceBreakdownList from '@/components/pricing/price-breakdown-list';
 import { calculateShipmentPrice } from '@/lib/pricing/calculate';
-import { DELIVERY_TYPE_COPY } from '@/lib/pricing/config';
 import { DELIVERY_TYPES } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useFormat } from '@/i18n/hooks';
 
 import type { DeliveryType, PricingRule } from '@/lib/types';
 
@@ -22,6 +23,9 @@ type FareCalculatorProps = {
 // estimate here is exactly what the customer would pay for that distance
 // and weight.
 const FareCalculator = ({ rules, defaultDeliveryType = 'next_day', className = '' }: FareCalculatorProps) => {
+  const t = useTranslations('pricing.calculator');
+  const tShipments = useTranslations('shipments');
+  const format = useFormat();
   const available = DELIVERY_TYPES.filter((type) => rules[type]);
   const [deliveryType, setDeliveryType] = useState<DeliveryType>(
     available.includes(defaultDeliveryType) ? defaultDeliveryType : available[0],
@@ -38,7 +42,7 @@ const FareCalculator = ({ rules, defaultDeliveryType = 'next_day', className = '
   return (
     <div className={cn('flex flex-col gap-6 rounded-2xl border border-brand-ink/10 bg-white p-6 shadow-sm md:p-8', className)}>
       {available.length > 1 ? (
-        <div role="radiogroup" aria-label="Delivery service" className="grid grid-cols-2 gap-1 rounded-xl bg-brand-ink/5 p-1">
+        <div role="radiogroup" aria-label={t('service')} className="grid grid-cols-2 gap-1 rounded-xl bg-brand-ink/5 p-1">
           {available.map((type) => (
             <button
               key={type}
@@ -51,7 +55,7 @@ const FareCalculator = ({ rules, defaultDeliveryType = 'next_day', className = '
                 deliveryType === type ? 'bg-white text-brand-ink shadow-sm' : 'text-brand-ink/60 hover:text-brand-ink',
               )}
             >
-              {DELIVERY_TYPE_COPY[type].label}
+              {tShipments(`deliveryType.${type}.label`)}
             </button>
           ))}
         </div>
@@ -60,10 +64,10 @@ const FareCalculator = ({ rules, defaultDeliveryType = 'next_day', className = '
       <div>
         <div className="flex items-baseline justify-between">
           <label htmlFor={`${ids}-distance`} className="text-sm text-brand-ink/70">
-            Trip distance
+            {t('distance')}
           </label>
           <output htmlFor={`${ids}-distance`} className="font-brand-mono text-lg text-brand-ink">
-            {distanceKm} km
+            {format.km(distanceKm, 0)}
           </output>
         </div>
         <input
@@ -80,10 +84,10 @@ const FareCalculator = ({ rules, defaultDeliveryType = 'next_day', className = '
       <div>
         <div className="flex items-baseline justify-between">
           <label htmlFor={`${ids}-weight`} className="text-sm text-brand-ink/70">
-            Parcel weight
+            {t('weight')}
           </label>
           <output htmlFor={`${ids}-weight`} className="font-brand-mono text-lg text-brand-ink">
-            {weightKg} kg
+            {format.kg(weightKg)}
           </output>
         </div>
         <input
@@ -101,7 +105,7 @@ const FareCalculator = ({ rules, defaultDeliveryType = 'next_day', className = '
         {breakdown.exceedsDistanceLimit ? (
           <p className="flex items-start gap-2 rounded-xl bg-destructive/5 p-4 text-sm text-destructive">
             <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-            Deliveries over {rule.maxDistanceKm} km can’t be booked online. Contact us for long-distance deliveries.
+            {t('overLimit', { distance: format.km(rule.maxDistanceKm, 0) })}
           </p>
         ) : (
           <PriceBreakdownList
@@ -114,7 +118,7 @@ const FareCalculator = ({ rules, defaultDeliveryType = 'next_day', className = '
             codCharge={breakdown.codCharge}
             additionalDistanceKm={breakdown.additionalDistanceKm}
             additionalWeightKg={breakdown.additionalWeightKg}
-            totalLabel="Estimated delivery fee"
+            totalLabel={t('estimate')}
           />
         )}
       </div>

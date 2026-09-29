@@ -1,6 +1,7 @@
 'use client';
 
 import { BadgeCheck, Camera, Clock, FileCheck2, KeyRound, MapPin, PenLine, QrCode, UserRound } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
 import {
@@ -11,12 +12,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { useFormat } from '@/i18n/hooks';
 
 import type { ProofOfDelivery } from '@/services/shipments/get-proof-of-delivery';
 import type { ShipmentStatus } from '@/lib/types';
-
-const formatTime = (value: string) =>
-  new Intl.DateTimeFormat('en-AE', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Asia/Dubai' }).format(new Date(value));
 
 type ProofOfDeliveryButtonProps = {
   proof: ProofOfDelivery | null;
@@ -29,11 +28,13 @@ type ProofOfDeliveryButtonProps = {
 // (e.g. marked delivered before proof capture existed) gets a clear note
 // rather than an empty panel.
 const ProofOfDeliveryButton = ({ proof, status, trackingCode }: ProofOfDeliveryButtonProps) => {
+  const t = useTranslations('shipments.pod');
+  const format = useFormat();
   if (status !== 'delivered') {
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
         <FileCheck2 className="size-4" aria-hidden />
-        Proof of delivery will be available here once your parcel is delivered.
+        {t('notYet')}
       </p>
     );
   }
@@ -43,16 +44,16 @@ const ProofOfDeliveryButton = ({ proof, status, trackingCode }: ProofOfDeliveryB
       <DialogTrigger asChild>
         <Button type="button" variant="default">
           <FileCheck2 aria-hidden />
-          View Proof of Delivery
+          {t('view')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BadgeCheck className="size-5 text-success" aria-hidden />
-            Proof of Delivery
+            {t('title')}
           </DialogTitle>
-          <DialogDescription>Shipment {trackingCode}</DialogDescription>
+          <DialogDescription>{t('shipment', { code: trackingCode })}</DialogDescription>
         </DialogHeader>
 
         {proof ? (
@@ -61,16 +62,16 @@ const ProofOfDeliveryButton = ({ proof, status, trackingCode }: ProofOfDeliveryB
               <div className="flex gap-3">
                 <Clock className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
                 <div>
-                  <dt className="text-muted-foreground">Delivered</dt>
+                  <dt className="text-muted-foreground">{t('delivered')}</dt>
                   <dd className="font-medium">
-                    <time dateTime={proof.deliveredAt}>{formatTime(proof.deliveredAt)}</time>
+                    <time dateTime={proof.deliveredAt}>{format.dateTimeLong(proof.deliveredAt)}</time>
                   </dd>
                 </div>
               </div>
               <div className="flex gap-3">
                 <UserRound className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
                 <div>
-                  <dt className="text-muted-foreground">Received by</dt>
+                  <dt className="text-muted-foreground">{t('receivedBy')}</dt>
                   <dd className="font-medium">{proof.recipientName || '—'}</dd>
                 </div>
               </div>
@@ -78,9 +79,9 @@ const ProofOfDeliveryButton = ({ proof, status, trackingCode }: ProofOfDeliveryB
                 <div className="flex gap-3 sm:col-span-2">
                   <MapPin className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
                   <div>
-                    <dt className="text-muted-foreground">Delivery location</dt>
+                    <dt className="text-muted-foreground">{t('location')}</dt>
                     <dd className="font-medium">{proof.location.address}</dd>
-                    <dd className="font-brand-mono text-xs text-muted-foreground">
+                    <dd dir="ltr" className="font-brand-mono text-xs text-muted-foreground rtl:text-right">
                       {proof.location.coordinates.lat.toFixed(5)}, {proof.location.coordinates.lng.toFixed(5)}
                     </dd>
                   </div>
@@ -89,26 +90,26 @@ const ProofOfDeliveryButton = ({ proof, status, trackingCode }: ProofOfDeliveryB
             </dl>
 
             <div>
-              <p className="mb-2 text-sm font-medium">Delivery confirmation</p>
+              <p className="mb-2 text-sm font-medium">{t('confirmation')}</p>
               <ul className="flex flex-wrap gap-2 text-sm">
                 {proof.otpVerified ? (
                   <li className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-success">
-                    <KeyRound className="size-3.5" aria-hidden /> Recipient code verified
+                    <KeyRound className="size-3.5" aria-hidden /> {t('otp')}
                   </li>
                 ) : null}
                 {proof.qrVerified ? (
                   <li className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-success">
-                    <QrCode className="size-3.5" aria-hidden /> Label QR scanned
+                    <QrCode className="size-3.5" aria-hidden /> {t('qr')}
                   </li>
                 ) : null}
                 {proof.photoUrl ? (
                   <li className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-success">
-                    <Camera className="size-3.5" aria-hidden /> Photo taken
+                    <Camera className="size-3.5" aria-hidden /> {t('photo')}
                   </li>
                 ) : null}
                 {proof.signatureUrl ? (
                   <li className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-success">
-                    <PenLine className="size-3.5" aria-hidden /> Signed for
+                    <PenLine className="size-3.5" aria-hidden /> {t('signature')}
                   </li>
                 ) : null}
               </ul>
@@ -121,10 +122,10 @@ const ProofOfDeliveryButton = ({ proof, status, trackingCode }: ProofOfDeliveryB
                     {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed Supabase Storage URL */}
                     <img
                       src={proof.photoUrl}
-                      alt={`Photo taken by the driver at delivery of shipment ${trackingCode}`}
+                      alt={t('photoAlt', { code: trackingCode })}
                       className="aspect-[4/3] w-full rounded-xl border object-cover"
                     />
-                    <figcaption className="text-xs text-muted-foreground">Delivery photo</figcaption>
+                    <figcaption className="text-xs text-muted-foreground">{t('photoCaption')}</figcaption>
                   </figure>
                 ) : null}
                 {proof.signatureUrl ? (
@@ -132,10 +133,10 @@ const ProofOfDeliveryButton = ({ proof, status, trackingCode }: ProofOfDeliveryB
                     {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed Supabase Storage URL */}
                     <img
                       src={proof.signatureUrl}
-                      alt={`Recipient signature${proof.recipientName ? ` of ${proof.recipientName}` : ''}`}
+                      alt={proof.recipientName ? t('signatureAltNamed', { name: proof.recipientName }) : t('signatureAlt')}
                       className="aspect-[4/3] w-full rounded-xl border bg-white object-contain p-2"
                     />
-                    <figcaption className="text-xs text-muted-foreground">Recipient signature</figcaption>
+                    <figcaption className="text-xs text-muted-foreground">{t('signatureCaption')}</figcaption>
                   </figure>
                 ) : null}
               </div>
@@ -143,15 +144,14 @@ const ProofOfDeliveryButton = ({ proof, status, trackingCode }: ProofOfDeliveryB
 
             {proof.notes ? (
               <div className="rounded-xl bg-muted/50 p-3 text-sm">
-                <p className="text-xs text-muted-foreground">Driver’s note</p>
+                <p className="text-xs text-muted-foreground">{t('notes')}</p>
                 <p>{proof.notes}</p>
               </div>
             ) : null}
           </div>
         ) : (
           <p className="rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground">
-            This shipment is marked delivered, but no proof of delivery was recorded for it. If anything looks wrong, contact
-            support and we’ll look into it.
+            {t('missing')}
           </p>
         )}
       </DialogContent>

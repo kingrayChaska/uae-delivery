@@ -1,0 +1,162 @@
+{
+  "booking": {
+    "onBehalfOf": "Booking on behalf of",
+    "selectCustomer": "Select a customer…",
+    "customer": "{name} — {email}",
+    "customerMerchant": "{name} — {email} (merchant)"
+  },
+  "home": {
+    "title": "Operations",
+    "signedInAs": "Signed in as {name}",
+    "newShipment": "New Shipment",
+    "stats": {
+      "awaitingDispatch": "Awaiting Dispatch",
+      "inProgress": "In Progress",
+      "failed": "Failed — Needs Action",
+      "cod": "COD to Reconcile"
+    },
+    "recentLists": "Recent bulk lists",
+    "viewAll": "View all",
+    "noLists": "No bulk lists submitted yet"
+  },
+  "dispatch": {
+    "meta": "Dispatch · ParcelLink",
+    "title": "Dispatch",
+    "awaiting": "Awaiting dispatch ({count})",
+    "nothingWaiting": "Nothing waiting for a driver right now.",
+    "assignTo": "Assign a driver to {code}",
+    "finding": "Finding available drivers…",
+    "noDrivers": "No drivers found.",
+    "fromPickup": "{distance} from pickup",
+    "locationUnknown": "Location unknown",
+    "active": "{count, plural, one {# active delivery} other {# active deliveries}}",
+    "assign": "Assign",
+    "reassign": "Reassign",
+    "driver": "Driver"
+  },
+  "liveMap": {
+    "meta": "Live map · ParcelLink",
+    "title": "Live Map",
+    "filters": {
+      "all": "All",
+      "available": "Available",
+      "in_transit": "In Transit",
+      "offline": "Offline"
+    },
+    "filterLabel": "Show drivers",
+    "onDelivery": "On delivery"
+  },
+  "shipments": {
+    "meta": "Shipments · ParcelLink",
+    "title": "Shipments",
+    "new": "New Shipment",
+    "total": "{count, plural, one {# total} other {# total}}",
+    "empty": "No shipments yet",
+    "newMeta": "New shipment · ParcelLink"
+  },
+  "shipmentDetail": {
+    "meta": "Shipment · ParcelLink",
+    "viewLabel": "View label",
+    "driver": "Driver",
+    "unassigned": "Unassigned",
+    "distance": "Distance",
+    "driveTime": "Est. drive time",
+    "package": "Package",
+    "packageLine": "{quantity} × {description}",
+    "assign": "Assign a driver",
+    "reassign": "Reassign driver",
+    "history": "Status history",
+    "markReturned": "Mark Returned",
+    "marking": "Marking…"
+  },
+  "customers": {
+    "meta": "Customers · ParcelLink",
+    "title": "Customers",
+    "empty": "No customers yet",
+    "shipments": "{count, plural, one {# shipment} other {# shipments}}",
+    "paid": "{amount} paid",
+    "stats": {
+      "shipments": "Shipments",
+      "paid": "Total Paid"
+    },
+    "history": "Shipment history",
+    "noShipments": "No shipments yet."
+  },
+  "drivers": {
+    "meta": "Drivers · ParcelLink",
+    "title": "Drivers",
+    "emptyTitle": "No drivers yet",
+    "emptyBody": "Drivers are onboarded by a manager.",
+    "stats": {
+      "today": "Today",
+      "week": "Week",
+      "month": "Month",
+      "delivered": "Delivered",
+      "failed": "Failed",
+      "cod": "COD"
+    }
+  },
+  "cod": {
+    "meta": "Cash on delivery · ParcelLink",
+    "title": "Cash on Delivery",
+    "export": "Export CSV",
+    "empty": "No COD transactions",
+    "driver": "Driver: {name}",
+    "reconcile": "Reconcile",
+    "remit": "Mark Remitted"
+  },
+  "activity": {
+    "meta": "Activity log · ParcelLink",
+    "title": "Activity Log",
+    "empty": "No activity recorded yet",
+    "when": "When",
+    "who": "Who",
+    "action": "Action",
+    "entity": "Entity",
+    "system": "System"
+  },
+  "bulk": {
+    "meta": "Bulk shipments · ParcelLink",
+    "title": "Bulk Shipments",
+    "subtitle": "Shipment lists submitted by customers and business accounts.",
+    "stats": {
+      "lists": "Lists",
+      "listsToDispatch": "Lists With Parcels to Dispatch",
+      "awaiting": "Shipments Awaiting Dispatch"
+    },
+    "empty": "No bulk lists yet",
+    "pickup": "Pickup {date}",
+    "noDate": "No date set",
+    "counts": "{shipments, plural, one {# shipment} other {# shipments}} · {items, plural, one {# item} other {# items}}",
+    "awaiting": "{count} awaiting dispatch",
+    "bookingOf": "Booking of {count} shipments",
+    "status": {
+      "processing": "Processing",
+      "submitted": "Submitted",
+      "partially_failed": "Some rows failed",
+      "failed": "Failed"
+    },
+    "back": "All bulk lists",
+    "submitted": "Submitted {date} · Pickup {pickup}",
+    "detailStats": {
+      "shipments": "Shipments",
+      "shipmentsValue": "{shipments} ({items} items)",
+      "awaiting": "Awaiting Dispatch",
+      "progress": "In Progress / Delivered",
+      "total": "Total"
+    },
+    "sender": "Sender",
+    "notes": "Notes",
+    "failedRows": "Rows that were not created ({count})",
+    "row": "Row {number}",
+    "shipments": "Shipments",
+    "processing": "This list is still being processed — refresh in a moment.",
+    "none": "No shipments were created from this list."
+  },
+  "errors": {
+    "notFound": "Not found",
+    "shipmentNotFound": "Shipment not found",
+    "notAwaiting": "This shipment is not awaiting assignment",
+    "cannotReassign": "This shipment can no longer be reassigned"
+  }
+}

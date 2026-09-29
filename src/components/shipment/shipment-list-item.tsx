@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { ArrowRight, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import ShipmentStatusBadge from '@/components/shipment/shipment-status-badge';
-import { DELIVERY_TYPE_COPY } from '@/lib/pricing/config';
+import { useFormat } from '@/i18n/hooks';
 
 import type { Shipment } from '@/lib/types';
 
@@ -12,6 +13,8 @@ type ShipmentListItemProps = {
 };
 
 const ShipmentListItem = ({ shipment, basePath = '/dashboard/customer/deliveries' }: ShipmentListItemProps) => {
+  const t = useTranslations('shipments');
+  const format = useFormat();
   return (
     <Link
       href={`${basePath}/${shipment.id}`}
@@ -19,28 +22,28 @@ const ShipmentListItem = ({ shipment, basePath = '/dashboard/customer/deliveries
     >
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="font-brand-mono text-sm font-semibold tracking-wider">{shipment.trackingNumber}</span>
-          <span className="text-xs text-muted-foreground">{DELIVERY_TYPE_COPY[shipment.deliveryType].label}</span>
+          <span dir="ltr" className="font-brand-mono text-sm font-semibold tracking-wider">{shipment.trackingNumber}</span>
+          <span className="text-xs text-muted-foreground">{t(`deliveryType.${shipment.deliveryType}.label`)}</span>
           {shipment.recipientPaymentType === 'postpaid' ? (
             <span className="text-xs text-muted-foreground">
-              · COD {shipment.currency} {shipment.codAmount.toFixed(2)}
+              {t('list.cod', { amount: format.money(shipment.codAmount, shipment.currency) })}
             </span>
           ) : null}
         </div>
         <p className="flex min-w-0 items-center gap-1.5 text-sm">
-          <span className="truncate">{shipment.pickup.formattedAddress}</span>
-          <ArrowRight className="size-3.5 shrink-0 text-primary" aria-label="to" />
-          <span className="truncate">{shipment.dropoff.formattedAddress}</span>
+          {/* dir="auto": addresses are English map data; in Arabic they
+              must still cut off at their own end ("Dubai Mall, Fin…"). */}
+          <span dir="auto" className="truncate">{shipment.pickup.formattedAddress}</span>
+          <ArrowRight className="size-3.5 shrink-0 text-primary rtl:rotate-180" aria-label={t('list.to')} />
+          <span dir="auto" className="truncate">{shipment.dropoff.formattedAddress}</span>
         </p>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-        <span className="font-brand-mono text-sm font-medium">
-          {shipment.currency} {shipment.price.toFixed(2)}
-        </span>
+        <span className="font-brand-mono text-sm font-medium">{format.money(shipment.price, shipment.currency)}</span>
         <ShipmentStatusBadge status={shipment.status} />
       </div>
       <ChevronRight
-        className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+        className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
         aria-hidden
       />
     </Link>

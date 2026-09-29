@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 
 import BusinessSolutions from "@/components/marketing/business-solutions";
 import ContactSection from "@/components/marketing/contact-section";
@@ -13,87 +14,93 @@ import Testimonials from "@/components/marketing/testimonials";
 import SiteFooter from "@/components/marketing/site-footer";
 import SiteNav from "@/components/marketing/site-nav";
 import { getActivePricingRules } from "@/lib/pricing/get-active-rule";
-import { SITE_KEYWORDS, SITE_NAME, SITE_TITLE, siteUrl } from "@/lib/seo";
+import { SITE_NAME, localizedAlternates, siteUrl } from "@/lib/seo";
 import { BRAND } from "@/lib/brand";
+import { OG_LOCALES, localizedPath } from "@/i18n/config";
+import { getFormat, getRequestLocale } from "@/i18n/server";
 
 import type { Metadata } from "next";
 import type { FaqItem } from "@/components/marketing/faq";
 import type { DeliveryType, PricingRule } from "@/lib/types";
-
-const describe = (nextDay: PricingRule) =>
-  `Book same-day and next-day parcel delivery across the UAE, from ${nextDay.currency} ${nextDay.basePrice.toFixed(0)}. Upfront pricing, live shipment tracking, proof of delivery, cash on delivery and merchant logistics for businesses.`;
+import type { Formatters } from "@/i18n/format";
 
 export const generateMetadata = async (): Promise<Metadata> => {
-  const rules = (await getActivePricingRules()).individual;
-  const description = describe(rules.next_day);
+  const [rules, t, locale, format] = await Promise.all([
+    getActivePricingRules(),
+    getTranslations("meta"),
+    getRequestLocale(),
+    getFormat(),
+  ]);
+  const nextDay = rules.individual.next_day;
+  const title = t("siteTitle");
+  const description = t("homeDescription", {
+    price: `${nextDay.currency} ${format.number(nextDay.basePrice, { maximumFractionDigits: 0 })}`,
+  });
+  const alternates = localizedAlternates("/", locale);
   return {
-    title: SITE_TITLE,
+    title,
     description,
-    keywords: SITE_KEYWORDS,
-    alternates: { canonical: "/" },
+    keywords: t("keywords").split(",").map((keyword) => keyword.trim()),
+    alternates,
     openGraph: {
       type: "website",
-      url: "/",
+      url: alternates.canonical,
       siteName: SITE_NAME,
-      title: SITE_TITLE,
+      title,
       description,
-      locale: "en_AE",
+      locale: OG_LOCALES[locale],
+      alternateLocale: Object.values(OG_LOCALES).filter((og) => og !== OG_LOCALES[locale]),
     },
-    twitter: { card: "summary_large_image", title: SITE_TITLE, description },
+    twitter: { card: "summary_large_image", title, description },
   };
 };
 
-const faqItems = (rules: Record<DeliveryType, PricingRule>): FaqItem[] => {
+const faqItems = async (rules: Record<DeliveryType, PricingRule>, format: Formatters): Promise<FaqItem[]> => {
+  const t = await getTranslations("marketing.faq.items");
   const { next_day: nextDay, same_day: sameDay } = rules;
-  return [
-    {
-      question: "How much does parcel delivery cost?",
-      answer: `Next-day delivery is ${nextDay.currency} ${nextDay.basePrice} for the first ${nextDay.baseDistanceKm} km, then ${nextDay.currency} ${nextDay.additionalPricePerKm} for each additional km. Same-day delivery is ${sameDay.currency} ${sameDay.basePrice} for the first ${sameDay.baseDistanceKm} km, then ${sameDay.currency} ${sameDay.additionalPricePerKm} per km. Up to ${sameDay.includedWeightKg} kg is included; each extra kg adds ${sameDay.currency} ${sameDay.additionalPricePerKg}. You see the full price before you book.`,
+  const money = (rule: PricingRule, value: number) =>
+    `${rule.currency} ${format.number(value, { maximumFractionDigits: 2 })}`;
+  const keys = ["cost", "difference", "range", "track", "cod", "merchant", "multiple"] as const;
+  const values = {
+    cost: {
+      nextDayBase: money(nextDay, nextDay.basePrice),
+      nextDayDistance: format.km(nextDay.baseDistanceKm, 0),
+      nextDayPerKm: money(nextDay, nextDay.additionalPricePerKm),
+      sameDayBase: money(sameDay, sameDay.basePrice),
+      sameDayDistance: format.km(sameDay.baseDistanceKm, 0),
+      sameDayPerKm: money(sameDay, sameDay.additionalPricePerKm),
+      includedWeight: format.kg(sameDay.includedWeightKg),
+      perKg: money(sameDay, sameDay.additionalPricePerKg),
     },
-    {
-      question:
-        "What is the difference between same-day and next-day delivery?",
-      answer:
-        "Same-day parcels are collected and delivered on the day you book. Next-day parcels are delivered the following day at a lower price.",
-    },
-    {
-      question: "How far can you deliver?",
-      answer: `We deliver within the UAE for trips of up to ${Math.max(nextDay.maxDistanceKm, sameDay.maxDistanceKm)} km by road between pickup and delivery. For longer distances, contact our support team.`,
-    },
-    {
-      question: "How do I track my shipment?",
-      answer:
-        "Every shipment gets a short tracking ID of up to 8 characters. Enter it on the tracking page, or sign in to follow all your shipments and view proof of delivery.",
-    },
-    {
-      question: "Can the driver collect payment from the recipient?",
-      answer:
-        "Yes. When booking, mark the parcel as postpaid (cash on delivery) and enter the amount to collect. The driver collects it from the recipient, separately from your delivery fee.",
-    },
-    {
-      question: "How do I open a merchant account?",
-      answer:
-        "Create a free account, choose “Merchant” and submit your company details. Our team reviews every application; once approved you get flat-rate merchant pricing.",
-    },
-    {
-      question: "Can I send several parcels in one booking?",
-      answer:
-        "Yes. Add as many shipments as you need to one booking — each can go to a different address — and pay for them together.",
-    },
-  ];
+    range: { distance: format.km(Math.max(nextDay.maxDistanceKm, sameDay.maxDistanceKm), 0) },
+  } as const;
+  return keys.map((key) => ({
+    question: t(`${key}.question`),
+    answer:
+      key === "cost"
+        ? t("cost.answer", values.cost)
+        : key === "range"
+          ? t("range.answer", values.range)
+          : t(`${key}.answer`),
+  }));
 };
 
 const HomePage = async () => {
-  const [rules, nonce] = await Promise.all([
+  const [rules, nonce, locale, format, tCommon, tData] = await Promise.all([
     getActivePricingRules(),
     headers().then((h) => h.get("x-nonce") ?? undefined),
+    getRequestLocale(),
+    getFormat(),
+    getTranslations("common"),
+    getTranslations("marketing.structuredData"),
   ]);
   const individual = rules.individual;
-  const faq = faqItems(individual);
+  const faq = await faqItems(individual, format);
   const url = siteUrl();
+  const pageUrl = `${url}${localizedPath("/", locale) === "/" ? "" : localizedPath("/", locale)}`;
 
   // Structured data for search engines: who we are, the two services with
-  // their real starting prices, and the FAQ above.
+  // their real starting prices, and the FAQ above — in the page's language.
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -103,33 +110,36 @@ const HomePage = async () => {
         name: SITE_NAME,
         url,
         logo: `${url}${BRAND.logoSrc}`,
-        areaServed: { "@type": "Country", name: "United Arab Emirates" },
+        areaServed: { "@type": "Country", name: tData("country") },
       },
       {
         "@type": "WebSite",
         "@id": `${url}/#website`,
         name: SITE_NAME,
         url,
+        inLanguage: ["en", "ar"],
         publisher: { "@id": `${url}/#organization` },
       },
       ...(["next_day", "same_day"] as const).map((type) => ({
         "@type": "Service",
-        name:
-          type === "next_day"
-            ? "Next-Day Parcel Delivery"
-            : "Same-Day Parcel Delivery",
-        serviceType: "Courier service",
+        name: type === "next_day" ? tData("nextDayService") : tData("sameDayService"),
+        serviceType: tData("serviceType"),
         provider: { "@id": `${url}/#organization` },
-        areaServed: { "@type": "Country", name: "United Arab Emirates" },
+        areaServed: { "@type": "Country", name: tData("country") },
         offers: {
           "@type": "Offer",
           priceCurrency: individual[type].currency,
           price: individual[type].basePrice.toFixed(2),
-          description: `First ${individual[type].baseDistanceKm} km; ${individual[type].currency} ${individual[type].additionalPricePerKm} per additional km.`,
+          description: tData("offer", {
+            distance: format.km(individual[type].baseDistanceKm, 0),
+            perKm: `${individual[type].currency} ${format.number(individual[type].additionalPricePerKm, { maximumFractionDigits: 2 })}`,
+          }),
         },
       })),
       {
         "@type": "FAQPage",
+        url: pageUrl,
+        inLanguage: locale,
         mainEntity: faq.map((item) => ({
           "@type": "Question",
           name: item.question,
@@ -143,9 +153,9 @@ const HomePage = async () => {
     <>
       <a
         href="#main"
-        className="sr-only z-50 rounded-lg bg-brand-route px-4 py-2 text-brand-paper focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        className="sr-only z-50 rounded-lg bg-brand-route px-4 py-2 text-brand-paper focus:not-sr-only focus:fixed focus:inset-s-4 focus:top-4"
       >
-        Skip to content
+        {tCommon("skipToContent")}
       </a>
       <SiteNav />
       <main id="main" className="flex flex-1 flex-col">

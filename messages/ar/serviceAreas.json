@@ -1,0 +1,37 @@
+{
+  "emirates": {
+    "dubai": "دبي",
+    "sharjah": "الشارقة",
+    "ajman": "عجمان",
+    "abuDhabi": "أبوظبي",
+    "rasAlKhaimah": "رأس الخيمة",
+    "fujairah": "الفجيرة",
+    "ummAlQuwain": "أم القيوين"
+  },
+  "notice": {
+    "pickupOnRequest": "الاستلام متاح عند الطلب",
+    "deliveryOnRequest": "التوصيل متاح عند الطلب",
+    "supported": "تقدّم ParcelLink حاليًا خدمات التوصيل القياسية في {supported}.",
+    "pickupBody": "الاستلام من {emirate} متاح عند الطلب. يُرجى التواصل مع ParcelLink لترتيب هذه التوصيلة.",
+    "deliveryBody": "التوصيل إلى {emirate} متاح عند الطلب. يُرجى التواصل مع ParcelLink لترتيب هذه التوصيلة.",
+    "unavailable": "منطقة الخدمة غير متاحة",
+    "unavailableBody": "تعذّر علينا التأكد من أن هذا الموقع ضمن منطقة خدمة ParcelLink الحالية.",
+    "unavailableAction": "يُرجى اختيار موقع آخر أو التواصل مع ParcelLink.",
+    "contact": "تواصل مع ParcelLink"
+  },
+  "errors": {
+    "pickupOnRequest": "موقع الاستلام: الاستلام متاح عند الطلب. تقدّم ParcelLink حاليًا خدمات التوصيل القياسية في {supported}. الاستلام من {emirate} متاح عند الطلب. يُرجى التواصل مع ParcelLink لترتيب هذه التوصيلة.",
+    "deliveryOnRequest": "موقع التسليم: التوصيل متاح عند الطلب. تقدّم ParcelLink حاليًا خدمات التوصيل القياسية في {supported}. التوصيل إلى {emirate} متاح عند الطلب. يُرجى التواصل مع ParcelLink لترتيب هذه التوصيلة.",
+    "pickupUnavailable": "موقع الاستلام: منطقة الخدمة غير متاحة. تعذّر علينا التأكد من أن هذا الموقع ضمن منطقة خدمة ParcelLink الحالية. يُرجى اختيار موقع آخر أو التواصل مع ParcelLink.",
+    "deliveryUnavailable": "موقع التسليم: منطقة الخدمة غير متاحة. تعذّر علينا التأكد من أن هذا الموقع ضمن منطقة خدمة ParcelLink الحالية. يُرجى اختيار موقع آخر أو التواصل مع ParcelLink.",
+    "cantBook": "لا يمكن الحجز لهذا الموقع."
+  },
+  "request": {
+    "subject": "طلب توصيل: {emirate}",
+    "subjectUnknown": "طلب توصيل: موقع خارج منطقة الخدمة",
+    "body": "أرغب في ترتيب توصيلة تشمل {emirate}.",
+    "bodyUnknown": "أرغب في ترتيب توصيلة من أو إلى موقع لم يتمكن نموذج الحجز من التأكد منه.",
+    "from": "من: {address}",
+    "to": "إلى: {address}"
+  }
+}

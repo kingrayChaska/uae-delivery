@@ -26,11 +26,10 @@ export const verifyTurnstile = async (
     );
     return {
       ok: false,
-      error: "Verification is temporarily unavailable. Please try again later.",
+      error: "errors.turnstile.unavailableLater",
     };
   }
-  if (!token)
-    return { ok: false, error: "Please complete the verification check." };
+  if (!token) return { ok: false, error: "errors.turnstile.required" };
 
   try {
     const controller = new AbortController();
@@ -52,14 +51,13 @@ export const verifyTurnstile = async (
       );
       return {
         ok: false,
-        error:
-          "Verification is temporarily unavailable. Please try again later.",
+        error: "errors.turnstile.unavailableLater",
       };
     }
     const json: unknown = await response.json();
     return isTurnstileSuccess(json)
       ? { ok: true }
-      : { ok: false, error: "Verification failed. Please try again." };
+      : { ok: false, error: "errors.turnstile.failed" };
   } catch (error) {
     console.error(
       "Turnstile verification request failed",
@@ -67,7 +65,7 @@ export const verifyTurnstile = async (
     );
     return {
       ok: false,
-      error: "Verification is temporarily unavailable. Please try again.",
+      error: "errors.turnstile.unavailable",
     };
   }
 };

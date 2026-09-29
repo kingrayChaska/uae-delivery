@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 
 import Reveal from '@/components/marketing/reveal';
 
@@ -7,14 +8,16 @@ export type FaqItem = { question: string; answer: string };
 // Native <details>: keyboard accessible, works without JavaScript, and the
 // answers stay in the HTML for search engines (mirrored in FAQPage
 // structured data on the home page).
-const Faq = ({ items }: { items: FaqItem[] }) => {
+const Faq = async ({ items }: { items: FaqItem[] }) => {
+  const t = await getTranslations('marketing.faq');
+
   return (
     <section id="faq" aria-labelledby="faq-heading" className="bg-white py-20 md:py-28">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <Reveal className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-brand-route">FAQ</p>
+          <p className="text-sm font-semibold uppercase tracking-wider text-brand-route">{t('eyebrow')}</p>
           <h2 id="faq-heading" className="mt-2 font-display text-3xl font-semibold tracking-tight text-brand-ink md:text-4xl">
-            Questions about sending a parcel
+            {t('title')}
           </h2>
         </Reveal>
         <div className="mt-10 flex flex-col gap-3">

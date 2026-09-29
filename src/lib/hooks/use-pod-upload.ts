@@ -17,11 +17,11 @@ export const usePodUpload = (shipmentId: string) => {
     // Early, friendly feedback only — the storage bucket itself enforces
     // the same type and size limits on every upload (migration 0018).
     if (!ACCEPTED_TYPES.includes(file.type)) {
-      setError('Use a JPEG, PNG or WebP image');
+      setError('booking.photo.errors.type');
       return null;
     }
     if (file.size > MAX_FILE_BYTES) {
-      setError('Image must be under 5MB');
+      setError('booking.photo.errors.size');
       return null;
     }
 
@@ -38,7 +38,7 @@ export const usePodUpload = (shipmentId: string) => {
     setIsUploading(false);
 
     if (uploadError) {
-      setError('Upload failed. Please try again.');
+      setError('booking.photo.errors.failed');
       return null;
     }
 

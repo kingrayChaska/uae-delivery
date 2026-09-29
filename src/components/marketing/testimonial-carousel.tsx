@@ -2,15 +2,26 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Pause, Play, Quote, Star } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 
-import type { Testimonial } from '@/lib/marketing/testimonials';
+// One slide, with its text already in the page's language.
+export type TestimonialSlide = {
+  id: string;
+  quote: string;
+  name: string;
+  role: string;
+  location: string;
+  rating: number;
+  service: string;
+  sample: boolean;
+};
 
 const AUTOPLAY_MS = 6500;
 
-const Stars = ({ rating }: { rating: number }) => (
-  <div className="flex gap-0.5" role="img" aria-label={`Rated ${rating} out of 5`}>
+const Stars = ({ rating, label }: { rating: number; label: string }) => (
+  <div className="flex gap-0.5" role="img" aria-label={label}>
     {[1, 2, 3, 4, 5].map((star) => (
       <Star
         key={star}
@@ -31,7 +42,12 @@ const initials = (name: string) =>
 // Native horizontal scroll with snap points: swipe works on touch screens
 // with no library, and the page stays usable without JavaScript. The
 // buttons, dots and autoplay just scroll the same track.
-const TestimonialCarousel = ({ testimonials }: { testimonials: Testimonial[] }) => {
+//
+// Right-to-left (Arabic): the track starts at the right and scrollLeft runs
+// from 0 to negative, so positions are measured as distance from the start,
+// and "next" is the left arrow key.
+const TestimonialCarousel = ({ testimonials }: { testimonials: TestimonialSlide[] }) => {
+  const t = useTranslations('marketing.testimonials');
   const trackRef = useRef<HTMLUListElement>(null);
   const [page, setPage] = useState(0);
   const [pageCount, setPageCount] = useState(testimonials.length);
@@ -40,14 +56,20 @@ const TestimonialCarousel = ({ testimonials }: { testimonials: Testimonial[] }) 
   const [focused, setFocused] = useState(false);
   const reducedMotion = useRef(false);
 
-  // Width of one slide plus the gap, and how many fit on screen.
+  // Width of one slide plus the gap, how many fit on screen, and which way
+  // the track scrolls (-1 for right-to-left).
   const measure = useCallback(() => {
     const track = trackRef.current;
     const first = track?.firstElementChild as HTMLElement | null;
-    if (!track || !first) return { step: 1, perView: 1 };
-    const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+    if (!track || !first) return { step: 1, perView: 1, sign: 1 };
+    const style = getComputedStyle(track);
+    const gap = parseFloat(style.columnGap) || 0;
     const step = first.offsetWidth + gap;
-    return { step, perView: Math.max(1, Math.round((track.clientWidth + gap) / step)) };
+    return {
+      step,
+      perView: Math.max(1, Math.round((track.clientWidth + gap) / step)),
+      sign: style.direction === 'rtl' ? -1 : 1,
+    };
   }, []);
 
   const sync = useCallback(() => {
@@ -56,17 +78,17 @@ const TestimonialCarousel = ({ testimonials }: { testimonials: Testimonial[] }) 
     const { step, perView } = measure();
     const pages = Math.max(1, testimonials.length - perView + 1);
     setPageCount(pages);
-    setPage(Math.min(pages - 1, Math.round(track.scrollLeft / step)));
+    setPage(Math.min(pages - 1, Math.round(Math.abs(track.scrollLeft) / step)));
   }, [measure, testimonials.length]);
 
   const goTo = useCallback(
     (target: number) => {
       const track = trackRef.current;
       if (!track) return;
-      const { step, perView } = measure();
+      const { step, perView, sign } = measure();
       const pages = Math.max(1, testimonials.length - perView + 1);
       const wrapped = (target + pages) % pages;
-      track.scrollTo({ left: wrapped * step, behavior: reducedMotion.current ? 'auto' : 'smooth' });
+      track.scrollTo({ left: sign * wrapped * step, behavior: reducedMotion.current ? 'auto' : 'smooth' });
     },
     [measure, testimonials.length],
   );
@@ -97,13 +119,10 @@ const TestimonialCarousel = ({ testimonials }: { testimonials: Testimonial[] }) 
   }, [paused, page, goTo]);
 
   const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'ArrowRight') {
-      event.preventDefault();
-      goTo(page + 1);
-    } else if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      goTo(page - 1);
-    }
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+    event.preventDefault();
+    const forward = measure().sign === 1 ? 'ArrowRight' : 'ArrowLeft';
+    goTo(event.key === forward ? page + 1 : page - 1);
   };
 
   const navButton =
@@ -113,7 +132,7 @@ const TestimonialCarousel = ({ testimonials }: { testimonials: Testimonial[] }) 
     <div
       role="region"
       aria-roledescription="carousel"
-      aria-label="Customer testimonials"
+      aria-label={t('carouselLabel')}
       className="flex flex-col gap-6"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -134,22 +153,22 @@ const TestimonialCarousel = ({ testimonials }: { testimonials: Testimonial[] }) 
             key={testimonial.id}
             role="group"
             aria-roledescription="slide"
-            aria-label={`${index + 1} of ${testimonials.length}`}
+            aria-label={t('slideLabel', { index: index + 1, total: testimonials.length })}
             className="flex w-[86%] shrink-0 snap-start sm:w-[calc(50%-0.625rem)] lg:w-[calc(33.333%-0.834rem)]"
           >
             <figure className="relative flex w-full flex-col gap-5 rounded-3xl border border-brand-ink/10 bg-white p-6 shadow-sm transition-shadow duration-200 hover:shadow-lg sm:p-7">
-              <Quote className="absolute right-6 top-6 size-8 text-brand-route/15" aria-hidden />
-              <div className="flex flex-wrap items-center gap-3 pr-10">
-                <Stars rating={testimonial.rating} />
+              <Quote className="absolute end-6 top-6 size-8 text-brand-route/15 rtl:-scale-x-100" aria-hidden />
+              <div className="flex flex-wrap items-center gap-3 pe-10">
+                <Stars rating={testimonial.rating} label={t('rating', { rating: testimonial.rating })} />
                 <span className="rounded-full bg-brand-route/10 px-2.5 py-0.5 text-xs font-medium text-brand-route">
                   {testimonial.service}
                 </span>
                 {testimonial.sample ? (
-                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">Sample</span>
+                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">{t('sample')}</span>
                 ) : null}
               </div>
               <blockquote className="flex-1 text-brand-ink/80">
-                <p>“{testimonial.quote}”</p>
+                <p>{t.rich('quote', { quote: testimonial.quote })}</p>
               </blockquote>
               <figcaption className="flex items-center gap-3 border-t border-brand-ink/10 pt-5">
                 <span
@@ -177,7 +196,7 @@ const TestimonialCarousel = ({ testimonials }: { testimonials: Testimonial[] }) 
               key={index}
               type="button"
               onClick={() => goTo(index)}
-              aria-label={`Show testimonial ${index + 1}`}
+              aria-label={t('showSlide', { index: index + 1 })}
               aria-current={index === page ? 'true' : undefined}
               className="flex size-8 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-brand-route focus-visible:outline-none"
             >
@@ -194,16 +213,16 @@ const TestimonialCarousel = ({ testimonials }: { testimonials: Testimonial[] }) 
           <button
             type="button"
             onClick={() => setPlaying((value) => !value)}
-            aria-label={playing ? 'Pause automatic scrolling' : 'Play automatic scrolling'}
+            aria-label={playing ? t('pause') : t('play')}
             className={navButton}
           >
             {playing ? <Pause className="size-4" aria-hidden /> : <Play className="size-4" aria-hidden />}
           </button>
-          <button type="button" onClick={() => goTo(page - 1)} aria-label="Previous testimonial" className={navButton}>
-            <ChevronLeft className="size-5" aria-hidden />
+          <button type="button" onClick={() => goTo(page - 1)} aria-label={t('previous')} className={navButton}>
+            <ChevronLeft className="size-5 rtl:rotate-180" aria-hidden />
           </button>
-          <button type="button" onClick={() => goTo(page + 1)} aria-label="Next testimonial" className={navButton}>
-            <ChevronRight className="size-5" aria-hidden />
+          <button type="button" onClick={() => goTo(page + 1)} aria-label={t('next')} className={navButton}>
+            <ChevronRight className="size-5 rtl:rotate-180" aria-hidden />
           </button>
         </div>
       </div>

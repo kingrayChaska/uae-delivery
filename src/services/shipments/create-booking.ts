@@ -19,6 +19,8 @@ import type { ShipmentQuote } from '@/services/shipments/create-shipment';
 import type { ShipmentRow } from '@/services/shipments/shipment-mapper';
 import type { BulkRowResult } from '@/lib/bulk/schemas';
 
+import { msg } from '@/i18n/message';
+
 export type BookingOutcome = {
   shipments: Shipment[];
   // Set when the booking held more than one shipment (one shipment_batches row).
@@ -83,8 +85,8 @@ export const createBooking = async ({
     try {
       quotes.push(await quoteShipment(customer, shipment, rules));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'This shipment can’t be booked.';
-      throw new Error(shipments.length > 1 ? `Shipment ${index + 1}: ${message}` : message);
+      const message = error instanceof Error ? error.message : 'booking.errors.cannotBook';
+      throw new Error(shipments.length > 1 ? msg('booking.errors.shipmentPrefix', { number: index + 1, message }) : message);
     }
   }
 
@@ -115,7 +117,7 @@ export const createBooking = async ({
       created.push(shipment);
       results.push({ rowNumber: index + 1, ok: true, message: shipment.trackingNumber });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not create this shipment';
+      const message = error instanceof Error ? error.message : 'booking.errors.createOneFailed';
       failed.push({ index, message });
       results.push({ rowNumber: index + 1, ok: false, message });
     }

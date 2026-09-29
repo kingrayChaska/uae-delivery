@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/auth/guards';
 import { isUuid } from '@/lib/security/validate';
 import { createClient } from '@/lib/supabase/server';
 import { safeErrorMessage } from '@/lib/security/errors';
+import { msg } from '@/i18n/message';
 import { logAuditEvent } from '@/lib/audit/log';
 import { RATE_LIMIT_MESSAGE, checkRateLimit } from '@/lib/security/rate-limit';
 import { parseCsvWithHeaders } from '@/lib/csv/parse';
@@ -31,7 +32,7 @@ const toRow = (data: BusinessAccountInput) => ({
 export const createBusinessAccountAction = async (input: BusinessAccountInput): Promise<BusinessActionResult> => {
   const manager = await requireRole('manager');
   const parsed = businessAccountSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -39,7 +40,7 @@ export const createBusinessAccountAction = async (input: BusinessAccountInput): 
     .insert({ ...toRow(parsed.data), created_by: manager.id })
     .select('id')
     .single();
-  if (error || !data) return { success: false, error: safeErrorMessage(error, 'Could not create the account') };
+  if (error || !data) return { success: false, error: safeErrorMessage(error, 'manager.business.errors.createFailed') };
 
   await logAuditEvent({
     actorId: manager.id,
@@ -55,10 +56,10 @@ export const updateBusinessAccountAction = async (
   businessId: string,
   input: BusinessAccountInput,
 ): Promise<BusinessActionResult> => {
-  if (!isUuid(businessId)) return { success: false, error: 'Not found' };
+  if (!isUuid(businessId)) return { success: false, error: 'manager.business.errors.notFound' };
   const manager = await requireRole('manager');
   const parsed = businessAccountSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
 
   const supabase = await createClient();
   const { error } = await supabase.from('business_accounts').update(toRow(parsed.data)).eq('id', businessId);
@@ -75,7 +76,7 @@ export const updateBusinessAccountAction = async (
 };
 
 export const setBusinessActiveAction = async (businessId: string, active: boolean): Promise<BusinessActionResult> => {
-  if (!isUuid(businessId)) return { success: false, error: 'Not found' };
+  if (!isUuid(businessId)) return { success: false, error: 'manager.business.errors.notFound' };
   const manager = await requireRole('manager');
   const supabase = await createClient();
   const { error } = await supabase.from('business_accounts').update({ active }).eq('id', businessId);
@@ -93,7 +94,7 @@ export const setBusinessActiveAction = async (businessId: string, active: boolea
 // Members are existing customer accounts, added by email — businesses
 // don't get a separate login system; their people sign up as customers.
 export const addBusinessMemberAction = async (businessId: string, email: string): Promise<BusinessActionResult> => {
-  if (!isUuid(businessId)) return { success: false, error: 'Not found' };
+  if (!isUuid(businessId)) return { success: false, error: 'manager.business.errors.notFound' };
   const manager = await requireRole('manager');
   const supabase = await createClient();
 
@@ -104,14 +105,14 @@ export const addBusinessMemberAction = async (businessId: string, email: string)
     .maybeSingle();
 
   if (!customer || customer.role !== 'customer') {
-    return { success: false, error: 'No customer account with that email. Ask them to register first.' };
+    return { success: false, error: 'manager.business.errors.noCustomer' };
   }
 
   const { error } = await supabase
     .from('business_account_members')
     .insert({ business_account_id: businessId, profile_id: customer.id });
   if (error) {
-    return { success: false, error: error.code === '23505' ? 'Already a member' : error.message };
+    return { success: false, error: error.code === '23505' ? 'manager.business.errors.alreadyMember' : safeErrorMessage(error) };
   }
 
   await logAuditEvent({
@@ -125,7 +126,7 @@ export const addBusinessMemberAction = async (businessId: string, email: string)
 };
 
 export const removeBusinessMemberAction = async (businessId: string, profileId: string): Promise<BusinessActionResult> => {
-  if (!isUuid(businessId) || !isUuid(profileId)) return { success: false, error: 'Not found' };
+  if (!isUuid(businessId) || !isUuid(profileId)) return { success: false, error: 'manager.business.errors.notFound' };
   const manager = await requireRole('manager');
   const supabase = await createClient();
   const { error } = await supabase
@@ -159,7 +160,7 @@ export const bulkCreateShipmentsAction = async (
   ownerProfileId: string,
   csvText: string,
 ): Promise<BulkUploadResult> => {
-  if (!isUuid(businessId) || !isUuid(ownerProfileId)) return { success: false, error: 'Not found' };
+  if (!isUuid(businessId) || !isUuid(ownerProfileId)) return { success: false, error: 'manager.business.errors.notFound' };
   const manager = await requireRole('manager');
   if (!(await checkRateLimit('bulkUploadPerUser', manager.id))) return { success: false, error: RATE_LIMIT_MESSAGE };
   const supabase = await createClient();
@@ -174,17 +175,17 @@ export const bulkCreateShipmentsAction = async (
       .maybeSingle(),
   ]);
 
-  if (!business || !business.active) return { success: false, error: 'Business account not found or inactive' };
-  if (!membership) return { success: false, error: 'The selected shipment owner is not a member of this business' };
+  if (!business || !business.active) return { success: false, error: 'manager.business.errors.inactive' };
+  if (!membership) return { success: false, error: 'manager.business.errors.notMember' };
 
-  if (csvText.length > 500_000) return { success: false, error: 'File is too large' };
+  if (csvText.length > 500_000) return { success: false, error: 'manager.business.errors.fileTooLarge' };
 
   const { headers, records } = parseCsvWithHeaders(csvText);
   const missing = missingBulkColumns(headers);
-  if (missing.length > 0) return { success: false, error: `Missing columns: ${missing.join(', ')}` };
-  if (records.length === 0) return { success: false, error: 'The file has no shipment rows' };
+  if (missing.length > 0) return { success: false, error: msg('manager.bulk.errors.missingColumns', { columns: missing.join(', ') }) };
+  if (records.length === 0) return { success: false, error: 'manager.bulk.errors.empty' };
   if (records.length > BULK_MAX_ROWS) {
-    return { success: false, error: `Upload at most ${BULK_MAX_ROWS} rows at a time (got ${records.length})` };
+    return { success: false, error: msg('manager.bulk.errors.tooMany', { max: BULK_MAX_ROWS, count: records.length }) };
   }
 
   const validations = validateBulkRecords(records);
@@ -201,7 +202,7 @@ export const bulkCreateShipmentsAction = async (
       clientRequestId: null,
     });
   } catch (batchError) {
-    return { success: false, error: batchError instanceof Error ? batchError.message : 'Could not start the upload' };
+    return { success: false, error: batchError instanceof Error ? batchError.message : 'manager.business.errors.startFailed' };
   }
 
   const results = await createBatchShipments({

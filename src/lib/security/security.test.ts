@@ -5,15 +5,22 @@ import { isUuid } from '@/lib/security/validate';
 import { buildTurnstileBody, getTurnstileMode, isTurnstileSuccess } from '@/lib/security/turnstile-core';
 
 describe('safeErrorMessage', () => {
-  it('passes through messages from our own RAISE EXCEPTION (P0001)', () => {
+  it('turns messages from our own RAISE EXCEPTION (P0001) into translation keys', () => {
     expect(safeErrorMessage({ code: 'P0001', message: 'Customers can only cancel a shipment' })).toBe(
-      'Customers can only cancel a shipment',
+      'errors.db.customerCancelOnly',
     );
+    expect(safeErrorMessage({ code: 'P0001', message: 'This delivery is 62.4 km, beyond the 50 km ParcelLink delivery limit' })).toBe(
+      'errors.db.distanceLimit|{"distance":"62.4","limit":"50"}',
+    );
+  });
+
+  it('passes an unknown P0001 message through as written', () => {
+    expect(safeErrorMessage({ code: 'P0001', message: 'A brand new rule' })).toBe('A brand new rule');
   });
 
   it('hides RLS and constraint details behind friendly messages', () => {
     const rls = safeErrorMessage({ code: '42501', message: 'new row violates row-level security policy for table "shipments"' });
-    expect(rls).toBe('You are not allowed to do that.');
+    expect(rls).toBe('errors.forbidden');
     expect(rls).not.toContain('shipments');
 
     const dup = safeErrorMessage({ code: '23505', message: 'duplicate key value violates unique constraint "vehicles_plate_number_key"' });
@@ -21,7 +28,7 @@ describe('safeErrorMessage', () => {
   });
 
   it('falls back for unknown or missing errors', () => {
-    expect(safeErrorMessage({ code: 'XX000', message: 'internal detail' })).toBe('Something went wrong. Please try again.');
+    expect(safeErrorMessage({ code: 'XX000', message: 'internal detail' })).toBe('errors.generic');
     expect(safeErrorMessage(null, 'Custom')).toBe('Custom');
   });
 });

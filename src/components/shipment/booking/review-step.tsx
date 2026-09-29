@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ArrowRight, Banknote, CreditCard, PackagePlus, Pencil, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
 import Badge from '@/components/ui/badge';
@@ -15,16 +16,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { DELIVERY_TYPE_COPY } from '@/lib/pricing/config';
 import { MAX_SHIPMENTS_PER_BOOKING } from '@/lib/shipment/schemas';
+import { useFormat } from '@/i18n/hooks';
 
+import type { ReactNode } from 'react';
 import type { ShipmentDraft } from '@/lib/hooks/use-booking-wizard';
 import type { PaymentMethod } from '@/lib/types';
 
-const PAYMENT_METHOD_COPY: Record<PaymentMethod, { label: string; description: string; icon: typeof CreditCard }> = {
-  card: { label: 'Card', description: 'Pay the delivery fee now by card.', icon: CreditCard },
-  cod: { label: 'Cash', description: 'Pay the delivery fee in cash to the driver.', icon: Banknote },
-};
+const PAYMENT_METHOD_ICONS: Record<PaymentMethod, typeof CreditCard> = { card: CreditCard, cod: Banknote };
+
+const sr = (chunks: ReactNode) => <span className="sr-only">{chunks}</span>;
 
 type ReviewStepProps = {
   drafts: ShipmentDraft[];
@@ -51,6 +52,9 @@ const ReviewStep = ({
   onRemove,
   onAddAnother,
 }: ReviewStepProps) => {
+  const t = useTranslations('booking.review');
+  const tShipments = useTranslations('shipments');
+  const format = useFormat();
   const [confirmRemove, setConfirmRemove] = useState<ShipmentDraft | null>(null);
   const currency = drafts[0]?.price.currency ?? 'AED';
 
@@ -58,23 +62,24 @@ const ReviewStep = ({
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Review your booking</h2>
+          <h2 className="text-lg font-semibold">{t('title')}</h2>
           <p className="text-sm text-muted-foreground" aria-live="polite">
-            {drafts.length} {drafts.length === 1 ? 'shipment' : 'shipments'} in this booking
+            {t('count', { count: drafts.length })}
           </p>
         </div>
         <Button type="button" variant="outline" onClick={onAddAnother} disabled={!canAddMore}>
           <PackagePlus aria-hidden />
-          Add another shipment
+          {t('addAnother')}
         </Button>
       </div>
       {!canAddMore ? (
-        <p className="text-sm text-muted-foreground">A booking can hold up to {MAX_SHIPMENTS_PER_BOOKING} shipments.</p>
+        <p className="text-sm text-muted-foreground">{t('maxShipments', { max: MAX_SHIPMENTS_PER_BOOKING })}</p>
       ) : null}
 
       <ol className="flex flex-col gap-3">
         {drafts.map((draft, index) => {
           const { values, price } = draft;
+          const number = index + 1;
           return (
             <li
               key={draft.key}
@@ -84,39 +89,37 @@ const ReviewStep = ({
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Shipment {index + 1}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('shipment', { number })}</p>
                   <p className="mt-1 flex flex-wrap items-center gap-x-2 font-medium">
                     <span className="wrap-break-word">{values.pickup.address}</span>
-                    <ArrowRight className="size-4 shrink-0 text-primary" aria-label="to" />
+                    <ArrowRight className="size-4 shrink-0 text-primary rtl:rotate-180" aria-label={t('to')} />
                     <span className="wrap-break-word">{values.dropoff.address}</span>
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    To {values.dropoff.contactName} · {values.dropoff.contactPhone}
+                    {t('recipient', { name: values.dropoff.contactName, phone: values.dropoff.contactPhone })}
                     {values.dropoff.building || values.dropoff.unit
-                      ? ` · ${[values.dropoff.building, values.dropoff.unit && `Unit ${values.dropoff.unit}`].filter(Boolean).join(', ')}`
+                      ? ` · ${[values.dropoff.building, values.dropoff.unit].filter(Boolean).join(', ')}`
                       : ''}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    <Badge variant="secondary">{DELIVERY_TYPE_COPY[values.deliveryType].label}</Badge>
-                    <Badge variant="outline">{price.distanceKm.toFixed(1)} km</Badge>
+                    <Badge variant="secondary">{tShipments(`deliveryType.${values.deliveryType}.label`)}</Badge>
+                    <Badge variant="outline">{format.km(price.distanceKm)}</Badge>
                     <Badge variant="outline">
-                      {values.packageQuantity} × {values.packageDescription}
+                      {format.number(values.packageQuantity)} × {values.packageDescription}
                     </Badge>
-                    {values.packageWeightKg ? <Badge variant="outline">{values.packageWeightKg} kg</Badge> : null}
-                    {values.isFragile ? <Badge variant="warning">Fragile</Badge> : null}
+                    {values.packageWeightKg ? <Badge variant="outline">{format.kg(values.packageWeightKg)}</Badge> : null}
+                    {values.isFragile ? <Badge variant="warning">{tShipments('fragile')}</Badge> : null}
                     {values.recipientPaymentType === 'postpaid' ? (
-                      <Badge variant="default">
-                        Collect {currency} {(values.codAmount ?? 0).toFixed(2)}
-                      </Badge>
+                      <Badge variant="default">{t('collect', { amount: format.money(values.codAmount ?? 0, currency) })}</Badge>
                     ) : (
-                      <Badge variant="success">Prepaid</Badge>
+                      <Badge variant="success">{tShipments('recipientPaymentShort.prepaid')}</Badge>
                     )}
                   </div>
                 </div>
                 <div className="flex gap-1">
                   <Button type="button" variant="ghost" size="sm" onClick={() => onEdit(draft.key)}>
                     <Pencil aria-hidden />
-                    Edit<span className="sr-only"> shipment {index + 1}</span>
+                    {t.rich('edit', { number, sr })}
                   </Button>
                   <Button
                     type="button"
@@ -126,7 +129,7 @@ const ReviewStep = ({
                     onClick={() => setConfirmRemove(draft)}
                   >
                     <Trash2 aria-hidden />
-                    Remove<span className="sr-only"> shipment {index + 1}</span>
+                    {t.rich('remove', { number, sr })}
                   </Button>
                 </div>
               </div>
@@ -148,10 +151,10 @@ const ReviewStep = ({
       </ol>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="mb-1 text-lg font-semibold">How will you pay the delivery fee?</legend>
+        <legend className="mb-1 text-lg font-semibold">{t('paymentTitle')}</legend>
         <div className="grid gap-3 sm:grid-cols-2">
-          {(Object.keys(PAYMENT_METHOD_COPY) as PaymentMethod[]).map((method) => {
-            const { label, description, icon: Icon } = PAYMENT_METHOD_COPY[method];
+          {(Object.keys(PAYMENT_METHOD_ICONS) as PaymentMethod[]).map((method) => {
+            const Icon = PAYMENT_METHOD_ICONS[method];
             const selected = paymentMethod === method;
             return (
               <label
@@ -171,43 +174,33 @@ const ReviewStep = ({
                 <span>
                   <span className="flex items-center gap-2 font-medium">
                     <Icon className="size-4 text-primary" aria-hidden />
-                    {label}
+                    {t(`payment.${method}.label`)}
                   </span>
-                  <span className="block text-sm text-muted-foreground">{description}</span>
+                  <span className="block text-sm text-muted-foreground">{t(`payment.${method}.description`)}</span>
                 </span>
               </label>
             );
           })}
         </div>
-        {paymentMethod === 'card' ? (
-          <p className="text-sm text-muted-foreground">
-            Card payments aren&apos;t live yet — your booking is saved as pending payment until a payment provider is connected.
-          </p>
-        ) : null}
+        {paymentMethod === 'card' ? <p className="text-sm text-muted-foreground">{t('cardNotLive')}</p> : null}
       </fieldset>
 
       <div className="rounded-2xl border-2 border-primary/20 bg-secondary/40 p-4 sm:p-5">
         <dl className="flex flex-col gap-2 font-brand-mono text-sm">
           {drafts.map((draft, index) => (
             <div key={draft.key} className="flex justify-between gap-4 text-muted-foreground">
-              <dt>Shipment {index + 1}</dt>
-              <dd>
-                {draft.price.currency} {draft.price.totalPrice.toFixed(2)}
-              </dd>
+              <dt className="font-sans">{t('shipment', { number: index + 1 })}</dt>
+              <dd>{format.money(draft.price.totalPrice, draft.price.currency)}</dd>
             </div>
           ))}
           <div className="mt-1 flex justify-between gap-4 border-t pt-3 text-lg font-semibold text-foreground">
-            <dt>Total delivery fees</dt>
-            <dd aria-live="polite">
-              {currency} {total.toFixed(2)}
-            </dd>
+            <dt className="font-sans">{t('totalFees')}</dt>
+            <dd aria-live="polite">{format.money(total, currency)}</dd>
           </div>
           {collectTotal > 0 ? (
             <div className="flex justify-between gap-4 text-muted-foreground">
-              <dt>Cash to collect from recipients</dt>
-              <dd>
-                {currency} {collectTotal.toFixed(2)}
-              </dd>
+              <dt className="font-sans">{t('cashToCollect')}</dt>
+              <dd>{format.money(collectTotal, currency)}</dd>
             </div>
           ) : null}
         </dl>
@@ -216,17 +209,17 @@ const ReviewStep = ({
       <Dialog open={confirmRemove !== null} onOpenChange={(open) => (open ? null : setConfirmRemove(null))}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Remove this shipment?</DialogTitle>
+            <DialogTitle>{t('removeTitle')}</DialogTitle>
             <DialogDescription>
               {confirmRemove
-                ? `${confirmRemove.values.pickup.address} → ${confirmRemove.values.dropoff.address} will be taken out of this booking.`
+                ? t('removeDescription', { pickup: confirmRemove.values.pickup.address, dropoff: confirmRemove.values.dropoff.address })
                 : null}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
               <Button type="button" variant="outline">
-                Keep it
+                {t('keepIt')}
               </Button>
             </DialogClose>
             <Button
@@ -238,7 +231,7 @@ const ReviewStep = ({
               }}
             >
               <Trash2 aria-hidden />
-              Remove shipment
+              {t('removeShipment')}
             </Button>
           </DialogFooter>
         </DialogContent>

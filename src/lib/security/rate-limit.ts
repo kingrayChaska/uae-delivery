@@ -23,7 +23,8 @@ export const RATE_LIMITS = {
 
 export type RateLimitName = keyof typeof RATE_LIMITS;
 
-export const RATE_LIMIT_MESSAGE = 'Too many attempts. Please wait a few minutes and try again.';
+// A translation key (i18n/message.ts): "Too many attempts. Please wait a few minutes…"
+export const RATE_LIMIT_MESSAGE = 'errors.rateLimited';
 
 // Counters live in Postgres (migration 0018) so every serverless instance
 // shares them. Fails CLOSED: if the limiter can't be reached the request is

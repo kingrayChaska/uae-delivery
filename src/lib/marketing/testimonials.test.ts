@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { visibleTestimonials } from '@/lib/marketing/testimonials';
+import { localizedText, visibleTestimonials } from '@/lib/marketing/testimonials';
 
 import type { Testimonial } from '@/lib/marketing/testimonials';
 
@@ -11,7 +11,7 @@ const entry = (id: string, sample: boolean): Testimonial => ({
   role: 'Role',
   location: 'Dubai',
   rating: 5,
-  service: 'Same-day',
+  service: 'sameDay',
   sample,
 });
 
@@ -26,5 +26,16 @@ describe('visibleTestimonials', () => {
 
   it('shows samples in development so the section can be designed', () => {
     expect(visibleTestimonials([entry('a', true), entry('real', false)], false)).toHaveLength(2);
+  });
+});
+
+describe('localizedText', () => {
+  it('shows a plain string as written in every language', () => {
+    expect(localizedText('Great service', 'ar')).toBe('Great service');
+  });
+
+  it('picks the page language, falling back to English', () => {
+    expect(localizedText({ en: 'Dubai Marina', ar: 'دبي مارينا' }, 'ar')).toBe('دبي مارينا');
+    expect(localizedText({ en: 'Deira' }, 'ar')).toBe('Deira');
   });
 });

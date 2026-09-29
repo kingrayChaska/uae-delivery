@@ -4,15 +4,17 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Building2, Check, UserRound } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
 import FieldError from '@/components/ui/field-error';
 import { chooseIndividualAccountAction } from '@/lib/merchant/actions';
 
-const INDIVIDUAL_POINTS = ['Send parcels whenever you need', 'Same-day and next-day delivery', 'Pay per delivery, no commitment'];
-const MERCHANT_POINTS = ['Flat-rate merchant pricing', 'Bulk and regular business shipments', 'Cash-on-delivery collection for your orders'];
+const INDIVIDUAL_POINTS = ['anytime', 'speeds', 'payPer'] as const;
+const MERCHANT_POINTS = ['flatRate', 'bulk', 'cod'] as const;
 
 const AccountTypeChoice = () => {
+  const t = useTranslations('merchant.onboarding');
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,20 +42,20 @@ const AccountTypeChoice = () => {
             <UserRound className="size-6" aria-hidden />
           </span>
           <div>
-            <h2 id="choice-individual" className="text-xl font-semibold">Individual</h2>
-            <p className="text-sm text-muted-foreground">For personal deliveries.</p>
+            <h2 id="choice-individual" className="text-xl font-semibold">{t('individual.title')}</h2>
+            <p className="text-sm text-muted-foreground">{t('individual.description')}</p>
           </div>
           <ul className="flex flex-col gap-2 text-sm">
             {INDIVIDUAL_POINTS.map((point) => (
               <li key={point} className="flex items-start gap-2">
                 <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                {point}
+                {t(`individual.points.${point}`)}
               </li>
             ))}
           </ul>
           <Button type="button" size="lg" className="mt-auto" onClick={chooseIndividual} loading={isSaving}>
-            Continue as Individual
-            <ArrowRight aria-hidden />
+            {t('individual.cta')}
+            <ArrowRight className="rtl:rotate-180" aria-hidden />
           </Button>
         </section>
 
@@ -62,25 +64,25 @@ const AccountTypeChoice = () => {
             <Building2 className="size-6" aria-hidden />
           </span>
           <div>
-            <h2 id="choice-merchant" className="text-xl font-semibold">Merchant</h2>
-            <p className="text-sm text-muted-foreground">For companies shipping regularly or in bulk.</p>
+            <h2 id="choice-merchant" className="text-xl font-semibold">{t('merchant.title')}</h2>
+            <p className="text-sm text-muted-foreground">{t('merchant.description')}</p>
           </div>
           <ul className="flex flex-col gap-2 text-sm">
             {MERCHANT_POINTS.map((point) => (
               <li key={point} className="flex items-start gap-2">
                 <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                {point}
+                {t(`merchant.points.${point}`)}
               </li>
             ))}
           </ul>
           <Button asChild size="lg" variant="outline" className="mt-auto">
             <Link href="/dashboard/customer/merchant/apply">
-              Apply for a Merchant account
-              <ArrowRight aria-hidden />
+              {t('merchant.cta')}
+              <ArrowRight className="rtl:rotate-180" aria-hidden />
             </Link>
           </Button>
           <p className="text-xs text-muted-foreground">
-            Merchant accounts are reviewed by our team. You can book as an individual while you wait.
+            {t('merchant.note')}
           </p>
         </section>
       </div>

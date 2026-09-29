@@ -1,18 +1,21 @@
 import Link from 'next/link';
 import { Building2, ChevronRight } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 
 import Pagination from '@/components/dashboard/pagination';
 import MerchantStatusBadge from '@/components/merchant/merchant-status-badge';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { parsePage } from '@/lib/pagination';
-import { MERCHANT_STATUS_COPY } from '@/lib/merchant/schemas';
 import { countMerchantApplicationsByStatus, listMerchantApplications } from '@/services/merchant/applications';
 import { MERCHANT_STATUSES } from '@/lib/types';
+import { getFormat } from '@/i18n/server';
 
 import type { Metadata } from 'next';
 import type { MerchantStatus } from '@/lib/types';
 
-export const metadata: Metadata = { title: 'Merchant applications · ParcelLink' };
+export const generateMetadata = async (): Promise<Metadata> => ({
+  title: (await getTranslations('manager.merchants'))('meta'),
+});
 
 const FILTERS: (MerchantStatus | 'all')[] = ['pending', 'requires_changes', 'approved', 'rejected', 'all'];
 
@@ -28,19 +31,22 @@ const MerchantApplicationsPage = async ({
     : params.status === 'all'
       ? 'all'
       : 'pending';
-  const [applications, counts] = await Promise.all([
+  const [applications, counts, t, tStatus, format] = await Promise.all([
     listMerchantApplications(status, parsePage(params.page)),
     countMerchantApplicationsByStatus(),
+    getTranslations('manager.merchants'),
+    getTranslations('merchant.status'),
+    getFormat(),
   ]);
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div>
-        <h1 className="text-2xl font-semibold">Merchant applications</h1>
-        <p className="text-sm text-muted-foreground">Review companies applying for merchant pricing and tools.</p>
+        <h1 className="text-2xl font-semibold">{t('title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      <nav aria-label="Filter by status" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+      <nav aria-label={t('filterLabel')} className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
         {FILTERS.map((filter) => {
           const active = filter === status;
           const count = filter === 'all' ? Object.values(counts).reduce((a, b) => a + b, 0) : counts[filter];
@@ -53,9 +59,9 @@ const MerchantApplicationsPage = async ({
                 active ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-secondary/60'
               }`}
             >
-              {filter === 'all' ? 'All' : MERCHANT_STATUS_COPY[filter].label}
+              {filter === 'all' ? t('all') : tStatus(filter)}
               <span className={`rounded-full px-1.5 font-brand-mono text-xs ${active ? 'bg-primary-foreground/20' : 'bg-secondary'}`}>
-                {count}
+                {format.number(count)}
               </span>
             </Link>
           );
@@ -65,10 +71,8 @@ const MerchantApplicationsPage = async ({
       {applications.items.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed p-10 text-center">
           <Building2 className="size-8 text-muted-foreground" aria-hidden />
-          <p className="font-medium">No applications here</p>
-          <p className="text-sm text-muted-foreground">
-            {status === 'pending' ? 'You’re all caught up — new applications will appear here.' : 'Nothing matches this filter.'}
-          </p>
+          <p className="font-medium">{t('emptyTitle')}</p>
+          <p className="text-sm text-muted-foreground">{status === 'pending' ? t('emptyPending') : t('emptyFiltered')}</p>
         </div>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -84,16 +88,20 @@ const MerchantApplicationsPage = async ({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{application.companyName}</span>
                   <span className="block truncate text-sm text-muted-foreground">
-                    {application.applicantName} · {application.city} · {application.monthlyShipmentVolume} shipments/month
+                    {t('row', {
+                      applicant: application.applicantName,
+                      city: application.city,
+                      volume: application.monthlyShipmentVolume,
+                    })}
                   </span>
                 </span>
-                <span className="hidden text-right text-xs text-muted-foreground md:block">
-                  Submitted
+                <span className="hidden text-end text-xs text-muted-foreground md:block">
+                  {t('submitted')}
                   <br />
-                  {new Date(application.submittedAt).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' })}
+                  {format.date(application.submittedAt)}
                 </span>
                 <MerchantStatusBadge status={application.status} />
-                <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground rtl:rotate-180" aria-hidden />
               </Link>
             </li>
           ))}

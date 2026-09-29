@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+
+import { msg } from '@/i18n/message';
 import { useRouter } from 'next/navigation';
 
 import { bulkCreateShipmentsAction } from '@/lib/business/actions';
@@ -32,16 +34,16 @@ export const useBulkUpload = (businessId: string) => {
     setPreview([]);
     setCsvText(null);
 
-    if (!file.name.toLowerCase().endsWith('.csv')) return setFileError('Choose a .csv file');
-    if (file.size > MAX_FILE_BYTES) return setFileError('File is too large (max 500 KB)');
+    if (!file.name.toLowerCase().endsWith('.csv')) return setFileError('manager.bulk.errors.notCsv');
+    if (file.size > MAX_FILE_BYTES) return setFileError('manager.bulk.errors.tooLarge');
 
     const text = await file.text();
     const { headers, records } = parseCsvWithHeaders(text);
     const missing = missingBulkColumns(headers);
-    if (missing.length > 0) return setFileError(`Missing columns: ${missing.join(', ')}`);
-    if (records.length === 0) return setFileError('The file has no shipment rows');
+    if (missing.length > 0) return setFileError(msg('manager.bulk.errors.missingColumns', { columns: missing.join(', ') }));
+    if (records.length === 0) return setFileError('manager.bulk.errors.empty');
     if (records.length > BULK_MAX_ROWS) {
-      return setFileError(`Upload at most ${BULK_MAX_ROWS} rows at a time (this file has ${records.length})`);
+      return setFileError(msg('manager.bulk.errors.tooMany', { max: BULK_MAX_ROWS, count: records.length }));
     }
 
     setFileName(file.name);
@@ -61,7 +63,7 @@ export const useBulkUpload = (businessId: string) => {
       return;
     }
     setResults(result.rows);
-    setSummary(`${result.created} created, ${result.failed} failed`);
+    setSummary(msg('manager.bulk.summary', { created: result.created, total: result.created + result.failed }));
     router.refresh();
   };
 

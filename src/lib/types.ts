@@ -174,28 +174,31 @@ export type NavIcon =
   | 'current' | 'history' | 'cod' | 'shipments' | 'bulk' | 'dispatch' | 'drivers' | 'customers' | 'map' | 'activity'
   | 'operators' | 'business' | 'merchants' | 'pricing' | 'reports' | 'settings';
 
-export type NavItem = { label: string; href: string; icon: NavIcon };
-export type NavSection = { heading: string | null; items: NavItem[] };
+// Labels live in the translations (dashboard.nav.items.<icon> and
+// dashboard.nav.sections.<heading>): each icon names one destination.
+export type NavItem = { href: string; icon: NavIcon };
+export type NavSectionKey = 'account' | 'operations' | 'people' | 'customersMerchants' | 'team' | 'business';
+export type NavSection = { heading: NavSectionKey | null; items: NavItem[] };
 
 export const NAV_SECTIONS: Record<Role, NavSection[]> = {
   customer: [
     {
       heading: null,
       items: [
-        { label: 'Dashboard', href: '/dashboard/customer', icon: 'dashboard' },
-        { label: 'Book Delivery', href: '/dashboard/customer/book', icon: 'book' },
-        { label: 'My Deliveries', href: '/dashboard/customer/deliveries', icon: 'deliveries' },
-        { label: 'Track Shipment', href: '/dashboard/customer/track', icon: 'track' },
+        { href: '/dashboard/customer', icon: 'dashboard' },
+        { href: '/dashboard/customer/book', icon: 'book' },
+        { href: '/dashboard/customer/deliveries', icon: 'deliveries' },
+        { href: '/dashboard/customer/track', icon: 'track' },
       ],
     },
     {
-      heading: 'Account',
+      heading: 'account',
       items: [
-        { label: 'Merchant Account', href: '/dashboard/customer/merchant', icon: 'merchant' },
-        { label: 'Payments', href: '/dashboard/customer/payments', icon: 'payments' },
-        { label: 'Notifications', href: '/dashboard/customer/notifications', icon: 'notifications' },
-        { label: 'Profile', href: '/dashboard/customer/profile', icon: 'profile' },
-        { label: 'Support', href: '/dashboard/customer/support', icon: 'support' },
+        { href: '/dashboard/customer/merchant', icon: 'merchant' },
+        { href: '/dashboard/customer/payments', icon: 'payments' },
+        { href: '/dashboard/customer/notifications', icon: 'notifications' },
+        { href: '/dashboard/customer/profile', icon: 'profile' },
+        { href: '/dashboard/customer/support', icon: 'support' },
       ],
     },
   ],
@@ -203,84 +206,84 @@ export const NAV_SECTIONS: Record<Role, NavSection[]> = {
     {
       heading: null,
       items: [
-        { label: 'Dashboard', href: '/dashboard/driver', icon: 'dashboard' },
-        { label: 'Current Delivery', href: '/dashboard/driver/current', icon: 'current' },
-        { label: 'My Deliveries', href: '/dashboard/driver/deliveries', icon: 'deliveries' },
-        { label: 'Delivery History', href: '/dashboard/driver/history', icon: 'history' },
-        { label: 'Cash on Delivery', href: '/dashboard/driver/cod', icon: 'cod' },
+        { href: '/dashboard/driver', icon: 'dashboard' },
+        { href: '/dashboard/driver/current', icon: 'current' },
+        { href: '/dashboard/driver/deliveries', icon: 'deliveries' },
+        { href: '/dashboard/driver/history', icon: 'history' },
+        { href: '/dashboard/driver/cod', icon: 'cod' },
       ],
     },
     {
-      heading: 'Account',
+      heading: 'account',
       items: [
-        { label: 'Notifications', href: '/dashboard/driver/notifications', icon: 'notifications' },
-        { label: 'Profile', href: '/dashboard/driver/profile', icon: 'profile' },
+        { href: '/dashboard/driver/notifications', icon: 'notifications' },
+        { href: '/dashboard/driver/profile', icon: 'profile' },
       ],
     },
   ],
   operator: [
     {
       heading: null,
-      items: [{ label: 'Dashboard', href: '/dashboard/operator', icon: 'dashboard' }],
+      items: [{ href: '/dashboard/operator', icon: 'dashboard' }],
     },
     {
-      heading: 'Operations',
+      heading: 'operations',
       items: [
-        { label: 'Shipments', href: '/dashboard/operator/shipments', icon: 'shipments' },
-        { label: 'Grouped Bookings', href: '/dashboard/operator/bulk', icon: 'bulk' },
-        { label: 'Dispatch', href: '/dashboard/operator/dispatch', icon: 'dispatch' },
-        { label: 'Live Map', href: '/dashboard/operator/live-map', icon: 'map' },
-        { label: 'Cash on Delivery', href: '/dashboard/operator/cod', icon: 'cod' },
+        { href: '/dashboard/operator/shipments', icon: 'shipments' },
+        { href: '/dashboard/operator/bulk', icon: 'bulk' },
+        { href: '/dashboard/operator/dispatch', icon: 'dispatch' },
+        { href: '/dashboard/operator/live-map', icon: 'map' },
+        { href: '/dashboard/operator/cod', icon: 'cod' },
       ],
     },
     {
-      heading: 'People',
+      heading: 'people',
       items: [
-        { label: 'Drivers', href: '/dashboard/operator/drivers', icon: 'drivers' },
-        { label: 'Customers', href: '/dashboard/operator/customers', icon: 'customers' },
-        { label: 'Support', href: '/dashboard/operator/support', icon: 'support' },
-        { label: 'Activity Log', href: '/dashboard/operator/activity', icon: 'activity' },
+        { href: '/dashboard/operator/drivers', icon: 'drivers' },
+        { href: '/dashboard/operator/customers', icon: 'customers' },
+        { href: '/dashboard/operator/support', icon: 'support' },
+        { href: '/dashboard/operator/activity', icon: 'activity' },
       ],
     },
   ],
   manager: [
     {
       heading: null,
-      items: [{ label: 'Dashboard', href: '/dashboard/manager', icon: 'dashboard' }],
+      items: [{ href: '/dashboard/manager', icon: 'dashboard' }],
     },
     {
-      heading: 'Operations',
+      heading: 'operations',
       items: [
-        { label: 'Shipments', href: '/dashboard/manager/shipments', icon: 'shipments' },
-        { label: 'Grouped Bookings', href: '/dashboard/manager/bulk', icon: 'bulk' },
-        { label: 'Live Map', href: '/dashboard/manager/live-map', icon: 'map' },
-        { label: 'Cash on Delivery', href: '/dashboard/manager/cod', icon: 'cod' },
-        { label: 'Payments', href: '/dashboard/manager/payments', icon: 'payments' },
+        { href: '/dashboard/manager/shipments', icon: 'shipments' },
+        { href: '/dashboard/manager/bulk', icon: 'bulk' },
+        { href: '/dashboard/manager/live-map', icon: 'map' },
+        { href: '/dashboard/manager/cod', icon: 'cod' },
+        { href: '/dashboard/manager/payments', icon: 'payments' },
       ],
     },
     {
-      heading: 'Customers & merchants',
+      heading: 'customersMerchants',
       items: [
-        { label: 'Merchant Applications', href: '/dashboard/manager/merchants', icon: 'merchants' },
-        { label: 'Business Accounts', href: '/dashboard/manager/business-accounts', icon: 'business' },
-        { label: 'Customers', href: '/dashboard/manager/customers', icon: 'customers' },
+        { href: '/dashboard/manager/merchants', icon: 'merchants' },
+        { href: '/dashboard/manager/business-accounts', icon: 'business' },
+        { href: '/dashboard/manager/customers', icon: 'customers' },
       ],
     },
     {
-      heading: 'Team',
+      heading: 'team',
       items: [
-        { label: 'Operators', href: '/dashboard/manager/operators', icon: 'operators' },
-        { label: 'Drivers', href: '/dashboard/manager/drivers', icon: 'drivers' },
+        { href: '/dashboard/manager/operators', icon: 'operators' },
+        { href: '/dashboard/manager/drivers', icon: 'drivers' },
       ],
     },
     {
-      heading: 'Business',
+      heading: 'business',
       items: [
-        { label: 'Pricing', href: '/dashboard/manager/pricing', icon: 'pricing' },
-        { label: 'Reports', href: '/dashboard/manager/reports', icon: 'reports' },
-        { label: 'Notifications', href: '/dashboard/manager/notifications', icon: 'notifications' },
-        { label: 'Activity Logs', href: '/dashboard/manager/activity', icon: 'activity' },
-        { label: 'Settings', href: '/dashboard/manager/settings', icon: 'settings' },
+        { href: '/dashboard/manager/pricing', icon: 'pricing' },
+        { href: '/dashboard/manager/reports', icon: 'reports' },
+        { href: '/dashboard/manager/notifications', icon: 'notifications' },
+        { href: '/dashboard/manager/activity', icon: 'activity' },
+        { href: '/dashboard/manager/settings', icon: 'settings' },
       ],
     },
   ],

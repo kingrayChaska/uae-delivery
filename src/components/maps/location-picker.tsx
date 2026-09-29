@@ -14,6 +14,7 @@ import {
   Signpost,
   X,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
@@ -23,7 +24,9 @@ import LazyMapLocationSelector from '@/components/maps/lazy-map-location-selecto
 import { useLocationSearch } from '@/lib/hooks/use-location-search';
 import { reverseGeocodeAction } from '@/lib/maps/actions';
 import { SEARCH_MIN_CHARS, UAE_DEFAULT_CENTER } from '@/lib/maps/config';
-import { isInsideUae, splitAddress, toLocationValue } from '@/lib/maps/location';
+import { isInsideUae, toLocationValue } from '@/lib/maps/location';
+import { useAddressParts } from '@/lib/maps/use-address-parts';
+import { useMessage } from '@/i18n/hooks';
 import { cn } from '@/lib/utils';
 
 import type { LocationValue } from '@/lib/maps/location';
@@ -59,9 +62,11 @@ const TYPE_ICONS: Record<string, typeof MapPin> = {
   street: Signpost,
 };
 
-const GEOLOCATION_ERROR = 'Unable to access your location. You can search for an address or drop a pin manually.';
-
 const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinModeChange }: LocationPickerProps) => {
+  const t = useTranslations('maps');
+  const tCommon = useTranslations('common');
+  const translate = useMessage();
+  const splitAddress = useAddressParts();
   const search = useLocationSearch(proximity);
   const [mode, setMode] = useState<'search' | 'pin' | 'selected'>(value ? 'selected' : 'search');
   const [open, setOpen] = useState(false);
@@ -197,7 +202,7 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
             {pinned ? (
               <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-0.5 text-xs font-medium text-primary ring-1 ring-primary/20">
                 <MapPinned className="size-3.5" aria-hidden />
-                {value.place.source === 'current_location' ? 'Current location selected' : 'Pin location selected'}
+                {value.place.source === 'current_location' ? t('currentSelected') : t('pinSelected')}
               </p>
             ) : null}
           </div>
@@ -210,7 +215,7 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
               requestAnimationFrame(() => inputRef.current?.focus());
             }}
           >
-            Change<span className="sr-only"> {label.toLowerCase()}</span>
+            {t.rich('change', { label, sr: (chunks) => <span className="sr-only">{chunks}</span> })}
           </Button>
         </div>
       </div>
@@ -232,25 +237,23 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
             className="h-[min(55svh,420px)] w-full"
           />
           <div className="flex flex-col gap-3 p-4" aria-live="polite">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Selected location</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('pin.selectedLocation')}</p>
             {!pin.placed ? (
-              <p className="text-sm">Drag the pin, or tap the map, to mark the exact pickup or delivery spot.</p>
+              <p className="text-sm">{t('pin.instructions')}</p>
             ) : outside ? (
               <p className="flex items-start gap-2 text-sm text-destructive">
                 <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-                This point is outside the UAE. Move the pin to a location inside the UAE.
+                {t('pin.outsideUae')}
               </p>
             ) : pin.lookup === 'loading' ? (
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 <LoaderCircle className="size-4 animate-spin" aria-hidden />
-                Finding the address…
+                {t('pin.finding')}
               </p>
             ) : pin.lookup === 'failed' || (pin.lookup === 'done' && !pin.resolved) ? (
               <div className="text-sm">
-                <p className="font-medium">Location selected</p>
-                <p className="text-muted-foreground">
-                  Coordinates saved successfully. Please add your address details manually after confirming.
-                </p>
+                <p className="font-medium">{t('pin.saved')}</p>
+                <p className="text-muted-foreground">{t('pin.savedHint')}</p>
               </div>
             ) : pin.resolved ? (
               <div>
@@ -259,17 +262,17 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
               </div>
             ) : null}
             {pin.placed ? (
-              <p className="font-brand-mono text-[0.6875rem] text-muted-foreground">
+              <p dir="ltr" className="font-brand-mono text-[0.6875rem] text-muted-foreground rtl:text-right">
                 {pin.coordinates.lat.toFixed(5)}, {pin.coordinates.lng.toFixed(5)}
               </p>
             ) : null}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button type="button" variant="outline" onClick={cancelPin}>
-                Cancel
+                {tCommon('actions.cancel')}
               </Button>
               <Button type="button" onClick={confirmPin} disabled={!pin.placed || outside || pin.lookup === 'loading'}>
                 <CircleCheck aria-hidden />
-                Confirm location
+                {t('pin.confirm')}
               </Button>
             </div>
           </div>
@@ -284,12 +287,12 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={`${id}-search`}>{label}</Label>
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+        <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
         <Input
           ref={inputRef}
           id={`${id}-search`}
           value={search.query}
-          placeholder="Building, street, area or business"
+          placeholder={t('search.placeholder')}
           autoComplete="off"
           enterKeyHint="search"
           role="combobox"
@@ -299,7 +302,7 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
           aria-activedescendant={highlighted >= 0 ? `${listId}-${highlighted}` : undefined}
           aria-invalid={Boolean(error) || undefined}
           aria-describedby={error ? `${id}-error` : undefined}
-          className="h-12 pl-9 pr-10 sm:h-11"
+          className="h-12 ps-9 pe-10 sm:h-11"
           onChange={(event) => {
             search.setQuery(event.target.value);
             setActiveIndex(-1);
@@ -319,13 +322,13 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
         {search.query ? (
           <button
             type="button"
-            aria-label="Clear search"
+            aria-label={t('search.clear')}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => {
               search.reset();
               inputRef.current?.focus();
             }}
-            className="absolute right-1 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="absolute end-1 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <X className="size-4" aria-hidden />
           </button>
@@ -333,7 +336,7 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
 
         {showDropdown ? (
           <div className="absolute inset-x-0 top-full z-30 mt-1.5 overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-xl animate-in fade-in-0 slide-in-from-top-1 duration-150 motion-reduce:animate-none">
-            <ul id={listId} role="listbox" aria-label={`${label} suggestions`} className="max-h-[min(20rem,45svh)] overflow-y-auto overscroll-contain p-1">
+            <ul id={listId} role="listbox" aria-label={t('search.suggestions', { label })} className="max-h-[min(20rem,45svh)] overflow-y-auto overscroll-contain p-1">
               {search.status === 'loading'
                 ? [0, 1, 2].map((row) => (
                     <li key={row} aria-hidden className="flex items-center gap-3 px-3 py-3">
@@ -357,7 +360,7 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
                       onClick={() => choose(suggestion)}
                       disabled={search.resolvingId !== null}
                       className={cn(
-                        'flex min-h-14 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent disabled:opacity-60',
+                        'flex min-h-14 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-start transition-colors hover:bg-accent disabled:opacity-60',
                         index === highlighted && 'bg-accent',
                       )}
                     >
@@ -365,8 +368,8 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
                         {resolving ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : <Icon className="size-4" aria-hidden />}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium">{suggestion.name}</span>
-                        <span className="block truncate text-sm text-muted-foreground">{suggestion.secondary}</span>
+                        <span dir="auto" className="block truncate text-start font-medium">{suggestion.name}</span>
+                        <span dir="auto" className="block truncate text-start text-sm text-muted-foreground">{suggestion.secondary}</span>
                       </span>
                     </button>
                   </li>
@@ -375,13 +378,13 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
             </ul>
             {search.status === 'empty' ? (
               <p className="border-t px-4 py-3 text-sm">
-                <span className="font-medium">No exact match found.</span>{' '}
-                <span className="text-muted-foreground">Try another search or drop a pin on the map.</span>
+                <span className="font-medium">{t('search.noMatch')}</span>{' '}
+                <span className="text-muted-foreground">{t('search.noMatchHint')}</span>
               </p>
             ) : null}
             {search.status === 'error' || search.error ? (
               <p role="alert" className="border-t px-4 py-3 text-sm text-destructive">
-                {search.error}
+                {translate(search.error)}
               </p>
             ) : null}
             <button
@@ -393,12 +396,12 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
                 locateMe();
               }}
               className={cn(
-                'flex min-h-12 w-full items-center gap-3 border-t px-4 py-2.5 text-left font-medium transition-colors hover:bg-accent',
+                'flex min-h-12 w-full items-center gap-3 border-t px-4 py-2.5 text-start font-medium transition-colors hover:bg-accent',
                 highlighted === options.length && 'bg-accent',
               )}
             >
               <LocateFixed className="size-5 shrink-0 text-primary" aria-hidden />
-              Use my current location
+              {t('currentLocation')}
             </button>
             <button
               type="button"
@@ -406,14 +409,14 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
               onMouseDown={(event) => event.preventDefault()}
               onClick={startPin}
               className={cn(
-                'flex min-h-14 w-full items-center gap-3 border-t px-4 py-3 text-left transition-colors hover:bg-accent',
+                'flex min-h-14 w-full items-center gap-3 border-t px-4 py-3 text-start transition-colors hover:bg-accent',
                 highlighted === options.length + 1 && 'bg-accent',
               )}
             >
               <MapPinned className="size-5 shrink-0 text-primary" aria-hidden />
               <span>
-                <span className="block text-sm text-muted-foreground">Can’t find your exact location?</span>
-                <span className="block font-medium text-primary">Drop a pin on the map</span>
+                <span className="block text-sm text-muted-foreground">{t('cantFind')}</span>
+                <span className="block font-medium text-primary">{t('dropPin')}</span>
               </span>
             </button>
           </div>
@@ -421,23 +424,23 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
       </div>
 
       <div className="flex flex-wrap gap-2 pt-1">
-        <Button type="button" variant="outline" size="sm" onClick={locateMe} loading={geoStatus === 'locating'} loadingText="Locating…">
+        <Button type="button" variant="outline" size="sm" onClick={locateMe} loading={geoStatus === 'locating'} loadingText={t('locating')}>
           <LocateFixed aria-hidden />
-          Use my current location
+          {t('currentLocation')}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={startPin}>
           <MapPin aria-hidden />
-          Drop a pin on the map
+          {t('dropPin')}
         </Button>
         {value ? (
           <Button type="button" variant="ghost" size="sm" onClick={() => enterMode('selected')}>
-            Keep current location
+            {t('keepCurrent')}
           </Button>
         ) : null}
       </div>
       {geoStatus === 'error' ? (
         <p role="alert" className="text-sm text-muted-foreground">
-          {GEOLOCATION_ERROR}
+          {t('geolocationError')}
         </p>
       ) : null}
       <FieldError id={`${id}-error`} message={error} />

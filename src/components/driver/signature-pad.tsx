@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import Button from '@/components/ui/button';
 import { useSignaturePad } from '@/lib/hooks/use-signature-pad';
 
@@ -9,6 +11,7 @@ type SignaturePadProps = {
 };
 
 const SignaturePad = ({ onCapture, onClear }: SignaturePadProps) => {
+  const t = useTranslations('driver.pod');
   const { canvasRef, hasSignature, onPointerDown, onPointerMove, onPointerUp, clear, toBlob } =
     useSignaturePad();
 
@@ -19,6 +22,8 @@ const SignaturePad = ({ onCapture, onClear }: SignaturePadProps) => {
         width={320}
         height={140}
         className="touch-none rounded-md border bg-white"
+        role="img"
+        aria-label={t('signaturePad')}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={async () => {
@@ -38,7 +43,7 @@ const SignaturePad = ({ onCapture, onClear }: SignaturePadProps) => {
           }}
           disabled={!hasSignature}
         >
-          Clear
+          {t('clear')}
         </Button>
       </div>
     </div>

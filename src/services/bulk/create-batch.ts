@@ -109,7 +109,7 @@ export const createBatchShipments = async ({
       try {
         [pickup, dropoff] = await Promise.all([geocode(row.pickup_address), geocode(row.dropoff_address)]);
       } catch {
-        throw new Error('Could not find one of the addresses — check the spelling or add the area/emirate');
+        throw new Error('manager.bulk.errors.addressNotFound');
       }
 
       const parsed = bookingSchema.safeParse({
@@ -138,7 +138,7 @@ export const createBatchShipments = async ({
         recipientPaymentType: row.cod_amount > 0 ? 'postpaid' : 'prepaid',
         codAmount: row.cod_amount > 0 ? row.cod_amount : undefined,
       });
-      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'Invalid row');
+      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'booking.errors.invalidRow');
 
       const shipment = await createShipment(customerId, parsed.data, businessAccountId, batchId);
       results.push({ rowNumber, ok: true, message: `${shipment.trackingNumber} · AED ${shipment.price.toFixed(2)}` });
@@ -146,7 +146,7 @@ export const createBatchShipments = async ({
       results.push({
         rowNumber,
         ok: false,
-        message: rowError instanceof Error ? rowError.message : 'Could not create this shipment',
+        message: rowError instanceof Error ? rowError.message : 'booking.errors.createOneFailed',
       });
     }
   }

@@ -92,6 +92,8 @@ export const useTurnstile = () => {
           widgetIdRef.current = turnstile.render(containerRef.current, {
             sitekey: siteKey,
             theme: "auto",
+            // The widget's own text, in the page's language.
+            language: document.documentElement.lang || "auto",
             // Let Turnstile quietly re-issue expired tokens and retry
             // transient failures itself before we surface an error.
             "refresh-expired": "auto",

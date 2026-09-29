@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
+import FieldError from '@/components/ui/field-error';
 import {
   Dialog,
   DialogClose,
@@ -35,7 +37,7 @@ const ConfirmButton = ({
   title,
   description,
   confirmLabel,
-  cancelLabel = 'Go back',
+  cancelLabel,
   onConfirm,
   isPending = false,
   error = null,
@@ -43,6 +45,7 @@ const ConfirmButton = ({
   children,
   ...buttonProps
 }: ConfirmButtonProps) => {
+  const t = useTranslations('common.dialog');
   const [open, setOpen] = useState(false);
 
   return (
@@ -60,14 +63,12 @@ const ConfirmButton = ({
           </DialogDescription>
         </DialogHeader>
         {error ? (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
+          <FieldError message={error} />
         ) : null}
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline" disabled={isPending}>
-              {cancelLabel}
+              {cancelLabel ?? t('goBack')}
             </Button>
           </DialogClose>
           <Button

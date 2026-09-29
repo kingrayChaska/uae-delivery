@@ -9,6 +9,18 @@ const reverseGeocode = vi.fn<(coordinates: Coordinates) => Promise<ResolvedLocat
 vi.mock('@/lib/maps/mapbox-provider', () => ({ mapboxProvider: { reverseGeocode } }));
 
 const { lookUpServiceArea, requireServiceableTrip } = await import('@/lib/service-areas/verify');
+const { renderMessage } = await import('@/i18n/test-utils');
+
+// The refusal as an English reader sees it (errors travel as translation keys).
+const en = renderMessage('en');
+const refusal = async (trip: Promise<unknown>) => {
+  try {
+    await trip;
+  } catch (error) {
+    return en((error as Error).message);
+  }
+  throw new Error('expected the trip to be refused');
+};
 
 const at = (regionCode: string | null, region: string | null) => (coordinates: Coordinates): ResolvedLocation => ({
   coordinates,
@@ -44,33 +56,31 @@ describe('requireServiceableTrip (the server-side check every booking passes)', 
   it('refuses a request-only delivery, naming the emirate', async () => {
     reverseGeocode.mockImplementationOnce(async (c) => at('AE-DU', 'Dubai')(c));
     reverseGeocode.mockImplementationOnce(async (c) => at('AE-AZ', 'Abu Dhabi')(c));
-    await expect(requireServiceableTrip(point(), point())).rejects.toThrow(
-      /Deliveries to Abu Dhabi are available on request/,
-    );
+    expect(await refusal(requireServiceableTrip(point(), point()))).toMatch(/Deliveries to Abu Dhabi are available on request/);
   });
 
   it('refuses a request-only pickup', async () => {
     reverseGeocode.mockImplementationOnce(async (c) => at('AE-RK', 'Ras Al Khaimah')(c));
     reverseGeocode.mockImplementationOnce(async (c) => at('AE-AJ', 'Ajman')(c));
-    await expect(requireServiceableTrip(point(), point())).rejects.toThrow(/Pickups from Ras Al Khaimah/);
+    expect(await refusal(requireServiceableTrip(point(), point()))).toMatch(/Pickups from Ras Al Khaimah/);
   });
 
   it('refuses a location with no confirmed emirate', async () => {
     reverseGeocode.mockImplementation(async (c) => at(null, null)(c));
-    await expect(requireServiceableTrip(point(), point())).rejects.toThrow(/Service area unavailable/);
+    expect(await refusal(requireServiceableTrip(point(), point()))).toMatch(/Service area unavailable/);
   });
 
   it('fails closed when the lookup itself fails', async () => {
     reverseGeocode.mockImplementation(async () => {
       throw new Error('network down');
     });
-    await expect(requireServiceableTrip(point(), point())).rejects.toThrow(/Service area unavailable/);
+    expect(await refusal(requireServiceableTrip(point(), point()))).toMatch(/Service area unavailable/);
   });
 
   it('ignores whatever place details the browser sent — it only looks at the coordinates', async () => {
     // Nothing but coordinates goes in; the verdict comes from Mapbox.
     reverseGeocode.mockImplementation(async (c) => at('AE-FU', 'Fujairah')(c));
-    await expect(requireServiceableTrip(point(), point())).rejects.toThrow(/Fujairah/);
+    expect(await refusal(requireServiceableTrip(point(), point()))).toMatch(/Fujairah/);
   });
 });
 

@@ -1,22 +1,27 @@
-import Logo from '@/components/brand/logo';
+import { getTranslations } from 'next-intl/server';
+
+import AuthShell from '@/components/auth/auth-shell';
 import RegisterForm from '@/components/auth/register-form';
+import { getRequestLocale } from '@/i18n/server';
+import { localizedAlternates } from '@/lib/seo';
 
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Create an account — ParcelLink',
-  description:
-    'Create a free ParcelLink account to book same-day and next-day parcel delivery across the UAE, or apply for a merchant account.',
-  alternates: { canonical: '/register' },
+export const generateMetadata = async (): Promise<Metadata> => {
+  const [t, locale] = await Promise.all([getTranslations('auth.meta'), getRequestLocale()]);
+  return {
+    title: t('registerTitle'),
+    description: t('registerDescription'),
+    alternates: localizedAlternates('/register', locale),
+  };
 };
 
-const RegisterPage = () => {
+const RegisterPage = async () => {
+  const t = await getTranslations('auth.register');
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
-      <Logo height={40} priority />
-      <h1 className="text-2xl font-semibold">Create Account</h1>
+    <AuthShell title={t('title')}>
       <RegisterForm />
-    </main>
+    </AuthShell>
   );
 };
 

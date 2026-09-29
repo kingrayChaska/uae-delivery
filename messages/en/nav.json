@@ -1,0 +1,17 @@
+{
+  "main": "Main",
+  "links": {
+    "services": "Services",
+    "howItWorks": "How it works",
+    "pricing": "Pricing",
+    "merchants": "Merchants",
+    "track": "Track",
+    "contact": "Contact"
+  },
+  "signIn": "Sign in",
+  "book": "Book a delivery",
+  "openMenu": "Open menu",
+  "closeMenu": "Close menu",
+  "menu": "Menu",
+  "home": "ParcelLink home"
+}

@@ -56,11 +56,11 @@ export const useMerchantApplicationForm = (profileId: string, defaults: Partial<
   const uploadLicense = async (file: File) => {
     setUploadError(null);
     if (!ACCEPTED_TYPES.includes(file.type)) {
-      setUploadError('Upload a PDF, JPEG, PNG or WebP file');
+      setUploadError('merchant.errors.uploadType');
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      setUploadError('The file must be under 5MB');
+      setUploadError('merchant.errors.uploadSize');
       return;
     }
 
@@ -71,7 +71,7 @@ export const useMerchantApplicationForm = (profileId: string, defaults: Partial<
     setIsUploading(false);
 
     if (error) {
-      setUploadError('Upload failed. Please try again.');
+      setUploadError('merchant.errors.uploadFailed');
       return;
     }
     form.setValue('tradeLicensePath', path, { shouldDirty: true });

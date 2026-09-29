@@ -16,14 +16,26 @@ import type { NextRequest } from 'next/server';
 const hasAuthCookie = (request: NextRequest) =>
   request.cookies.getAll().some(({ name }) => name.startsWith('sb-') && name.includes('-auth-token'));
 
-export const updateSession = async (request: NextRequest) => {
-  let response = NextResponse.next({ request });
+// `pathname` is the page route being rendered. It differs from the URL for
+// the Arabic public pages: /ar/tracking renders /tracking (see i18n/resolve.ts),
+// and then `rewrite` is true.
+export const updateSession = async (
+  request: NextRequest,
+  { pathname = request.nextUrl.pathname, rewrite = false }: { pathname?: string; rewrite?: boolean } = {},
+) => {
+  const pass = () => {
+    if (!rewrite) return NextResponse.next({ request });
+    const url = request.nextUrl.clone();
+    url.pathname = pathname;
+    return NextResponse.rewrite(url, { request });
+  };
+  let response = pass();
 
   // No session cookie means nobody is signed in, so there's nothing to
   // refresh or verify. Skipping the Supabase client here keeps anonymous
   // visits (the marketing site, tracking) free of any network round trip.
   if (!hasAuthCookie(request)) {
-    const decision = decideRoute({ pathname: request.nextUrl.pathname, signedIn: false, profile: null });
+    const decision = decideRoute({ pathname, signedIn: false, profile: null });
     return decision.type === 'redirect' ? NextResponse.redirect(new URL(decision.to, request.url)) : response;
   }
 
@@ -39,7 +51,7 @@ export const updateSession = async (request: NextRequest) => {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = pass();
           cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options);
           });
@@ -54,8 +66,6 @@ export const updateSession = async (request: NextRequest) => {
   // on every request.
   const { data: claimsData } = await supabase.auth.getClaims();
   const userId = claimsData?.claims.sub ?? null;
-
-  const { pathname } = request.nextUrl;
 
   // Role dashboards skip this lookup — their layout checks the role (see
   // routeNeedsProfile).

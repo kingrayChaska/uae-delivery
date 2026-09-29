@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 
 import Button from '@/components/ui/button';
 import StatCard from '@/components/dashboard/stat-card';
@@ -8,33 +10,36 @@ import { getManagerSummary } from '@/services/shipments/get-manager-summary';
 import { listAuditLogs } from '@/services/audit/list-audit-logs';
 import { listRecentBatches } from '@/services/bulk/list-batches';
 import { countMerchantApplicationsByStatus } from '@/services/merchant/applications';
+import { getFormat } from '@/i18n/server';
 
 const ManagerDashboardPage = async () => {
   const profile = await getCurrentProfile();
   if (!profile) return null;
-  const [summary, activity, recentBatches, merchantCounts] = await Promise.all([
+  const [summary, activity, recentBatches, merchantCounts, t, format] = await Promise.all([
     getManagerSummary(),
     listAuditLogs(8),
     listRecentBatches(5),
     countMerchantApplicationsByStatus(),
+    getTranslations('manager.home'),
+    getFormat(),
   ]);
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-6">
+    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Overview</h1>
-          <p className="text-muted-foreground">Signed in as {profile.fullName}</p>
+          <h1 className="text-2xl font-semibold">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('signedInAs', { name: profile.fullName })}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline">
-            <Link href="/dashboard/manager/reports">Reports</Link>
+            <Link href="/dashboard/manager/reports">{t('reports')}</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/dashboard/manager/drivers/new">Add driver</Link>
+            <Link href="/dashboard/manager/drivers/new">{t('addDriver')}</Link>
           </Button>
           <Button asChild>
-            <Link href="/dashboard/manager/operators/new">Add operator</Link>
+            <Link href="/dashboard/manager/operators/new">{t('addOperator')}</Link>
           </Button>
         </div>
       </div>
@@ -45,61 +50,59 @@ const ManagerDashboardPage = async () => {
           className="flex items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-secondary/50 p-4 text-sm transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
           <span>
-            <span className="font-semibold">
-              {merchantCounts.pending} merchant {merchantCounts.pending === 1 ? 'application' : 'applications'}
-            </span>{' '}
-            waiting for review
+            {t.rich('pendingApplications', {
+              count: merchantCounts.pending,
+              strong: (chunks) => <span className="font-semibold">{chunks}</span>,
+            })}
           </span>
-          <span className="font-medium text-primary">Review →</span>
+          <span className="flex items-center gap-1 font-medium text-primary">
+            {t('review')}
+            <ArrowRight className="size-4 rtl:rotate-180" aria-hidden />
+          </span>
         </Link>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Booked Today" value={String(summary.shipmentsToday)} />
-        <StatCard label="In Progress" value={String(summary.inProgress)} />
-        <StatCard label="Awaiting Dispatch" value={String(summary.awaitingDispatch)} />
-        <StatCard label="Failed — Needs Action" value={String(summary.failedNeedingAction)} />
-        <StatCard label="Delivered This Month" value={String(summary.deliveredThisMonth)} />
-        <StatCard label="COD Outstanding" value={`AED ${summary.codOutstanding.toFixed(2)}`} />
-        <StatCard label="Active Drivers" value={String(summary.activeDrivers)} />
-        <StatCard label="Active Operators" value={String(summary.activeOperators)} />
+        <StatCard label={t('stats.bookedToday')} value={format.number(summary.shipmentsToday)} />
+        <StatCard label={t('stats.inProgress')} value={format.number(summary.inProgress)} />
+        <StatCard label={t('stats.awaitingDispatch')} value={format.number(summary.awaitingDispatch)} />
+        <StatCard label={t('stats.failed')} value={format.number(summary.failedNeedingAction)} />
+        <StatCard label={t('stats.deliveredMonth')} value={format.number(summary.deliveredThisMonth)} />
+        <StatCard label={t('stats.codOutstanding')} value={format.money(summary.codOutstanding)} />
+        <StatCard label={t('stats.activeDrivers')} value={format.number(summary.activeDrivers)} />
+        <StatCard label={t('stats.activeOperators')} value={format.number(summary.activeOperators)} />
       </div>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium">Recent bulk lists</h2>
+          <h2 className="text-lg font-medium">{t('recentLists')}</h2>
           <Link href="/dashboard/manager/bulk" className="text-sm text-muted-foreground hover:underline">
-            View all
+            {t('viewAll')}
           </Link>
         </div>
-        <BatchList
-          batches={recentBatches}
-          hrefBase="/dashboard/manager/bulk"
-          showSender
-          emptyMessage="No bulk lists submitted yet"
-        />
+        <BatchList batches={recentBatches} hrefBase="/dashboard/manager/bulk" showSender emptyMessage={t('noLists')} />
       </div>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium">Recent activity</h2>
+          <h2 className="text-lg font-medium">{t('recentActivity')}</h2>
           <Link href="/dashboard/manager/activity" className="text-sm text-muted-foreground hover:underline">
-            View all
+            {t('viewAll')}
           </Link>
         </div>
         {activity.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No activity yet.</p>
+          <p className="text-sm text-muted-foreground">{t('noActivity')}</p>
         ) : (
           <ul className="flex flex-col divide-y rounded-md border text-sm">
             {activity.map((log) => (
               <li key={log.id} className="flex items-center justify-between gap-4 px-3 py-2">
-                <span>
-                  <span className="font-medium">{log.actorName ?? 'System'}</span>{' '}
-                  <span className="font-brand-mono text-xs text-muted-foreground">{log.action}</span>
+                <span className="min-w-0">
+                  <span className="font-medium">{log.actorName ?? t('system')}</span>{' '}
+                  <span dir="ltr" className="font-brand-mono text-xs text-muted-foreground">
+                    {log.action}
+                  </span>
                 </span>
-                <span className="font-brand-mono text-xs text-muted-foreground">
-                  {new Date(log.createdAt).toLocaleString()}
-                </span>
+                <span className="shrink-0 font-brand-mono text-xs text-muted-foreground">{format.dateTime(log.createdAt)}</span>
               </li>
             ))}
           </ul>

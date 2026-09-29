@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
@@ -18,6 +19,7 @@ type ProofOfDeliveryFormProps = {
 };
 
 const ProofOfDeliveryForm = ({ shipmentId }: ProofOfDeliveryFormProps) => {
+  const t = useTranslations('driver.pod');
   const router = useRouter();
   const { upload, isUploading } = usePodUpload(shipmentId);
 
@@ -56,7 +58,7 @@ const ProofOfDeliveryForm = ({ shipmentId }: ProofOfDeliveryFormProps) => {
 
     const parsed = proofOfDeliverySchema.safeParse(input);
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Invalid input');
+      setError(parsed.error.issues[0]?.message ?? 'validation.invalid');
       return;
     }
 
@@ -74,17 +76,17 @@ const ProofOfDeliveryForm = ({ shipmentId }: ProofOfDeliveryFormProps) => {
 
   return (
     <div className="flex flex-col gap-4 rounded-md border p-4">
-      <h3 className="font-medium">Proof of Delivery</h3>
+      <h3 className="font-medium">{t('title')}</h3>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="recipientName">Recipient name</Label>
+        <Label htmlFor="recipientName">{t('recipientName')}</Label>
         <Input id="recipientName" value={recipientName} onChange={(event) => setRecipientName(event.target.value)} />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="podPhoto">Package photo</Label>
+        <Label htmlFor="podPhoto">{t('photo')}</Label>
         {photoPath ? (
-          <p className="text-sm text-success">Photo attached</p>
+          <p className="text-sm text-success">{t('photoAttached')}</p>
         ) : (
           <input
             id="podPhoto"
@@ -94,22 +96,22 @@ const ProofOfDeliveryForm = ({ shipmentId }: ProofOfDeliveryFormProps) => {
               const file = event.target.files?.[0];
               if (file) await handlePhotoSelect(file);
             }}
-            className="text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground"
+            className="text-sm text-muted-foreground file:me-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground"
           />
         )}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Recipient signature</Label>
+        <Label>{t('signature')}</Label>
         {signaturePath ? (
-          <p className="text-sm text-success">Signature captured</p>
+          <p className="text-sm text-success">{t('signatureCaptured')}</p>
         ) : (
           <SignaturePad onCapture={handleSignatureCapture} onClear={() => setSignaturePath(null)} />
         )}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Recipient OTP</Label>
+        <Label>{t('otp')}</Label>
         {!otpRequested ? (
           <Button
             type="button"
@@ -121,33 +123,37 @@ const ProofOfDeliveryForm = ({ shipmentId }: ProofOfDeliveryFormProps) => {
               setOtpRequested(true);
             }}
           >
-            Send code to customer
+            {t('sendCode')}
           </Button>
         ) : (
           <Input
             value={otpCode}
             onChange={(event) => setOtpCode(event.target.value)}
-            placeholder="4-digit code"
+            placeholder={t('codePlaceholder')}
+            aria-label={t('otp')}
             maxLength={4}
+            inputMode="numeric"
+            dir="ltr"
+            className="rtl:text-right"
           />
         )}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Scan shipment QR</Label>
+        <Label>{t('qr')}</Label>
         <QrScanner onScan={setQrToken} />
-        {qrToken ? <p className="text-sm text-success">QR captured</p> : null}
+        {qrToken ? <p className="text-sm text-success">{t('qrCaptured')}</p> : null}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="podNotes">Notes (optional)</Label>
+        <Label htmlFor="podNotes">{t('notes')}</Label>
         <Input id="podNotes" value={notes} onChange={(event) => setNotes(event.target.value)} />
       </div>
 
       {error ? <FieldError message={error} /> : null}
 
       <Button type="button" onClick={handleSubmit} disabled={isSubmitting || isUploading}>
-        {isSubmitting ? 'Completing…' : 'Complete Delivery'}
+        {isSubmitting ? t('completing') : t('complete')}
       </Button>
     </div>
   );

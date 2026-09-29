@@ -10,7 +10,7 @@ import { listAvailableDrivers } from '@/services/drivers/list-available-drivers'
 export type DispatchActionResult = { success: true } | { success: false; error: string };
 
 export const assignDriverAction = async (shipmentId: string, driverId: string): Promise<DispatchActionResult> => {
-  if (!isUuid(shipmentId) || !isUuid(driverId)) return { success: false, error: 'Not found' };
+  if (!isUuid(shipmentId) || !isUuid(driverId)) return { success: false, error: 'operator.errors.notFound' };
   const profile = await requireRole('operator', 'manager');
   const supabase = await createClient();
 
@@ -20,9 +20,9 @@ export const assignDriverAction = async (shipmentId: string, driverId: string): 
     .eq('id', shipmentId)
     .maybeSingle();
 
-  if (!shipment) return { success: false, error: 'Shipment not found' };
+  if (!shipment) return { success: false, error: 'operator.errors.shipmentNotFound' };
   if (shipment.status !== 'confirmed' || shipment.driver_id) {
-    return { success: false, error: 'This shipment is not awaiting assignment' };
+    return { success: false, error: 'operator.errors.notAwaiting' };
   }
 
   const { error } = await supabase
@@ -54,7 +54,7 @@ export const reassignDriverAction = async (
   shipmentId: string,
   newDriverId: string,
 ): Promise<DispatchActionResult> => {
-  if (!isUuid(shipmentId) || !isUuid(newDriverId)) return { success: false, error: 'Not found' };
+  if (!isUuid(shipmentId) || !isUuid(newDriverId)) return { success: false, error: 'operator.errors.notFound' };
   const profile = await requireRole('operator', 'manager');
   const supabase = await createClient();
 
@@ -64,9 +64,9 @@ export const reassignDriverAction = async (
     .eq('id', shipmentId)
     .maybeSingle();
 
-  if (!shipment) return { success: false, error: 'Shipment not found' };
+  if (!shipment) return { success: false, error: 'operator.errors.shipmentNotFound' };
   if (!['assigned', 'delivery_failed'].includes(shipment.status)) {
-    return { success: false, error: 'This shipment can no longer be reassigned' };
+    return { success: false, error: 'operator.errors.cannotReassign' };
   }
 
   const { error } = await supabase
@@ -89,7 +89,7 @@ export const reassignDriverAction = async (
 };
 
 export const markReturnedAction = async (shipmentId: string): Promise<DispatchActionResult> => {
-  if (!isUuid(shipmentId)) return { success: false, error: 'Not found' };
+  if (!isUuid(shipmentId)) return { success: false, error: 'operator.errors.notFound' };
   const profile = await requireRole('operator', 'manager');
   const supabase = await createClient();
 

@@ -1,0 +1,39 @@
+{
+  "meta": "Support · ParcelLink",
+  "title": "Support",
+  "inbox": "Support Inbox",
+  "newTicket": "New Ticket",
+  "emptyTitle": "No support tickets",
+  "emptyBody": "Open one if you need help with a delivery.",
+  "updated": "Updated {time}",
+  "customerUpdated": "{name} · updated {time}",
+  "customer": "Customer",
+  "status": {
+    "open": "Open",
+    "in_progress": "In progress",
+    "resolved": "Resolved",
+    "closed": "Closed"
+  },
+  "statusLabel": "Ticket status",
+  "new": {
+    "meta": "New support ticket · ParcelLink",
+    "title": "New Support Ticket",
+    "subject": "Subject",
+    "message": "Message",
+    "submit": "Open Ticket",
+    "submitting": "Opening…"
+  },
+  "reply": {
+    "placeholder": "Write a reply…",
+    "label": "Reply",
+    "submit": "Send Reply",
+    "submitting": "Sending…"
+  },
+  "validation": {
+    "subject": "Enter a subject",
+    "message": "Enter a message"
+  },
+  "errors": {
+    "openFailed": "Could not open a ticket"
+  }
+}

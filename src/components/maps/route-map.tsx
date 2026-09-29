@@ -5,6 +5,8 @@ import mapboxgl from 'mapbox-gl';
 
 import { UAE_DEFAULT_CENTER, UAE_DEFAULT_ZOOM } from '@/lib/maps/config';
 import { BRAND } from '@/lib/brand';
+import { useMapI18n } from '@/lib/maps/use-map-i18n';
+import { useAppLocale } from '@/i18n/hooks';
 
 import type { Coordinates } from '@/lib/types';
 import type { RouteResult } from '@/lib/maps/types';
@@ -21,7 +23,8 @@ type RouteMapProps = {
 const ROUTE_SOURCE_ID = 'route';
 const ROUTE_LAYER_ID = 'route-line';
 
-const RouteMap = ({ pickup, dropoff, route, className }: RouteMapProps) => {
+const RouteMapCanvas = ({ pickup, dropoff, route, className }: RouteMapProps) => {
+  const mapI18n = useMapI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -44,12 +47,15 @@ const RouteMap = ({ pickup, dropoff, route, className }: RouteMapProps) => {
       style: 'mapbox://styles/mapbox/light-v11',
       center: UAE_DEFAULT_CENTER,
       zoom: UAE_DEFAULT_ZOOM,
+      ...mapI18n.options(),
     });
 
     return () => {
       mapRef.current?.remove();
       mapRef.current = null;
     };
+    // Created once per language (RouteMap below remounts it on a switch).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Keep markers and the route line in sync with props.
@@ -120,5 +126,9 @@ const RouteMap = ({ pickup, dropoff, route, className }: RouteMapProps) => {
 
   return <div ref={containerRef} className={className ?? 'h-80 w-full rounded-md'} />;
 };
+
+// A new map for each language: labels and control text are fixed when a
+// map is created.
+const RouteMap = (props: RouteMapProps) => <RouteMapCanvas key={useAppLocale()} {...props} />;
 
 export default RouteMap;

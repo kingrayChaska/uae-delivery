@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "items": {
+      "dashboard": "لوحة التحكم",
+      "book": "حجز توصيلة",
+      "deliveries": "توصيلاتي",
+      "track": "تتبّع شحنة",
+      "merchant": "حساب التاجر",
+      "payments": "المدفوعات",
+      "notifications": "الإشعارات",
+      "profile": "الملف الشخصي",
+      "support": "الدعم",
+      "current": "التوصيلة الحالية",
+      "history": "سجل التوصيلات",
+      "cod": "الدفع عند الاستلام",
+      "shipments": "الشحنات",
+      "bulk": "الحجوزات المجمّعة",
+      "dispatch": "التوزيع",
+      "drivers": "السائقون",
+      "customers": "العملاء",
+      "map": "الخريطة المباشرة",
+      "activity": "سجل النشاط",
+      "operators": "المشغّلون",
+      "business": "الحسابات التجارية",
+      "merchants": "طلبات التجار",
+      "pricing": "الأسعار",
+      "reports": "التقارير",
+      "settings": "الإعدادات"
+    },
+    "sections": {
+      "account": "الحساب",
+      "operations": "العمليات",
+      "people": "الأشخاص",
+      "customersMerchants": "العملاء والتجار",
+      "team": "الفريق",
+      "business": "الأعمال"
+    },
+    "roles": {
+      "customer": "العميل",
+      "merchant": "التاجر",
+      "driver": "السائق",
+      "operator": "المشغّل",
+      "manager": "المدير"
+    },
+    "portal": "بوابة {role}",
+    "openMenu": "فتح قائمة التنقل",
+    "closeMenu": "إغلاق قائمة التنقل",
+    "navigation": "التنقل",
+    "label": "لوحة التحكم",
+    "home": "الصفحة الرئيسية للوحة التحكم",
+    "collapse": "طيّ",
+    "collapseSidebar": "طيّ الشريط الجانبي",
+    "expandSidebar": "توسيع الشريط الجانبي",
+    "signOut": "تسجيل الخروج",
+    "signingOut": "جارٍ تسجيل الخروج…"
+  }
+}

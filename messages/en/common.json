@@ -1,0 +1,93 @@
+{
+  "language": {
+    "label": "Language"
+  },
+  "skipToContent": "Skip to content",
+  "brand": "ParcelLink",
+  "actions": {
+    "save": "Save",
+    "saving": "Saving…",
+    "saveChanges": "Save changes",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "continue": "Continue",
+    "close": "Close",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "edit": "Edit",
+    "remove": "Remove",
+    "search": "Search",
+    "retry": "Try again",
+    "copy": "Copy",
+    "copied": "Copied",
+    "view": "View",
+    "viewAll": "View all",
+    "change": "Change",
+    "submit": "Submit",
+    "submitting": "Submitting…",
+    "apply": "Apply",
+    "filter": "Filter",
+    "clear": "Clear",
+    "download": "Download",
+    "print": "Print",
+    "open": "Open",
+    "yes": "Yes",
+    "no": "No",
+    "done": "Done",
+    "update": "Update",
+    "updating": "Updating…",
+    "create": "Create",
+    "creating": "Creating…",
+    "approve": "Approve",
+    "reject": "Reject",
+    "send": "Send",
+    "sending": "Sending…",
+    "details": "Details",
+    "loading": "Loading…",
+    "working": "Working…"
+  },
+  "states": {
+    "loading": "Loading…",
+    "empty": "Nothing here yet.",
+    "error": "Something went wrong. Please try again.",
+    "never": "Never",
+    "none": "None",
+    "notSet": "Not set",
+    "unknown": "Unknown",
+    "optional": "optional"
+  },
+  "pagination": {
+    "label": "Pagination",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {page} of {pages}",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "newer": "Newer",
+    "older": "Older"
+  },
+  "copyValue": "Copy {label}",
+  "copiedValue": "{label} copied",
+  "yesNo": {
+    "yes": "Yes",
+    "no": "No"
+  },
+  "copy": {
+    "failed": "Copy failed",
+    "copiedToClipboard": "Copied to clipboard",
+    "copyManually": "Could not copy. Select the text and copy it manually."
+  },
+  "dialog": {
+    "goBack": "Go back",
+    "close": "Close"
+  },
+  "password": {
+    "show": "Show password",
+    "hide": "Hide password"
+  },
+  "verification": {
+    "complete": "Complete the check above to continue."
+  }
+}

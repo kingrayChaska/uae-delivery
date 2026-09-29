@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { parseCsvWithHeaders } from '@/lib/csv/parse';
 import { missingBulkColumns, validateBulkRecords } from '@/lib/business/schemas';
+import { renderMessage } from '@/i18n/test-utils';
+
+// Row errors are translation keys; check them as an English reader sees them.
+const en = renderMessage('en');
+const ar = renderMessage('ar');
 
 const HEADER =
   'pickup_address,pickup_contact_name,pickup_contact_phone,dropoff_address,dropoff_contact_name,dropoff_contact_phone,package_type,package_description,quantity,weight_kg,fragile,payment_method';
@@ -29,8 +34,10 @@ describe('bulk upload row validation', () => {
     );
     const results = validateBulkRecords(records);
     expect(results[0].error).toBeNull();
-    expect(results[1]).toMatchObject({ rowNumber: 3, error: 'dropoff_address is required' });
-    expect(results[2].error).toMatch(/package_type must be one of/);
+    expect(results[1].rowNumber).toBe(3);
+    expect(en(results[1].error)).toBe('dropoff_address is required');
+    expect(ar(results[1].error)).toBe('العمود dropoff_address مطلوب');
+    expect(en(results[2].error)).toMatch(/package_type must be one of/);
   });
 
   it('rejects non-integer quantity and unknown payment methods', () => {
@@ -38,8 +45,8 @@ describe('bulk upload row validation', () => {
       `${HEADER}\nDubai Marina,Ali,0501234567,JBR Walk,Sara,0507654321,parcel,Shoes,1.5,,no,cod\nDubai Marina,Ali,0501234567,JBR Walk,Sara,0507654321,parcel,Shoes,1,,no,bitcoin`,
     );
     const results = validateBulkRecords(records);
-    expect(results[0].error).toBe('quantity must be a whole number');
-    expect(results[1].error).toBe('payment_method must be card or cod');
+    expect(en(results[0].error)).toBe('quantity must be a whole number');
+    expect(en(results[1].error)).toBe('payment_method must be one of: card, cod');
   });
 
   it('defaults to same-day, prepaid and reads delivery_type / cod_amount when given', () => {
@@ -50,7 +57,7 @@ describe('bulk upload row validation', () => {
     const [plain, nextDayCod, bad] = validateBulkRecords(records);
     expect(plain.row).toMatchObject({ delivery_type: 'same_day', cod_amount: 0 });
     expect(nextDayCod.row).toMatchObject({ delivery_type: 'next_day', cod_amount: 450 });
-    expect(bad.error).toBe('delivery_type must be same_day or next_day');
+    expect(en(bad.error)).toBe('delivery_type must be one of: same_day, next_day');
   });
 
   it('lists missing required columns but not optional ones', () => {

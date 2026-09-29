@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import Button from '@/components/ui/button';
 import Label from '@/components/ui/label';
 import FieldError from '@/components/ui/field-error';
@@ -9,6 +11,7 @@ import { useCreateStaffForm } from '@/lib/hooks/use-create-staff-form';
 import type { StaffRole } from '@/lib/staff/schemas';
 
 const CreateStaffForm = ({ role }: { role: StaffRole }) => {
+  const t = useTranslations('manager.staff.form');
   const { register, errors, isSubmitting, method, serverError, onSubmit } = useCreateStaffForm(role);
 
   return (
@@ -16,50 +19,48 @@ const CreateStaffForm = ({ role }: { role: StaffRole }) => {
       <input type="hidden" {...register('role')} />
 
       <section className="grid gap-4 sm:grid-cols-2">
-        <Field id="fullName" label="Full name" error={errors.fullName?.message} {...register('fullName')} />
-        <Field id="email" type="email" label="Email" error={errors.email?.message} {...register('email')} />
-        <Field id="phone" type="tel" label="Phone" error={errors.phone?.message} {...register('phone')} />
+        <Field id="fullName" label={t('fullName')} error={errors.fullName?.message} {...register('fullName')} />
+        <Field id="email" type="email" dir="ltr" className="rtl:text-right" label={t('email')} error={errors.email?.message} {...register('email')} />
+        <Field id="phone" type="tel" dir="ltr" className="rtl:text-right" label={t('phone')} error={errors.phone?.message} {...register('phone')} />
         {role === 'operator' ? (
-          <Field id="employeeId" label="Employee ID" error={errors.employeeId?.message} {...register('employeeId')} />
+          <Field id="employeeId" label={t('employeeId')} error={errors.employeeId?.message} {...register('employeeId')} />
         ) : (
-          <Field id="driverCode" label="Driver ID" error={errors.driverCode?.message} {...register('driverCode')} />
+          <Field id="driverCode" label={t('driverId')} error={errors.driverCode?.message} {...register('driverCode')} />
         )}
       </section>
 
       {role === 'driver' ? (
         <section className="flex flex-col gap-4">
-          <h2 className="text-sm font-medium">License</h2>
+          <h2 className="text-sm font-medium">{t('license')}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="licenseNumber" label="License number" error={errors.licenseNumber?.message} {...register('licenseNumber')} />
-            <Field id="licenseExpiry" type="date" label="License expiry (optional)" {...register('licenseExpiry')} />
+            <Field id="licenseNumber" label={t('licenseNumber')} error={errors.licenseNumber?.message} {...register('licenseNumber')} />
+            <Field id="licenseExpiry" type="date" label={t('licenseExpiry')} {...register('licenseExpiry')} />
           </div>
-          <h2 className="text-sm font-medium">Vehicle (optional)</h2>
+          <h2 className="text-sm font-medium">{t('vehicleOptional')}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="vehicleType" label="Type" placeholder="Van, motorbike…" {...register('vehicleType')} />
-            <Field id="vehicleMake" label="Make" {...register('vehicleMake')} />
-            <Field id="vehicleModel" label="Model" {...register('vehicleModel')} />
-            <Field id="plateNumber" label="Plate number" error={errors.plateNumber?.message} {...register('plateNumber')} />
-            <Field id="registrationNumber" label="Registration number" {...register('registrationNumber')} />
+            <Field id="vehicleType" label={t('vehicleType')} placeholder={t('vehicleTypePlaceholder')} {...register('vehicleType')} />
+            <Field id="vehicleMake" label={t('vehicleMake')} {...register('vehicleMake')} />
+            <Field id="vehicleModel" label={t('vehicleModel')} {...register('vehicleModel')} />
+            <Field id="plateNumber" label={t('plateNumber')} error={errors.plateNumber?.message} {...register('plateNumber')} />
+            <Field id="registrationNumber" label={t('registrationNumber')} {...register('registrationNumber')} />
           </div>
         </section>
       ) : null}
 
       <section className="flex flex-col gap-3 rounded-md border p-4">
-        <Label>How should they get access?</Label>
+        <Label>{t('accessQuestion')}</Label>
         <label className="flex items-start gap-2 text-sm">
           <input type="radio" value="invite" className="mt-1" {...register('method')} />
           <span>
-            <span className="font-medium">Email invitation</span>
-            <span className="block text-muted-foreground">They receive a link and choose their own password.</span>
+            <span className="font-medium">{t('invite')}</span>
+            <span className="block text-muted-foreground">{t('inviteHint')}</span>
           </span>
         </label>
         <label className="flex items-start gap-2 text-sm">
           <input type="radio" value="password" className="mt-1" {...register('method')} />
           <span>
-            <span className="font-medium">Temporary password</span>
-            <span className="block text-muted-foreground">
-              You set a password and share it securely; they can change it from the login page.
-            </span>
+            <span className="font-medium">{t('password')}</span>
+            <span className="block text-muted-foreground">{t('passwordHint')}</span>
           </span>
         </label>
         {method === 'password' ? (
@@ -67,7 +68,7 @@ const CreateStaffForm = ({ role }: { role: StaffRole }) => {
             id="password"
             type="password"
             autoComplete="new-password"
-            label="Temporary password"
+            label={t('password')}
             error={errors.password?.message}
             {...register('password')}
           />
@@ -77,7 +78,7 @@ const CreateStaffForm = ({ role }: { role: StaffRole }) => {
       <FieldError message={serverError ?? undefined} />
 
       <Button type="submit" disabled={isSubmitting} className="self-start">
-        {isSubmitting ? 'Creating…' : `Create ${role}`}
+        {isSubmitting ? t('creating') : role === 'driver' ? t('createDriver') : t('createOperator')}
       </Button>
     </form>
   );

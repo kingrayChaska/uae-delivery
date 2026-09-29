@@ -1,6 +1,7 @@
 'use client';
 
 import { useWatch } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 
 import Input from '@/components/ui/input';
 import Label from '@/components/ui/label';
@@ -42,6 +43,7 @@ const LocationStep = ({
   onPinModeChange,
   contactHrefFor,
 }: LocationStepProps) => {
+  const t = useTranslations('booking.location');
   const { register, setValue, formState, control } = form;
   const errors = formState.errors[field];
   const location = useWatch({ control, name: field });
@@ -83,40 +85,38 @@ const LocationStep = ({
       {value && !blocked ? (
         <div className="flex flex-col gap-4 rounded-xl border border-dashed p-4 animate-in fade-in-0 duration-200 motion-reduce:animate-none">
           <div>
-            <p className="text-sm font-medium">Address details <span className="font-normal text-muted-foreground">— optional</span></p>
-            <p className="text-sm text-muted-foreground">
-              {pinnedWithoutAddress
-                ? 'We saved the pin location. Add the building and unit so the driver finds the right door.'
-                : 'Help the driver find the exact door.'}
+            <p className="text-sm font-medium">
+              {t('detailsTitle')} <span className="font-normal text-muted-foreground">{t('optional')}</span>
             </p>
+            <p className="text-sm text-muted-foreground">{pinnedWithoutAddress ? t('pinnedHint') : t('driverHint')}</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${field}-building`}>Building / Villa / Warehouse</Label>
-              <Input id={`${field}-building`} placeholder="e.g. Marina Gate 2" autoComplete="address-line1" {...register(`${field}.building`)} />
+              <Label htmlFor={`${field}-building`}>{t('building')}</Label>
+              <Input id={`${field}-building`} placeholder={t('buildingPlaceholder')} autoComplete="address-line1" {...register(`${field}.building`)} />
               <FieldError message={errors?.building?.message} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor={`${field}-unit`}>Apt / Office / Unit</Label>
-                <Input id={`${field}-unit`} placeholder="e.g. 1204" autoComplete="address-line2" {...register(`${field}.unit`)} />
+                <Label htmlFor={`${field}-unit`}>{t('unit')}</Label>
+                <Input id={`${field}-unit`} placeholder={t('unitPlaceholder')} autoComplete="address-line2" {...register(`${field}.unit`)} />
                 <FieldError message={errors?.unit?.message} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor={`${field}-floor`}>Floor</Label>
-                <Input id={`${field}-floor`} placeholder="e.g. 12" inputMode="text" {...register(`${field}.floor`)} />
+                <Label htmlFor={`${field}-floor`}>{t('floor')}</Label>
+                <Input id={`${field}-floor`} placeholder={t('floorPlaceholder')} inputMode="text" {...register(`${field}.floor`)} />
                 <FieldError message={errors?.floor?.message} />
               </div>
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`${field}-instructions`}>
-              {field === 'pickup' ? 'Pickup instructions' : 'Delivery instructions'}
+              {field === 'pickup' ? t('pickupInstructions') : t('dropoffInstructions')}
             </Label>
             <textarea
               id={`${field}-instructions`}
               rows={2}
-              placeholder={field === 'pickup' ? 'e.g. Collect from reception' : 'e.g. Call the recipient when you arrive'}
+              placeholder={field === 'pickup' ? t('pickupInstructionsPlaceholder') : t('dropoffInstructionsPlaceholder')}
               className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 sm:text-sm"
               {...register(`${field}.instructions`)}
             />
@@ -139,13 +139,15 @@ const LocationStep = ({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${field}-contactPhone`}>Phone number</Label>
+          <Label htmlFor={`${field}-contactPhone`}>{t('phone')}</Label>
           <Input
             id={`${field}-contactPhone`}
             type="tel"
             inputMode="tel"
             autoComplete="tel"
-            placeholder="05X XXX XXXX"
+            placeholder={t('phonePlaceholder')}
+            dir="ltr"
+            className="rtl:text-right"
             aria-invalid={Boolean(errors?.contactPhone) || undefined}
             aria-describedby={errors?.contactPhone ? `${field}-contactPhone-error` : undefined}
             {...register(`${field}.contactPhone`)}

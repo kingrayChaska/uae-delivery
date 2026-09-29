@@ -1,21 +1,16 @@
 import { Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { BOOKING_STEPS } from '@/lib/hooks/use-booking-wizard';
-
-const STEP_LABELS: Record<(typeof BOOKING_STEPS)[number], string> = {
-  pickup: 'Pickup',
-  dropoff: 'Delivery',
-  package: 'Package',
-  review: 'Review & book',
-};
 
 type BookingProgressProps = {
   stepIndex: number;
 };
 
 const BookingProgress = ({ stepIndex }: BookingProgressProps) => {
+  const t = useTranslations('booking.progress');
   return (
-    <nav aria-label="Booking progress">
+    <nav aria-label={t('label')}>
       <ol className="grid grid-cols-4 gap-2">
         {BOOKING_STEPS.map((step, index) => {
           const done = index < stepIndex;
@@ -35,8 +30,8 @@ const BookingProgress = ({ stepIndex }: BookingProgressProps) => {
                 }`}
               >
                 {done ? <Check className="size-3.5 text-primary" aria-hidden /> : null}
-                <span className={current ? '' : 'hidden sm:inline'}>{STEP_LABELS[step]}</span>
-                <span className="sr-only">{done ? ' (completed)' : current ? ' (current step)' : ''}</span>
+                <span className={current ? '' : 'hidden sm:inline'}>{t(step)}</span>
+                <span className="sr-only">{done ? ` ${t('completed')}` : current ? ` ${t('current')}` : ''}</span>
               </span>
             </li>
           );

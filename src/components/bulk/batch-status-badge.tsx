@@ -1,17 +1,19 @@
+import { useTranslations } from 'next-intl';
+
 import Badge from '@/components/ui/badge';
 
 import type { BatchStatus } from '@/lib/bulk/schemas';
 
-const BATCH_STATUS: Record<BatchStatus, { label: string; variant: 'secondary' | 'success' | 'warning' | 'destructive' }> = {
-  processing: { label: 'Processing', variant: 'secondary' },
-  submitted: { label: 'Submitted', variant: 'success' },
-  partially_failed: { label: 'Some rows failed', variant: 'warning' },
-  failed: { label: 'Failed', variant: 'destructive' },
+const BATCH_VARIANT: Record<BatchStatus, 'secondary' | 'success' | 'warning' | 'destructive'> = {
+  processing: 'secondary',
+  submitted: 'success',
+  partially_failed: 'warning',
+  failed: 'destructive',
 };
 
 const BatchStatusBadge = ({ status }: { status: BatchStatus }) => {
-  const { label, variant } = BATCH_STATUS[status];
-  return <Badge variant={variant}>{label}</Badge>;
+  const t = useTranslations('operator.bulk.status');
+  return <Badge variant={BATCH_VARIANT[status]}>{t(status)}</Badge>;
 };
 
 export default BatchStatusBadge;

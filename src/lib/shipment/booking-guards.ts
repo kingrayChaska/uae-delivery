@@ -1,6 +1,8 @@
 import { haversineDistanceKm } from '@/lib/maps/haversine';
 import { UAE_BBOX } from '@/lib/maps/config';
 
+import { msg } from '@/i18n/message';
+
 import type { Coordinates } from '@/lib/types';
 
 // Shared by the booking wizard (instant feedback) and createShipment (the
@@ -8,18 +10,19 @@ import type { Coordinates } from '@/lib/types';
 
 export const MIN_TRIP_KM = 0.1;
 
+// Translation keys (messages/*/booking.json), shown in the reader's language.
 export const BOOKING_ERRORS = {
-  sameLocation: 'Pickup and delivery are the same place. Choose a different delivery address.',
-  outsideUae: 'We only deliver within the UAE. Choose addresses inside the UAE.',
-  routeFailed: 'Unable to calculate route. Please try again.',
-  weightRequired: 'Enter the shipment weight — it’s required for merchant shipments.',
+  sameLocation: 'booking.errors.sameLocation',
+  outsideUae: 'booking.errors.outsideUae',
+  routeFailed: 'booking.errors.routeFailed',
+  weightRequired: 'booking.errors.weightRequired',
 } as const;
 
 // The long-distance restriction: booking is refused beyond the rule's
 // maximum distance (50 km by default, set per pricing rule). The same limit
 // is enforced by createShipment() and by the database for every caller.
 export const distanceLimitMessage = (distanceKm: number, maxDistanceKm: number) =>
-  `This delivery is ${distanceKm.toFixed(1)} km by road, which is beyond ParcelLink’s ${maxDistanceKm} km standard delivery distance, so it can’t be booked online. Choose a delivery address within ${maxDistanceKm} km of the pickup, or contact support to arrange a long-distance delivery.`;
+  msg('booking.errors.distanceLimit', { distance: distanceKm.toFixed(1), max: maxDistanceKm });
 
 export const isInsideUae = ({ lat, lng }: Coordinates) => {
   const [minLng, minLat, maxLng, maxLat] = UAE_BBOX;

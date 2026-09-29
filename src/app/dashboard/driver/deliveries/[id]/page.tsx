@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 
 import { Card, CardContent } from '@/components/ui/card';
 import AddressBlock from '@/components/shipment/address-block';
@@ -7,9 +8,20 @@ import ShipmentWorkflow from '@/components/driver/shipment-workflow';
 import RouteMap from '@/components/maps/lazy-route-map';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { getShipmentDetail } from '@/services/shipments/get-shipment';
-import { formatEta } from '@/lib/shipment/format';
+import { getFormat } from '@/i18n/server';
 
-const TERMINAL_STATUSES = ['delivered', 'delivery_failed', 'cancelled', 'returned'];
+import type { Metadata } from 'next';
+
+export const generateMetadata = async (): Promise<Metadata> => ({
+  title: (await getTranslations('driver.detail'))('meta'),
+});
+
+const TERMINAL_MESSAGES = {
+  delivered: 'complete',
+  delivery_failed: 'failed',
+  cancelled: 'cancelled',
+  returned: 'returned',
+} as const;
 
 const DriverDeliveryDetailPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   await requireRoleOrRedirect('driver');
@@ -18,19 +30,26 @@ const DriverDeliveryDetailPage = async ({ params }: { params: Promise<{ id: stri
   const detail = await getShipmentDetail(id);
   if (!detail) notFound();
 
+  const [t, tShipments, format] = await Promise.all([
+    getTranslations('driver.detail'),
+    getTranslations('shipments.detail'),
+    getFormat(),
+  ]);
   const { shipment, packageImageUrl } = detail;
-  const isTerminal = TERMINAL_STATUSES.includes(shipment.status);
+  const terminal = shipment.status in TERMINAL_MESSAGES ? TERMINAL_MESSAGES[shipment.status as keyof typeof TERMINAL_MESSAGES] : null;
   // Same split the COD record uses (sync_shipment_cod_transaction, 0022).
   const collectGoods = shipment.recipientPaymentType === 'postpaid' ? shipment.codAmount : 0;
   const collectFee = shipment.paymentMethod === 'cod' ? shipment.price : 0;
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-6">
+    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-brand-mono text-sm text-muted-foreground">{shipment.trackingNumber}</p>
+        <div className="min-w-0">
+          <p dir="ltr" className="font-brand-mono text-sm text-muted-foreground rtl:text-right">
+            {shipment.trackingNumber}
+          </p>
           <h1 className="text-2xl font-semibold">
-            {shipment.pickup.formattedAddress} → {shipment.dropoff.formattedAddress}
+            {shipment.pickup.formattedAddress} <span className="inline-block rtl:rotate-180">→</span> {shipment.dropoff.formattedAddress}
           </h1>
         </div>
         <ShipmentStatusBadge status={shipment.status} />
@@ -38,7 +57,7 @@ const DriverDeliveryDetailPage = async ({ params }: { params: Promise<{ id: stri
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="flex flex-col gap-4">
-          {!isTerminal ? (
+          {!terminal ? (
             <Card>
               <CardContent className="pt-6">
                 <ShipmentWorkflow
@@ -51,27 +70,22 @@ const DriverDeliveryDetailPage = async ({ params }: { params: Promise<{ id: stri
             </Card>
           ) : (
             <Card>
-              <CardContent className="pt-6 text-sm text-muted-foreground">
-                {shipment.status === 'delivered' ? 'This delivery is complete.' : null}
-                {shipment.status === 'delivery_failed' ? 'This delivery attempt failed.' : null}
-                {shipment.status === 'cancelled' ? 'This delivery was cancelled.' : null}
-                {shipment.status === 'returned' ? 'This shipment was returned.' : null}
-              </CardContent>
+              <CardContent className="pt-6 text-sm text-muted-foreground">{t(terminal)}</CardContent>
             </Card>
           )}
 
           <Card>
             <CardContent className="flex flex-col gap-3 pt-6 text-sm">
-              <AddressBlock heading="Pickup" address={shipment.pickup} showNavigation />
-              <AddressBlock heading="Delivery" address={shipment.dropoff} showNavigation />
+              <AddressBlock heading={tShipments('pickup')} address={shipment.pickup} showNavigation />
+              <AddressBlock heading={tShipments('delivery')} address={shipment.dropoff} showNavigation />
               <div className="grid grid-cols-2 gap-4 border-t pt-3 font-brand-mono">
                 <div>
-                  <p className="text-xs text-muted-foreground">Distance</p>
-                  <p>{shipment.distanceKm.toFixed(1)} km</p>
+                  <p className="font-sans text-xs text-muted-foreground">{t('distance')}</p>
+                  <p>{format.km(shipment.distanceKm)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Estimated time</p>
-                  <p>{formatEta(shipment.durationMinutes)}</p>
+                  <p className="font-sans text-xs text-muted-foreground">{t('estimatedTime')}</p>
+                  <p>{format.duration(shipment.durationMinutes)}</p>
                 </div>
               </div>
             </CardContent>
@@ -79,47 +93,41 @@ const DriverDeliveryDetailPage = async ({ params }: { params: Promise<{ id: stri
 
           <Card>
             <CardContent className="flex flex-col gap-3 pt-6 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Package</span>
-                <span>{shipment.packageDescription}</span>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">{t('package')}</span>
+                <span className="text-end">{shipment.packageDescription}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Quantity</span>
-                <span>{shipment.packageQuantity}</span>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">{t('quantity')}</span>
+                <span>{format.number(shipment.packageQuantity)}</span>
               </div>
-              {shipment.isFragile ? <p className="text-warning-foreground">Marked fragile</p> : null}
+              {shipment.isFragile ? <p className="text-warning-foreground">{t('fragile')}</p> : null}
               {packageImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- signed Supabase Storage URL
-                <img src={packageImageUrl} alt="Package" className="mt-1 h-32 w-32 rounded-md object-cover" />
+                <img src={packageImageUrl} alt={t('photoAlt')} className="mt-1 h-32 w-32 rounded-md object-cover" />
               ) : null}
               {collectGoods + collectFee > 0 ? (
                 <div className="flex flex-col gap-1 rounded-xl border-2 border-primary/30 bg-secondary/40 p-3 font-brand-mono">
-                  <p className="font-sans text-xs font-semibold uppercase tracking-wide text-muted-foreground">Collect on delivery</p>
+                  <p className="font-sans text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('collectTitle')}</p>
                   {collectGoods > 0 ? (
                     <p className="flex justify-between gap-4">
-                      <span>Goods (from recipient)</span>
-                      <span>
-                        {shipment.currency} {collectGoods.toFixed(2)}
-                      </span>
+                      <span className="font-sans">{t('goods')}</span>
+                      <span>{format.money(collectGoods, shipment.currency)}</span>
                     </p>
                   ) : null}
                   {collectFee > 0 ? (
                     <p className="flex justify-between gap-4">
-                      <span>Delivery fee (cash)</span>
-                      <span>
-                        {shipment.currency} {collectFee.toFixed(2)}
-                      </span>
+                      <span className="font-sans">{t('fee')}</span>
+                      <span>{format.money(collectFee, shipment.currency)}</span>
                     </p>
                   ) : null}
                   <p className="flex justify-between gap-4 border-t pt-1 text-base font-semibold">
-                    <span>Total cash</span>
-                    <span>
-                      {shipment.currency} {(collectGoods + collectFee).toFixed(2)}
-                    </span>
+                    <span className="font-sans">{t('total')}</span>
+                    <span>{format.money(collectGoods + collectFee, shipment.currency)}</span>
                   </p>
                 </div>
               ) : (
-                <p className="border-t pt-2 text-muted-foreground">Prepaid — nothing to collect.</p>
+                <p className="border-t pt-2 text-muted-foreground">{t('prepaid')}</p>
               )}
             </CardContent>
           </Card>

@@ -23,7 +23,7 @@ export const searchLocationsAction = async (input: LocationSearchInput): Promise
   const profile = await requireUser();
   if (!(await checkRateLimit('mapsPerUser', profile.id))) return { success: false, error: RATE_LIMIT_MESSAGE };
   const parsed = locationSearchSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: 'Enter a place to search for' };
+  if (!parsed.success) return { success: false, error: 'maps.search.empty' };
   const { query, sessionToken, proximity } = parsed.data;
 
   try {
@@ -47,13 +47,13 @@ export const retrieveLocationAction = async (input: LocationRetrieveInput): Prom
   const profile = await requireUser();
   if (!(await checkRateLimit('mapsPerUser', profile.id))) return { success: false, error: RATE_LIMIT_MESSAGE };
   const parsed = locationRetrieveSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: 'That place could not be loaded' };
+  if (!parsed.success) return { success: false, error: 'maps.search.loadFailed' };
 
   try {
     return { success: true, location: await mapboxProvider.retrieve(parsed.data.id, parsed.data.sessionToken) };
   } catch (error) {
     if (error instanceof MapsProviderError) console.error('Search Box retrieve failed', error.message);
-    return { success: false, error: 'That place could not be loaded. Try another result or drop a pin on the map.' };
+    return { success: false, error: 'maps.search.loadFailed' };
   }
 };
 
@@ -63,13 +63,13 @@ export const reverseGeocodeAction = async (input: Coordinates): Promise<ResolveL
   const profile = await requireUser();
   if (!(await checkRateLimit('mapsPerUser', profile.id))) return { success: false, error: RATE_LIMIT_MESSAGE };
   const parsed = reverseGeocodeSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: 'Invalid coordinates' };
+  if (!parsed.success) return { success: false, error: 'maps.errors.invalidCoordinates' };
 
   try {
     return { success: true, location: await mapboxProvider.reverseGeocode(parsed.data) };
   } catch (error) {
     if (error instanceof MapsProviderError) console.error('Reverse geocoding failed', error.message);
-    return { success: false, error: 'Address lookup failed' };
+    return { success: false, error: 'maps.errors.lookupFailed' };
   }
 };
 
@@ -79,7 +79,7 @@ export const getRouteAction = async (input: RouteRequestInput): Promise<GetRoute
   const profile = await requireUser();
   if (!(await checkRateLimit('mapsPerUser', profile.id))) return { success: false, error: RATE_LIMIT_MESSAGE };
   const parsed = routeRequestSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: 'Invalid coordinates' };
+  if (!parsed.success) return { success: false, error: 'maps.errors.invalidCoordinates' };
 
   try {
     const route = await mapboxProvider.getRoute(parsed.data.origin, parsed.data.destination);

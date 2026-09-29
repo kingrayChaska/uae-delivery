@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 
-import Badge from '@/components/ui/badge';
 import ReplyForm from '@/components/support/reply-form';
+import TicketStatusBadge from '@/components/support/ticket-status-badge';
+import TicketThread from '@/components/support/ticket-thread';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { getTicketAction } from '@/lib/support/actions';
 
@@ -15,27 +16,13 @@ const TicketDetailPage = async ({ params }: { params: Promise<{ id: string }> })
   const { ticket, messages } = detail;
 
   return (
-    <main className="flex flex-1 flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
+    <main className="flex flex-1 flex-col gap-4 p-4 sm:p-6">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{ticket.subject}</h1>
-        <Badge variant={ticket.status === 'open' ? 'default' : 'secondary'}>{ticket.status}</Badge>
+        <TicketStatusBadge status={ticket.status} />
       </div>
 
-      <div className="flex flex-col gap-3">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`max-w-lg rounded-md border p-3 text-sm ${
-              message.senderIsMe ? 'self-end bg-secondary/50' : 'self-start'
-            }`}
-          >
-            <p>{message.message}</p>
-            <p className="mt-1 font-brand-mono text-xs text-muted-foreground">
-              {new Date(message.createdAt).toLocaleString()}
-            </p>
-          </div>
-        ))}
-      </div>
+      <TicketThread messages={messages} />
 
       <ReplyForm ticketId={ticket.id} />
     </main>

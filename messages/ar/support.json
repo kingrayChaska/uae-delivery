@@ -1,0 +1,39 @@
+{
+  "meta": "الدعم · ParcelLink",
+  "title": "الدعم",
+  "inbox": "صندوق الدعم",
+  "newTicket": "تذكرة جديدة",
+  "emptyTitle": "لا توجد تذاكر دعم",
+  "emptyBody": "افتح تذكرة إذا احتجت إلى مساعدة بخصوص توصيلة.",
+  "updated": "آخر تحديث {time}",
+  "customerUpdated": "{name} · آخر تحديث {time}",
+  "customer": "عميل",
+  "status": {
+    "open": "مفتوحة",
+    "in_progress": "قيد المعالجة",
+    "resolved": "تم الحل",
+    "closed": "مغلقة"
+  },
+  "statusLabel": "حالة التذكرة",
+  "new": {
+    "meta": "تذكرة دعم جديدة · ParcelLink",
+    "title": "تذكرة دعم جديدة",
+    "subject": "الموضوع",
+    "message": "الرسالة",
+    "submit": "فتح التذكرة",
+    "submitting": "جارٍ الفتح…"
+  },
+  "reply": {
+    "placeholder": "اكتب ردًا…",
+    "label": "الرد",
+    "submit": "إرسال الرد",
+    "submitting": "جارٍ الإرسال…"
+  },
+  "validation": {
+    "subject": "أدخل الموضوع",
+    "message": "أدخل الرسالة"
+  },
+  "errors": {
+    "openFailed": "تعذّر فتح التذكرة"
+  }
+}

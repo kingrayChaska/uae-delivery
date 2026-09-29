@@ -63,7 +63,7 @@ export const getBookingCustomer = async (customerId: string): Promise<BookingCus
     .select('id, account_type')
     .eq('id', customerId)
     .maybeSingle();
-  if (!profile) throw new Error('Customer not found');
+  if (!profile) throw new Error('booking.errors.customerNotFound');
 
   let merchantBusinessAccountId: string | null = null;
   if (profile.account_type === 'merchant') {
@@ -115,7 +115,7 @@ export const quoteShipment = async (
   if (isFallbackRule(rule)) {
     // An in-code fallback has no database row, so the database's price
     // check would reject it anyway. Fail clearly instead.
-    throw new Error('Pricing is not configured. Please contact support.');
+    throw new Error('booking.errors.pricingMissing');
   }
 
   let route;
@@ -219,7 +219,7 @@ export const insertQuotedShipment = async (
       const existing = await findByClientRequestId(customer.id, input.clientRequestId);
       if (existing) return existing;
     }
-    throw new Error(safeErrorMessage(error, 'Could not create the shipment'));
+    throw new Error(safeErrorMessage(error, 'booking.errors.createFailed'));
   }
 
   return mapRowToShipment(data as ShipmentRow);

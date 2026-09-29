@@ -1,0 +1,148 @@
+{
+  "status": {
+    "pending_payment": "بانتظار الدفع",
+    "confirmed": "مؤكدة",
+    "assigned": "تم تعيين سائق",
+    "driver_accepted": "قبِل السائق الطلب",
+    "arrived_pickup": "السائق في موقع الاستلام",
+    "picked_up": "تم الاستلام",
+    "in_transit": "قيد التوصيل",
+    "arrived_destination": "وصل إلى موقع التسليم",
+    "delivered": "تم التسليم",
+    "delivery_failed": "تعذّر التسليم",
+    "cancelled": "ملغاة",
+    "returned": "أُعيدت إلى المرسل"
+  },
+  "deliveryType": {
+    "same_day": {
+      "label": "التوصيل في نفس اليوم",
+      "short": "نفس اليوم",
+      "description": "نستلمها ونوصلها اليوم."
+    },
+    "next_day": {
+      "label": "التوصيل في اليوم التالي",
+      "short": "اليوم التالي",
+      "description": "تصل في اليوم التالي بسعر أقل."
+    }
+  },
+  "packageType": {
+    "document": "مستندات",
+    "parcel": "طرد",
+    "fragile": "قابل للكسر",
+    "bulk": "شحنة كبيرة"
+  },
+  "paymentMethod": {
+    "card": "بطاقة",
+    "cod": "نقدًا"
+  },
+  "paymentMethodLong": {
+    "card": "الدفع بالبطاقة",
+    "cod": "الدفع نقدًا"
+  },
+  "recipientPayment": {
+    "prepaid": "مدفوع مسبقًا",
+    "postpaid": "الدفع عند التسليم"
+  },
+  "recipientPaymentShort": {
+    "prepaid": "مدفوع مسبقًا",
+    "postpaid": "الدفع عند التسليم"
+  },
+  "paymentStatus": {
+    "pending": "قيد الانتظار",
+    "paid": "مدفوع",
+    "failed": "فشل الدفع",
+    "refunded": "مُسترد"
+  },
+  "codStatus": {
+    "expected": "متوقَّع",
+    "collected": "تم التحصيل",
+    "reconciled": "تمت التسوية",
+    "remitted": "تم التحويل"
+  },
+  "driverAvailability": {
+    "available": "متاح",
+    "busy": "مشغول",
+    "offline": "غير متصل"
+  },
+  "accountType": {
+    "individual": "فرد",
+    "merchant": "تاجر"
+  },
+  "roles": {
+    "customer": "عميل",
+    "driver": "سائق",
+    "operator": "مشغّل",
+    "manager": "مدير"
+  },
+  "trackingId": "رقم التتبّع",
+  "trackingIdSpoken": "رقم التتبّع {code}",
+  "fragile": "قابل للكسر",
+  "quantity": "{count, plural, zero {لا قطع} one {قطعة واحدة} two {قطعتان} few {# قطع} many {# قطعة} other {# قطعة}}",
+  "detail": {
+    "tracking": "التتبّع",
+    "pickup": "الاستلام",
+    "delivery": "التسليم",
+    "package": "الطرد",
+    "contents": "المحتويات",
+    "quantity": "الكمية",
+    "weight": "الوزن",
+    "dimensions": "الأبعاد",
+    "markedFragile": "مُعلَّم كقابل للكسر",
+    "photoAlt": "صورة الطرد: {description}",
+    "history": "سجل الحالات الكامل",
+    "to": "إلى",
+    "distance": "المسافة",
+    "duration": "مدة القيادة التقديرية"
+  },
+  "charges": {
+    "feePaidBy": "طريقة دفع رسوم التوصيل",
+    "card": "بطاقة",
+    "cash": "نقدًا للسائق",
+    "paidWith": "{method} · {status}",
+    "recipientPayment": "دفع المستلم ثمن البضاعة",
+    "postpaidCollect": "الدفع عند التسليم — تحصيل <mono>{amount}</mono>",
+    "prepaidNothing": "مدفوع مسبقًا — لا يوجد مبلغ للتحصيل",
+    "productValue": "قيمة المنتج"
+  },
+  "address": {
+    "unit": "الوحدة {unit}",
+    "floor": "الطابق {floor}",
+    "locatedCurrent": "تم التحديد بالموقع الحالي",
+    "pinSelected": "تم تحديد الموقع بدبوس",
+    "navigate": "التوجّه إلى الموقع بدقة"
+  },
+  "list": {
+    "cod": "· دفع عند الاستلام {amount}",
+    "to": "إلى"
+  },
+  "pod": {
+    "notYet": "سيتوفر إثبات التسليم هنا فور تسليم طردك.",
+    "view": "عرض إثبات التسليم",
+    "title": "إثبات التسليم",
+    "shipment": "الشحنة {code}",
+    "delivered": "تاريخ التسليم",
+    "receivedBy": "استلمها",
+    "location": "موقع التسليم",
+    "confirmation": "تأكيد التسليم",
+    "otp": "تم التحقق من رمز المستلم",
+    "qr": "تم مسح رمز QR على الملصق",
+    "photo": "تم التقاط صورة",
+    "signature": "تم التوقيع بالاستلام",
+    "photoAlt": "صورة التقطها السائق عند تسليم الشحنة {code}",
+    "photoCaption": "صورة التسليم",
+    "signatureAlt": "توقيع المستلم",
+    "signatureAltNamed": "توقيع المستلم {name}",
+    "signatureCaption": "توقيع المستلم",
+    "notes": "ملاحظة السائق",
+    "missing": "هذه الشحنة مسجّلة على أنها سُلّمت، لكن لم يُسجَّل لها إثبات تسليم. إذا بدا لك أي خطأ، تواصل مع الدعم وسنتحقق من الأمر."
+  },
+  "label": {
+    "trackingNumber": "رقم التتبّع",
+    "qrAlt": "رمز QR للشحنة {code}",
+    "from": "من",
+    "to": "إلى",
+    "contents": "المحتويات",
+    "fragile": "قابل للكسر",
+    "print": "طباعة الملصق"
+  }
+}

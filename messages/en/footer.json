@@ -1,0 +1,32 @@
+{
+  "tagline": "Parcel delivery and courier service across the UAE — same-day, next-day and merchant logistics with live shipment tracking.",
+  "groups": {
+    "services": {
+      "heading": "Services",
+      "sameDay": "Same-day delivery",
+      "nextDay": "Next-day delivery",
+      "cod": "Cash on delivery",
+      "pricing": "Pricing"
+    },
+    "customers": {
+      "heading": "Customers",
+      "track": "Track a shipment",
+      "book": "Book a delivery",
+      "signIn": "Sign in",
+      "faq": "FAQ"
+    },
+    "merchants": {
+      "heading": "Merchants",
+      "accounts": "Merchant accounts",
+      "apply": "Apply as a merchant"
+    },
+    "company": {
+      "heading": "Company",
+      "contact": "Contact us",
+      "privacy": "Privacy policy",
+      "terms": "Terms of service"
+    }
+  },
+  "copyright": "© {year} ParcelLink. All rights reserved.",
+  "delivering": "Delivering across the United Arab Emirates."
+}

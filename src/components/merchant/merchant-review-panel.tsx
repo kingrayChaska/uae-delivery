@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BadgeCheck, CircleCheck, MessageSquareWarning, XCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
 import Label from '@/components/ui/label';
@@ -23,31 +24,16 @@ import type { MerchantStatus } from '@/lib/types';
 
 type Decision = MerchantReviewInput['decision'];
 
-const COPY: Record<Decision, { title: string; description: string; confirm: string; notePlaceholder: string; noteRequired: boolean }> = {
-  approved: {
-    title: 'Approve this merchant?',
-    description: 'They get merchant pricing and tools immediately, and are notified by email and in the app.',
-    confirm: 'Approve merchant',
-    notePlaceholder: 'Optional welcome note',
-    noteRequired: false,
-  },
-  requires_changes: {
-    title: 'Request changes?',
-    description: 'The applicant is asked to update their application and resubmit it.',
-    confirm: 'Send back for changes',
-    notePlaceholder: 'What needs to change, e.g. “Upload a valid trade licence”',
-    noteRequired: true,
-  },
-  rejected: {
-    title: 'Reject this application?',
-    description: 'The applicant keeps their individual account and can resubmit later.',
-    confirm: 'Reject application',
-    notePlaceholder: 'Reason for the applicant',
-    noteRequired: true,
-  },
+// Message keys (manager.merchants.review.<prefix>Title etc.) per decision.
+const COPY: Record<Decision, { prefix: 'approved' | 'changes' | 'rejected'; noteRequired: boolean }> = {
+  approved: { prefix: 'approved', noteRequired: false },
+  requires_changes: { prefix: 'changes', noteRequired: true },
+  rejected: { prefix: 'rejected', noteRequired: true },
 };
 
 const MerchantReviewPanel = ({ applicationId, status }: { applicationId: string; status: MerchantStatus }) => {
+  const t = useTranslations('manager.merchants.review');
+  const tCommon = useTranslations('common.actions');
   const router = useRouter();
   const [decision, setDecision] = useState<Decision | null>(null);
   const [note, setNote] = useState('');
@@ -71,9 +57,7 @@ const MerchantReviewPanel = ({ applicationId, status }: { applicationId: string;
       setError(result.error);
       return;
     }
-    setSuccess(
-      decision === 'approved' ? 'Merchant approved and notified.' : decision === 'rejected' ? 'Application rejected. The applicant was notified.' : 'Changes requested. The applicant was notified.',
-    );
+    setSuccess(decision === 'approved' ? t('approved') : decision === 'rejected' ? t('rejected') : t('changesRequested'));
     setDecision(null);
     router.refresh();
   };
@@ -86,13 +70,13 @@ const MerchantReviewPanel = ({ applicationId, status }: { applicationId: string;
         {status !== 'approved' ? (
           <Button type="button" variant="success" onClick={() => open('approved')}>
             <BadgeCheck aria-hidden />
-            Approve
+            {t('approve')}
           </Button>
         ) : null}
         {status !== 'requires_changes' ? (
           <Button type="button" variant="outline" onClick={() => open('requires_changes')}>
             <MessageSquareWarning aria-hidden />
-            Request changes
+            {t('requestChanges')}
           </Button>
         ) : null}
         {status !== 'rejected' ? (
@@ -103,7 +87,7 @@ const MerchantReviewPanel = ({ applicationId, status }: { applicationId: string;
             onClick={() => open('rejected')}
           >
             <XCircle aria-hidden />
-            {status === 'approved' ? 'Revoke merchant access' : 'Reject'}
+            {status === 'approved' ? t('revoke') : t('reject')}
           </Button>
         ) : null}
       </div>
@@ -119,19 +103,17 @@ const MerchantReviewPanel = ({ applicationId, status }: { applicationId: string;
           {copy ? (
             <>
               <DialogHeader>
-                <DialogTitle>{copy.title}</DialogTitle>
-                <DialogDescription>{copy.description}</DialogDescription>
+                <DialogTitle>{t(`${copy.prefix}Title`)}</DialogTitle>
+                <DialogDescription>{t(`${copy.prefix}Body`)}</DialogDescription>
               </DialogHeader>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="review-note">
-                  Message to the applicant{copy.noteRequired ? '' : ' (optional)'}
-                </Label>
+                <Label htmlFor="review-note">{copy.noteRequired ? t('note') : t('noteOptional')}</Label>
                 <textarea
                   id="review-note"
                   rows={4}
                   value={note}
                   maxLength={1000}
-                  placeholder={copy.notePlaceholder}
+                  placeholder={t(`${copy.prefix}Placeholder`)}
                   onChange={(event) => setNote(event.target.value)}
                   aria-required={copy.noteRequired || undefined}
                   className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 sm:text-sm"
@@ -141,7 +123,7 @@ const MerchantReviewPanel = ({ applicationId, status }: { applicationId: string;
               <DialogFooter>
                 <DialogClose asChild>
                   <Button type="button" variant="outline" disabled={isPending}>
-                    Cancel
+                    {tCommon('cancel')}
                   </Button>
                 </DialogClose>
                 <Button
@@ -151,7 +133,7 @@ const MerchantReviewPanel = ({ applicationId, status }: { applicationId: string;
                   disabled={copy.noteRequired && note.trim().length < 5}
                   onClick={submit}
                 >
-                  {copy.confirm}
+                  {t(`${copy.prefix}Confirm`)}
                 </Button>
               </DialogFooter>
             </>

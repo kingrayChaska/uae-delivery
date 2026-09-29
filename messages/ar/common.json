@@ -1,0 +1,93 @@
+{
+  "language": {
+    "label": "اللغة"
+  },
+  "skipToContent": "انتقل إلى المحتوى",
+  "brand": "ParcelLink",
+  "actions": {
+    "save": "حفظ",
+    "saving": "جارٍ الحفظ…",
+    "saveChanges": "حفظ التغييرات",
+    "cancel": "إلغاء",
+    "back": "رجوع",
+    "next": "التالي",
+    "continue": "متابعة",
+    "close": "إغلاق",
+    "confirm": "تأكيد",
+    "delete": "حذف",
+    "deleting": "جارٍ الحذف…",
+    "edit": "تعديل",
+    "remove": "إزالة",
+    "search": "بحث",
+    "retry": "حاول مرة أخرى",
+    "copy": "نسخ",
+    "copied": "تم النسخ",
+    "view": "عرض",
+    "viewAll": "عرض الكل",
+    "change": "تغيير",
+    "submit": "إرسال",
+    "submitting": "جارٍ الإرسال…",
+    "apply": "تطبيق",
+    "filter": "تصفية",
+    "clear": "مسح",
+    "download": "تنزيل",
+    "print": "طباعة",
+    "open": "فتح",
+    "yes": "نعم",
+    "no": "لا",
+    "done": "تم",
+    "update": "تحديث",
+    "updating": "جارٍ التحديث…",
+    "create": "إنشاء",
+    "creating": "جارٍ الإنشاء…",
+    "approve": "اعتماد",
+    "reject": "رفض",
+    "send": "إرسال",
+    "sending": "جارٍ الإرسال…",
+    "details": "التفاصيل",
+    "loading": "جارٍ التحميل…",
+    "working": "جارٍ التنفيذ…"
+  },
+  "states": {
+    "loading": "جارٍ التحميل…",
+    "empty": "لا يوجد شيء هنا بعد.",
+    "error": "حدث خطأ ما. يُرجى المحاولة مرة أخرى.",
+    "never": "أبدًا",
+    "none": "لا يوجد",
+    "notSet": "غير محدد",
+    "unknown": "غير معروف",
+    "optional": "اختياري"
+  },
+  "pagination": {
+    "label": "التنقل بين الصفحات",
+    "previous": "السابق",
+    "next": "التالي",
+    "page": "الصفحة {page} من {pages}",
+    "previousPage": "الصفحة السابقة",
+    "nextPage": "الصفحة التالية",
+    "newer": "الأحدث",
+    "older": "الأقدم"
+  },
+  "copyValue": "نسخ {label}",
+  "copiedValue": "تم نسخ {label}",
+  "yesNo": {
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "copy": {
+    "failed": "تعذّر النسخ",
+    "copiedToClipboard": "تم النسخ إلى الحافظة",
+    "copyManually": "تعذّر النسخ. حدّد النص وانسخه يدويًا."
+  },
+  "dialog": {
+    "goBack": "رجوع",
+    "close": "إغلاق"
+  },
+  "password": {
+    "show": "إظهار كلمة المرور",
+    "hide": "إخفاء كلمة المرور"
+  },
+  "verification": {
+    "complete": "أكمل خطوة التحقق أعلاه للمتابعة."
+  }
+}

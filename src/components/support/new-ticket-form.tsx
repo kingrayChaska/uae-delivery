@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
 import Label from '@/components/ui/label';
@@ -12,18 +14,19 @@ type NewTicketFormProps = {
 };
 
 const NewTicketForm = ({ defaultSubject = '', defaultMessage = '' }: NewTicketFormProps) => {
+  const t = useTranslations('support.new');
   const { register, errors, isSubmitting, serverError, onSubmit } = useNewTicketForm({ subject: defaultSubject, message: defaultMessage });
 
   return (
     <form onSubmit={onSubmit} className="flex max-w-lg flex-col gap-4" noValidate>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="subject">Subject</Label>
+        <Label htmlFor="subject">{t('subject')}</Label>
         <Input id="subject" {...register('subject')} />
         <FieldError message={errors.subject?.message} />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="message">Message</Label>
+        <Label htmlFor="message">{t('message')}</Label>
         <textarea
           id="message"
           rows={5}
@@ -36,7 +39,7 @@ const NewTicketForm = ({ defaultSubject = '', defaultMessage = '' }: NewTicketFo
       {serverError ? <FieldError message={serverError} /> : null}
 
       <Button type="submit" disabled={isSubmitting} className="self-start">
-        {isSubmitting ? 'Opening…' : 'Open Ticket'}
+        {isSubmitting ? t('submitting') : t('submit')}
       </Button>
     </form>
   );

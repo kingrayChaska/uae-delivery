@@ -54,6 +54,6 @@ export const requireServiceableTrip = async (
 ): Promise<{ pickup: Emirate; dropoff: Emirate }> => {
   const areas = await lookUpTripServiceAreas(pickup, dropoff);
   const error = serviceAreaError(areas.pickup, 'pickup') ?? serviceAreaError(areas.dropoff, 'dropoff');
-  if (error || !areas.pickup.emirate || !areas.dropoff.emirate) throw new Error(error ?? 'This location can’t be booked.');
+  if (error || !areas.pickup.emirate || !areas.dropoff.emirate) throw new Error(error ?? 'serviceAreas.errors.cantBook');
   return { pickup: areas.pickup.emirate, dropoff: areas.dropoff.emirate };
 };

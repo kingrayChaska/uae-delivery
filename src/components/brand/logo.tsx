@@ -1,7 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { BRAND } from '@/lib/brand';
+import { localizeHref, toLocale } from '@/i18n/config';
 import { cn } from '@/lib/utils';
 
 type LogoProps = {
@@ -13,6 +15,8 @@ type LogoProps = {
 };
 
 const Logo = ({ height = 32, href = '/', priority = false, className = '' }: LogoProps) => {
+  const t = useTranslations('nav');
+  const locale = toLocale(useLocale());
   const width = Math.round((BRAND.logoWidth / BRAND.logoHeight) * height);
   const image = (
     <Image
@@ -28,7 +32,7 @@ const Logo = ({ height = 32, href = '/', priority = false, className = '' }: Log
 
   if (!href) return image;
   return (
-    <Link href={href} aria-label={`${BRAND.name} home`} className="inline-flex shrink-0 items-center">
+    <Link href={localizeHref(href, locale)} aria-label={t('home')} className="inline-flex shrink-0 items-center">
       {image}
     </Link>
   );

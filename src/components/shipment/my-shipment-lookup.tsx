@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
@@ -13,6 +14,7 @@ import { findMyShipmentByCodeAction } from '@/lib/shipment/actions';
 // Finds one of the signed-in customer's own shipments by tracking ID and
 // opens its tracking page. Case and spaces don't matter.
 const MyShipmentLookup = () => {
+  const t = useTranslations('customer.lookup');
   const router = useRouter();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ const MyShipmentLookup = () => {
     event.preventDefault();
     setError(null);
     if (!code.trim()) {
-      setError('Enter a tracking ID');
+      setError('tracking.errors.required');
       return;
     }
     setIsSearching(true);
@@ -37,24 +39,25 @@ const MyShipmentLookup = () => {
 
   return (
     <form onSubmit={submit} noValidate className="flex flex-col gap-2" role="search">
-      <Label htmlFor="tracking-id">Tracking ID</Label>
+      <Label htmlFor="tracking-id">{t('label')}</Label>
       <div className="flex flex-col gap-2 sm:flex-row">
         <Input
           id="tracking-id"
           value={code}
           onChange={(event) => setCode(event.target.value.toUpperCase())}
-          placeholder="e.g. PL7K29X4"
+          placeholder={t('placeholder')}
+          dir="ltr"
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck={false}
           maxLength={40}
           aria-invalid={Boolean(error) || undefined}
           aria-describedby={error ? 'tracking-id-error' : undefined}
-          className="font-brand-mono tracking-widest sm:max-w-xs"
+          className="font-brand-mono tracking-widest sm:max-w-xs rtl:text-right rtl:placeholder:font-sans"
         />
-        <Button type="submit" loading={isSearching} loadingText="Searching…">
+        <Button type="submit" loading={isSearching} loadingText={t('searching')}>
           <Search aria-hidden />
-          Track
+          {t('submit')}
         </Button>
       </div>
       <FieldError id="tracking-id-error" message={error ?? undefined} />
