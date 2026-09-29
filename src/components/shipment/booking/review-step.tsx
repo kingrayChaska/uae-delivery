@@ -86,9 +86,9 @@ const ReviewStep = ({
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Shipment {index + 1}</p>
                   <p className="mt-1 flex flex-wrap items-center gap-x-2 font-medium">
-                    <span className="break-words">{values.pickup.address}</span>
+                    <span className="wrap-break-word">{values.pickup.address}</span>
                     <ArrowRight className="size-4 shrink-0 text-primary" aria-label="to" />
-                    <span className="break-words">{values.dropoff.address}</span>
+                    <span className="wrap-break-word">{values.dropoff.address}</span>
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     To {values.dropoff.contactName} · {values.dropoff.contactPhone}
@@ -156,7 +156,7 @@ const ReviewStep = ({
             return (
               <label
                 key={method}
-                className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring ${
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-colors has-focus-visible:ring-2 has-focus-visible:ring-ring ${
                   selected ? 'border-primary bg-secondary/60' : 'border-input hover:border-primary/40'
                 }`}
               >
