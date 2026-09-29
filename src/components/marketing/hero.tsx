@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, BadgeCheck, CalendarClock, PackageSearch, Zap } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
@@ -19,6 +20,21 @@ const Hero = async ({ nextDay }: { nextDay: PricingRule }) => {
 
   return (
     <section aria-labelledby="hero-heading" className="relative overflow-hidden bg-brand-route-deep">
+      {/* Photo background; the overlay keeps the light headline text readable */}
+      <Image
+        src="/Parcellink.png"
+        alt=""
+        aria-hidden
+        fill
+        priority
+        sizes="100vw"
+        className="pointer-events-none object-cover object-center"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-linear-to-r from-brand-route-deep/95 via-brand-route-deep/80 to-brand-route-deep/45 rtl:bg-linear-to-l"
+      />
+
       {/* Soft brand glow behind the headline */}
       <div
         aria-hidden
