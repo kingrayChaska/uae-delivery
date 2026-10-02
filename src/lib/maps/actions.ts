@@ -3,6 +3,7 @@
 import { requireUser } from '@/lib/auth/guards';
 import { RATE_LIMIT_MESSAGE, checkRateLimit } from '@/lib/security/rate-limit';
 import { googleMapsProvider, MapsProviderError } from '@/lib/maps/google-provider';
+import { getDeliveryRoute } from '@/lib/maps/delivery-route';
 import { locationRetrieveSchema, locationSearchSchema, reverseGeocodeSchema, routeRequestSchema } from '@/lib/maps/schemas';
 import { BOOKING_ERRORS } from '@/lib/shipment/booking-guards';
 import { SEARCH_UNAVAILABLE_MESSAGE } from '@/lib/maps/config';
@@ -88,7 +89,7 @@ export const getRouteAction = async (input: RouteRequestInput): Promise<GetRoute
   if (!parsed.success) return { success: false, error: 'maps.errors.invalidCoordinates' };
 
   try {
-    const route = await googleMapsProvider.getRoute(parsed.data.origin, parsed.data.destination);
+    const route = await getDeliveryRoute(parsed.data);
     return { success: true, route };
   } catch (error) {
     logFailure('Route calculation failed', error);

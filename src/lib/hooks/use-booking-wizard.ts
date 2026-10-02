@@ -287,17 +287,24 @@ export const useBookingWizard = ({
       return routeRequest.current.promise;
 
     setIsCalculatingRoute(true);
-    const request = {
-      origin: { lat: pickup.lat, lng: pickup.lng },
-      destination: { lat: dropoff.lat, lng: dropoff.lng },
-    };
     // Each end is checked on its own, from its selected Google place.
     const coverageRequest = {
-      pickup: { ...request.origin, placeId: pickup.place?.placeId ?? null },
+      pickup: {
+        lat: pickup.lat,
+        lng: pickup.lng,
+        placeId: pickup.place?.placeId ?? null,
+      },
       dropoff: {
-        ...request.destination,
+        lat: dropoff.lat,
+        lng: dropoff.lng,
         placeId: dropoff.place?.placeId ?? null,
       },
+    };
+    // The selected places go with the route request so the quote is routed
+    // exactly as the booking will be (lib/maps/delivery-route.ts).
+    const routeInput = {
+      origin: { ...coverageRequest.pickup, source: pickup.place?.source },
+      destination: { ...coverageRequest.dropoff, source: dropoff.place?.source },
     };
     const promise = (async () => {
       // The server's own emirate check — the one the booking will get — runs
@@ -307,7 +314,7 @@ export const useBookingWizard = ({
         error: BOOKING_ERRORS.routeFailed,
       };
       const [result, areas] = await Promise.all([
-        getRouteAction(request).catch(() => failed),
+        getRouteAction(routeInput).catch(() => failed),
         checkServiceAreasAction(coverageRequest).catch(() => failed),
       ]);
       if (routeRequest.current?.trip !== trip) return false; // a newer trip won

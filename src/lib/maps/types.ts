@@ -6,7 +6,11 @@ export type GeocodeResult = {
 };
 
 export type RouteResult = {
+  // Google's driving distance as returned, and the same value in km — the
+  // one distance pricing uses. Never rounded here.
+  distanceMeters: number;
   distanceKm: number;
+  durationSeconds: number;
   durationMinutes: number;
   // The driving route as points along the road, decoded on the server from
   // Google's encoded polyline — drawn directly as a google.maps.Polyline.
@@ -62,6 +66,15 @@ export type LocationSuggestion = {
   resolved: ResolvedLocation | null;
 };
 
+// One end of a route. With a placeId, Google routes to that place's own
+// entrance/access points (as Google Maps does for a selected place);
+// without one, to the exact coordinates. lib/maps/delivery-route.ts
+// decides which to send.
+export type RouteWaypoint = {
+  coordinates: Coordinates;
+  placeId?: string | null;
+};
+
 // Implemented against Google's Places API (New), Geocoding API and Routes
 // API. Pricing (lib/pricing) depends only on RouteResult.distanceKm,
 // calculated server-side from the actual road route between the chosen
@@ -72,5 +85,5 @@ export type MapsProvider = {
   searchPlaces: (query: string, language: MapsLanguage) => Promise<LocationSuggestion[]>;
   geocode: (address: string) => Promise<GeocodeResult>;
   reverseGeocode: (coordinates: Coordinates, language?: MapsLanguage) => Promise<ResolvedLocation>;
-  getRoute: (origin: Coordinates, destination: Coordinates) => Promise<RouteResult>;
+  getRoute: (origin: RouteWaypoint, destination: RouteWaypoint) => Promise<RouteResult>;
 };

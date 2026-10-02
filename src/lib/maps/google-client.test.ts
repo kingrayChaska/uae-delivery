@@ -67,7 +67,7 @@ describe('Places Autocomplete request', () => {
   it('can be pointed at a local fake for end-to-end tests', () => {
     vi.stubEnv('GOOGLE_MAPS_API_URL', 'http://127.0.0.1:4010');
     expect(buildAutocompleteRequest('x', KEY, SESSION, 'en').url).toBe('http://127.0.0.1:4010/v1/places:autocomplete');
-    expect(buildRouteRequest({ lat: 25, lng: 55 }, { lat: 25.1, lng: 55.1 }, KEY).url).toBe('http://127.0.0.1:4010/directions/v2:computeRoutes');
+    expect(buildRouteRequest({ coordinates: { lat: 25, lng: 55 } }, { coordinates: { lat: 25.1, lng: 55.1 } }, KEY).url).toBe('http://127.0.0.1:4010/directions/v2:computeRoutes');
   });
 });
 
@@ -306,7 +306,7 @@ describe('Forward geocoding (staff CSV import)', () => {
 
 describe('Routes API', () => {
   it('asks for a traffic-unaware driving route (stable prices between quote and booking)', () => {
-    const request = buildRouteRequest({ lat: 25.08, lng: 55.14 }, { lat: 25.19, lng: 55.27 }, KEY);
+    const request = buildRouteRequest({ coordinates: { lat: 25.08, lng: 55.14 } }, { coordinates: { lat: 25.19, lng: 55.27 } }, KEY);
     expect(request.headers['X-Goog-FieldMask']).toBe('routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline');
     expect(body(request)).toMatchObject({
       origin: { location: { latLng: { latitude: 25.08, longitude: 55.14 } } },
@@ -316,11 +316,32 @@ describe('Routes API', () => {
     });
   });
 
+  it('routes a selected place by its Place ID, and a pin by its exact coordinates', () => {
+    const request = buildRouteRequest(
+      { coordinates: { lat: 25.1972, lng: 55.2744 }, placeId: 'ChIJ-dubai-mall_1' },
+      { coordinates: { lat: 25.2048493, lng: 55.2707828 } },
+      KEY,
+    );
+    expect(body(request).origin).toEqual({ placeId: 'ChIJ-dubai-mall_1' });
+    // Full precision, and only snapped to a road a vehicle can stop on.
+    expect(body(request).destination).toEqual({
+      location: { latLng: { latitude: 25.2048493, longitude: 55.2707828 } },
+      vehicleStopover: true,
+    });
+  });
+
+  it('never sends a malformed Place ID to Google (routes the coordinates instead)', () => {
+    const request = buildRouteRequest({ coordinates: { lat: 25, lng: 55 }, placeId: '../x' }, { coordinates: { lat: 25.1, lng: 55.1 } }, KEY);
+    expect(body(request).origin).toEqual({ location: { latLng: { latitude: 25, longitude: 55 } }, vehicleStopover: true });
+  });
+
   it('reads distance, duration and the road path', () => {
     const route = parseRouteResponse({
       routes: [{ distanceMeters: 14823, duration: '1260s', polyline: { encodedPolyline: '_p~iF~ps|U_ulLnnqC_mqNvxq`@' } }],
     });
-    expect(route.distanceKm).toBeCloseTo(14.823);
+    expect(route.distanceMeters).toBe(14823);
+    expect(route.distanceKm).toBe(14.823);
+    expect(route.durationSeconds).toBe(1260);
     expect(route.durationMinutes).toBe(21);
     expect(route.path).toHaveLength(3);
   });

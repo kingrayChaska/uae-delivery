@@ -146,10 +146,17 @@ http
 
     if (req.method === 'POST' && url.pathname === '/directions/v2:computeRoutes') {
       const body = await readBody(req);
-      const a = body.origin.location.latLng;
-      const b = body.destination.location.latLng;
-      const from = { lat: a.latitude, lng: a.longitude };
-      const to = { lat: b.latitude, lng: b.longitude };
+      // A waypoint is a selected place (placeId) or exact coordinates.
+      const point = (waypoint) => {
+        if (waypoint.placeId) {
+          const p = PLACES.find((candidate) => candidate.id === waypoint.placeId);
+          return p ? { lat: p.lat, lng: p.lng } : null;
+        }
+        return { lat: waypoint.location.latLng.latitude, lng: waypoint.location.latLng.longitude };
+      };
+      const from = point(body.origin);
+      const to = point(body.destination);
+      if (!from || !to) return json(res, 400, { error: { code: 400, status: 'INVALID_ARGUMENT', message: 'Unknown place' } });
       const km = haversineKm(from, to) * 1.3;
       return json(res, 200, {
         routes: [

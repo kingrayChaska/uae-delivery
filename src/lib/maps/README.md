@@ -4,6 +4,7 @@
 
 - `google-client.ts` — **pure** functions only: builds Google API requests and parses Google's JSON into this app's types. No `fetch` calls, so it's unit-tested without the network (`google-client.test.ts`).
 - `google-provider.ts` — composes `google-client.ts` with real `fetch` calls using `GOOGLE_MAPS_SERVER_API_KEY`. Server-only. Caches routes for an hour (the wizard's quote and the booking's own check ask for the same one).
+- `delivery-route.ts` — `getDeliveryRoute()`, **the** delivery distance. The wizard's quote (`getRouteAction`) and the booking (`quoteShipment`) both call it, so they always agree. A place the customer searched for is routed by its Place ID (Google then uses the place's own entrance, as Google Maps does), but only after the server confirms that place is at the booking's coordinates; pins and device locations are routed by their exact coordinates with `vehicleStopover`, so Google won't snap them onto a highway carriageway. If Google can't route to a place, it retries with the coordinates; if there's still no route, the booking fails — there is no straight-line fallback.
 - `actions.ts` — server actions the browser calls: `searchLocationsAction`, `retrieveLocationAction`, `reverseGeocodeAction`, `getRouteAction`. Each requires a signed-in user and is rate limited. Google's error text goes to server logs; customers see the app's own messages.
 - `google-maps-loader.ts` + `use-google-map.ts` — load the Maps JavaScript API once per page (only the `maps` and `marker` libraries, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`), and create a map that follows the app's light/dark theme. A refused key (`gm_authFailure`) or a failed script shows the app's "map unavailable" message instead of Google's grey box.
 - `components/maps/location-picker.tsx` — the pickup/delivery picker: search, "Use my current location", "Drop a pin on the map", and a confirmation card. `lib/hooks/use-location-search.ts` debounces (300 ms, 3 characters), drops stale responses, caches repeated queries, and manages the Places session token.
@@ -20,7 +21,7 @@
 | **Places API (New)** — Place Details | Coordinates, address parts and Place ID of the chosen suggestion (ends the billing session) | Server |
 | **Places API (New)** — Text Search | Fallback when Autocomplete returns nothing or fails (more forgiving of partial/descriptive queries); staff CSV fallback | Server |
 | **Geocoding API** | Reverse geocoding (dropped pins, current location, the server's emirate check); forward geocoding for the staff CSV upload | Server |
-| **Routes API** — `computeRoutes` | Driving distance, duration and path. Pricing and the distance limit use only this | Server |
+| **Routes API** — `computeRoutes` | Driving distance, duration and path (`DRIVE`, field mask `routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline`). Pricing and the distance limit use only `distanceMeters / 1000` from this | Server |
 
 Nothing else needs enabling. Legacy Places, Directions and Distance Matrix are not used.
 

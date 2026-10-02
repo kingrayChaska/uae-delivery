@@ -8,7 +8,7 @@ import {
   validateBookingLocations,
   validateRoute,
 } from "@/lib/shipment/booking-guards";
-import { googleMapsProvider } from "@/lib/maps/google-provider";
+import { getDeliveryRoute } from "@/lib/maps/delivery-route";
 import { requireServiceableTrip } from "@/lib/service-areas/verify";
 import { getActivePricingRules } from "@/lib/pricing/get-active-rule";
 import { isFallbackRule } from "@/lib/pricing/config";
@@ -151,7 +151,12 @@ export const quoteShipment = async (
 
   let route;
   try {
-    route = await googleMapsProvider.getRoute(pickup, dropoff);
+    // The same route the wizard quoted: the selected Google places (when
+    // they're really at these coordinates), else the exact points.
+    route = await getDeliveryRoute({
+      origin: { ...pickup, placeId: input.pickup.place?.placeId, source: input.pickup.place?.source },
+      destination: { ...dropoff, placeId: input.dropoff.place?.placeId, source: input.dropoff.place?.source },
+    });
   } catch {
     // Whatever went wrong (network, bad token, no route) the customer sees
     // the spec's message; details belong in server logs, not the UI.
@@ -169,6 +174,17 @@ export const quoteShipment = async (
     shipmentQuantity: input.packageQuantity,
     codAmount: input.codAmount,
   });
+
+  if (process.env.NODE_ENV !== "production") {
+    console.info("Shipment quote", {
+      pickup: { address: input.pickup.address, ...pickup },
+      dropoff: { address: input.dropoff.address, ...dropoff },
+      routeDistanceMeters: route.distanceMeters,
+      billableDistanceKm: breakdown.distanceKm,
+      durationSeconds: route.durationSeconds,
+      deliveryFee: breakdown.totalPrice,
+    });
+  }
 
   if (breakdown.exceedsDistanceLimit) {
     throw new Error(

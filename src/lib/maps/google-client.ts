@@ -1,7 +1,15 @@
 import { UAE_BBOX } from '@/lib/maps/config';
 
 import type { Coordinates } from '@/lib/types';
-import type { GeocodeResult, LocationSuggestion, MapsLanguage, PlaceDetails, ResolvedLocation, RouteResult } from '@/lib/maps/types';
+import type {
+  GeocodeResult,
+  LocationSuggestion,
+  MapsLanguage,
+  PlaceDetails,
+  ResolvedLocation,
+  RouteResult,
+  RouteWaypoint,
+} from '@/lib/maps/types';
 
 // Pure request builders and response parsers for Google Maps Platform — no
 // fetch calls, so all of it is unit-tested without the network
@@ -426,13 +434,24 @@ export const parseForwardGeocodeResponse = (json: GeocodingResponse): GeocodeRes
 
 const ROUTE_FIELDS = 'routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline';
 
-export const buildRouteRequest = (origin: Coordinates, destination: Coordinates, key: string): ApiRequest => ({
+// A selected Google place is routed by its Place ID, so Google uses the
+// place's own entrance/access points — the route Google Maps shows for it.
+// A bare coordinate (dropped pin, device location) is snapped to the
+// nearest road, which in the UAE is often the wrong carriageway of a
+// highway (Sheikh Zayed Road, Al Khail Road) and adds U-turn detours;
+// vehicleStopover limits the snap to roads a vehicle can stop on.
+const routeWaypoint = ({ coordinates, placeId }: RouteWaypoint) =>
+  placeId && PLACE_ID.test(placeId)
+    ? { placeId }
+    : { location: { latLng: latLng(coordinates) }, vehicleStopover: true };
+
+export const buildRouteRequest = (origin: RouteWaypoint, destination: RouteWaypoint, key: string): ApiRequest => ({
   url: `${routesBase()}/directions/v2:computeRoutes`,
   method: 'POST',
   headers: jsonHeaders(key, ROUTE_FIELDS),
   body: JSON.stringify({
-    origin: { location: { latLng: latLng(origin) } },
-    destination: { location: { latLng: latLng(destination) } },
+    origin: routeWaypoint(origin),
+    destination: routeWaypoint(destination),
     travelMode: 'DRIVE',
     routingPreference: 'TRAFFIC_UNAWARE',
     computeAlternativeRoutes: false,
@@ -474,11 +493,15 @@ export const parseRouteResponse = (json: RouteResponse): RouteResult => {
   const [route] = json.routes ?? [];
   // An empty response ({}) means Google found no drivable route.
   if (!route) throw new MapsProviderError('Unable to calculate a route between these locations');
-  const seconds = Number.parseFloat((route.duration ?? '0s').replace(/s$/, ''));
+  const parsedSeconds = Number.parseFloat((route.duration ?? '0s').replace(/s$/, ''));
+  const seconds = Number.isFinite(parsedSeconds) ? parsedSeconds : 0;
+  // distanceMeters is omitted when zero; validateRoute refuses that.
+  const meters = route.distanceMeters ?? 0;
   return {
-    // distanceMeters is omitted when zero; validateRoute refuses that.
-    distanceKm: (route.distanceMeters ?? 0) / 1000,
-    durationMinutes: Number.isFinite(seconds) ? seconds / 60 : 0,
+    distanceMeters: meters,
+    distanceKm: meters / 1000,
+    durationSeconds: seconds,
+    durationMinutes: seconds / 60,
     path: route.polyline?.encodedPolyline ? decodePolyline(route.polyline.encodedPolyline) : [],
   };
 };

@@ -18,7 +18,15 @@ import {
 
 import type { ApiRequest } from '@/lib/maps/google-client';
 import type { Coordinates } from '@/lib/types';
-import type { GeocodeResult, LocationSuggestion, MapsLanguage, MapsProvider, ResolvedLocation, RouteResult } from '@/lib/maps/types';
+import type {
+  GeocodeResult,
+  LocationSuggestion,
+  MapsLanguage,
+  MapsProvider,
+  ResolvedLocation,
+  RouteResult,
+  RouteWaypoint,
+} from '@/lib/maps/types';
 
 // Prefer the server-only key. The fallbacks keep existing deployments
 // working while they migrate from a single Google Maps key to separate
@@ -72,8 +80,18 @@ export { MapsProviderError };
 const ROUTE_CACHE_TTL_MS = 60 * 60 * 1000;
 const ROUTE_CACHE_MAX_ENTRIES = 500;
 const routeCache = new Map<string, { route: RouteResult; expires: number }>();
-const routeKey = (a: Coordinates, b: Coordinates) =>
-  `${a.lat.toFixed(6)},${a.lng.toFixed(6)}|${b.lat.toFixed(6)},${b.lng.toFixed(6)}`;
+// The cache key only: requests always carry the full-precision coordinates.
+const waypointKey = ({ coordinates: { lat, lng }, placeId }: RouteWaypoint) =>
+  `${lat.toFixed(7)},${lng.toFixed(7)},${placeId ?? ''}`;
+const routeKey = (a: RouteWaypoint, b: RouteWaypoint) => `${waypointKey(a)}|${waypointKey(b)}`;
+
+// The server's own look-ups of a place the customer already chose (the
+// coverage check and the route's place check) ask for the same place
+// within seconds; reuse it rather than pay twice. Customer searches carry
+// a session token and are never cached.
+const PLACE_CACHE_TTL_MS = 60 * 60 * 1000;
+const PLACE_CACHE_MAX_ENTRIES = 1000;
+const placeCache = new Map<string, { location: ResolvedLocation; expires: number }>();
 
 export const googleMapsProvider: MapsProvider = {
   suggest: async (query: string, sessionToken: string, language: MapsLanguage, proximity?: Coordinates): Promise<LocationSuggestion[]> => {
@@ -82,8 +100,17 @@ export const googleMapsProvider: MapsProvider = {
   },
 
   retrieve: async (id: string, sessionToken: string | null, language: MapsLanguage): Promise<ResolvedLocation> => {
+    const key = `${language}|${id}`;
+    const cached = sessionToken ? null : placeCache.get(key);
+    if (cached && cached.expires > Date.now()) return cached.location;
+
     const json = await send(buildPlaceDetailsRequest(id, getKey(), sessionToken, language));
-    return parsePlaceDetailsResponse(json, language);
+    const location = parsePlaceDetailsResponse(json, language);
+    if (!sessionToken) {
+      if (placeCache.size >= PLACE_CACHE_MAX_ENTRIES) placeCache.delete(placeCache.keys().next().value!);
+      placeCache.set(key, { location, expires: Date.now() + PLACE_CACHE_TTL_MS });
+    }
+    return location;
   },
 
   // Text Search: the fallback when Autocomplete has no predictions.
@@ -108,7 +135,7 @@ export const googleMapsProvider: MapsProvider = {
     return parseReverseGeocodeResponse(json, coordinates, language);
   },
 
-  getRoute: async (origin: Coordinates, destination: Coordinates): Promise<RouteResult> => {
+  getRoute: async (origin: RouteWaypoint, destination: RouteWaypoint): Promise<RouteResult> => {
     const key = routeKey(origin, destination);
     const cached = routeCache.get(key);
     if (cached && cached.expires > Date.now()) return cached.route;

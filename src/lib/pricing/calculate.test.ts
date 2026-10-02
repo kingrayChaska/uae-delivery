@@ -23,10 +23,19 @@ describe('calculateShipmentPrice — same-day (5 km / AED 12 / AED 1 per km)', (
     [5.1, 12.1],
     [6, 13],
     [10, 17],
+    [12.7, 19.7],
     [20, 27],
+    [30, 37],
     [50, 57],
   ])('distance %s km -> AED %s', (distanceKm, expected) => {
     expect(calculateShipmentPrice({ rule: SAME_DAY, distanceKm }).totalPrice).toBeCloseTo(expected, 2);
+  });
+
+  it('prices Google\'s route distance in metres without rounding it to whole km first', () => {
+    // 12,734 m from computeRoutes -> 12.73 km billable (10 m = 1 fils at AED 1/km).
+    const result = calculateShipmentPrice({ rule: SAME_DAY, distanceKm: 12734 / 1000 });
+    expect(result.distanceKm).toBe(12.73);
+    expect(result.totalPrice).toBe(19.73);
   });
 });
 

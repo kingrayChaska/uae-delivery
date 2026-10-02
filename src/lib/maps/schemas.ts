@@ -1,5 +1,5 @@
 import { z } from '@/lib/zod';
-import { MAPS_LANGUAGES } from '@/lib/maps/types';
+import { LOCATION_SOURCES, MAPS_LANGUAGES } from '@/lib/maps/types';
 
 const coordinatesSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -28,9 +28,16 @@ export const locationRetrieveSchema = z.object({
 
 export const reverseGeocodeSchema = coordinatesSchema.extend({ language: languageSchema });
 
+// The selected place travels with its coordinates so the quote routes it the
+// same way the booking will (lib/maps/delivery-route.ts re-checks it).
+const routeEndpointSchema = coordinatesSchema.extend({
+  placeId: z.string().regex(/^[A-Za-z0-9_-]{1,512}$/).nullable().optional(),
+  source: z.enum(LOCATION_SOURCES).nullable().optional(),
+});
+
 export const routeRequestSchema = z.object({
-  origin: coordinatesSchema,
-  destination: coordinatesSchema,
+  origin: routeEndpointSchema,
+  destination: routeEndpointSchema,
 });
 
 export type LocationSearchInput = z.input<typeof locationSearchSchema>;
