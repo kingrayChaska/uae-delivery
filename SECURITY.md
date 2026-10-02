@@ -6,7 +6,12 @@ This maps the project's pre-launch security checklist to what is implemented, ho
 
 1. Set every variable in `.env.example` in your host's environment settings — never in a committed file.
 2. Create a Cloudflare Turnstile widget and set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`. Without them, production refuses logins by design (item 12).
-3. In Mapbox, restrict `NEXT_PUBLIC_MAPBOX_TOKEN` to your production domain(s). Keep `MAPBOX_SECRET_TOKEN` unrestricted but server-only.
+3. In Google Cloud (APIs & Services → Credentials), create **two** API keys on a billing-enabled project:
+   - **Browser key → `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.** Application restriction: *Websites (HTTP referrers)* — your production domain(s) (`https://parcellinkuae.com/*`, `https://www.parcellinkuae.com/*`), your Vercel preview domain if you use previews (`https://*-<team>.vercel.app/*`), and `http://localhost:3000/*` on a separate development key. API restriction: **Maps JavaScript API only.**
+   - **Server key → `GOOGLE_MAPS_SERVER_API_KEY`.** Never exposed to the browser. API restriction: **Places API (New), Geocoding API, Routes API only.** Application restriction: *IP addresses* if your host has fixed egress IPs; otherwise none (Vercel's egress IPs aren't fixed) — rely on the API restriction, the per-user rate limit, and a quota cap.
+   - Enable exactly those four APIs on the project, and set per-API daily quotas and a billing budget alert.
+   - Optionally create a Map ID (Google Maps Platform → Map management, JavaScript, vector) and set `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`; without it the app uses Google's shared `DEMO_MAP_ID`, which is meant for development.
+   - Don't reuse the browser key on the server: a referrer-restricted key is refused for server calls, and loosening it would let anyone who reads the page source spend on Places and Routes.
 4. In Supabase → Authentication: set the Site URL and Redirect URLs to your domain, update the three email templates (README, "Supabase email templates"), and set the minimum password length to 8.
 5. Apply all migrations in `database/migrations/` in order, then the seed.
 6. Run `npm run security:secrets` and `npm run security:audit` before every release (ideally in CI).
@@ -15,11 +20,11 @@ This maps the project's pre-launch security checklist to what is implemented, ho
 ## The 20 items
 
 ### 1. Hide API keys
-Secrets are only read server-side from `process.env`. Files that use them import `server-only`, so a client import fails the build. The only browser-visible values are the ones designed to be public: the Supabase URL and anon key, the Mapbox public token, and the Turnstile site key.
+Secrets are only read server-side from `process.env`. Files that use them import `server-only`, so a client import fails the build. The only browser-visible values are the ones designed to be public: the Supabase URL and anon key, the Google Maps browser key (referrer- and API-restricted, see the checklist), the Map ID, and the Turnstile site key.
 **Verified:** the build was run with a unique sentinel value in every secret variable, and the compiled client bundle (`.next/static`) was searched. No sentinel values, no secret variable names, and no server-only code (`auth.admin`, `check_rate_limit`, `createAdminClient`) were found.
 
 ### 2. Purge Git secrets
-`.env*` is git-ignored, with an exception so `.env.example` (placeholders only) *is* committed; previously the rule accidentally ignored it too. `npm run security:secrets` scans the working tree for JWTs, Supabase secret keys, Mapbox secret tokens, Turnstile secrets, Stripe keys, private key blocks, and database URLs containing passwords.
+`.env*` is git-ignored, with an exception so `.env.example` (placeholders only) *is* committed; previously the rule accidentally ignored it too. `npm run security:secrets` scans the working tree for JWTs, Supabase secret keys, Google API keys, Turnstile secrets, Stripe keys, private key blocks, and database URLs containing passwords.
 **Verified:** clean tree passes; planted fake keys are detected and the script exits 1.
 **Your action:** this project has no git history yet, so there is nothing to purge. If a secret is ever committed, rotate it, then remove it from history with `git filter-repo`.
 
@@ -31,14 +36,14 @@ RLS is enabled on every table. Tables with no client use have RLS on and **zero*
 **Verified:** a catalog query confirms no table in `public` has RLS disabled; the attack battery checks access per role.
 
 ### 5. Encrypt sensitive data
-- In transit: TLS everywhere (item 19). Supabase and Mapbox are HTTPS-only.
+- In transit: TLS everywhere (item 19). Supabase and Google Maps Platform are HTTPS-only.
 - At rest: Supabase encrypts the database and storage at rest (AES-256).
 - Application level: delivery OTPs are stored as bcrypt hashes (migration 0018); the plaintext only exists in the customer's notification. QR tokens stay in `shipment_secrets`, readable only through purpose-built functions.
 - Passwords: see item 10.
 
 ### 6. Enforce server-side auth
 Every server action checks the caller with `requireRole`/`requireUser`, except the inherently public ones: login, register, password reset, and tracking lookup. Those get Turnstile and rate limiting instead. Page layouts re-check the role server-side, and RLS is the final check under all of it.
-**Fixed in this pass:** the address-search and routing actions had no auth check at all, so anyone could run up the Mapbox bill. They now require a signed-in user and are rate limited.
+**Fixed in this pass:** the address-search and routing actions had no auth check at all, so anyone could run up the maps bill. They now require a signed-in user and are rate limited.
 
 ### 7. Lock record access
 Row access is scoped by RLS per role; ownership lookups return "not found" rather than "forbidden", so they don't reveal which ids exist. Public tracking returns a limited, PII-free view through a function, never direct table access.

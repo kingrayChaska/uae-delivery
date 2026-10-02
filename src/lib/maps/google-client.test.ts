@@ -1,0 +1,361 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  MapsProviderError,
+  buildAutocompleteRequest,
+  buildForwardGeocodeRequest,
+  buildPlaceDetailsRequest,
+  buildReverseGeocodeRequest,
+  buildRouteRequest,
+  buildTextSearchRequest,
+  cleanPlaceText,
+  decodePolyline,
+  featureTypeOf,
+  parseAutocompleteResponse,
+  parseForwardGeocodeResponse,
+  parsePlaceDetailsResponse,
+  parseReverseGeocodeResponse,
+  parseRouteResponse,
+  parseTextSearchResponse,
+} from '@/lib/maps/google-client';
+import { splitAddress } from '@/lib/maps/location';
+
+const KEY = 'test-key';
+const SESSION = '4f9c3a8e-2b1d-4c6e-9a7f-1e2d3c4b5a69';
+const body = (request: { body?: string }) => JSON.parse(request.body ?? '{}');
+
+const uae = { longText: 'United Arab Emirates', shortText: 'AE', types: ['country', 'political'] };
+const dubai = [
+  { longText: 'Dubai', shortText: 'Dubai', types: ['locality', 'political'] },
+  { longText: 'Dubai', shortText: 'Dubai', types: ['administrative_area_level_1', 'political'] },
+  uae,
+];
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe('Places Autocomplete request', () => {
+  it('restricts to the UAE, biases to the whole UAE, and sends the key in a header', () => {
+    const request = buildAutocompleteRequest('Dubai Marina', KEY, SESSION, 'en');
+    expect(request.method).toBe('POST');
+    expect(request.url).toBe('https://places.googleapis.com/v1/places:autocomplete');
+    expect(request.url).not.toContain(KEY);
+    expect(request.headers['X-Goog-Api-Key']).toBe(KEY);
+    expect(request.headers['X-Goog-FieldMask']).toContain('suggestions.placePrediction.placeId');
+    expect(body(request)).toMatchObject({
+      input: 'Dubai Marina',
+      sessionToken: SESSION,
+      includedRegionCodes: ['ae'],
+      languageCode: 'en',
+      locationBias: { rectangle: { low: { latitude: 22.5, longitude: 51 }, high: { latitude: 26.5, longitude: 56.5 } } },
+    });
+    // No type filter: businesses, buildings, parks, streets and areas all come back.
+    expect(body(request)).not.toHaveProperty('includedPrimaryTypes');
+  });
+
+  it('biases toward the other end of the trip when known', () => {
+    const request = buildAutocompleteRequest('JBR', KEY, SESSION, 'en', { lat: 25.08, lng: 55.14 });
+    expect(body(request).locationBias).toEqual({ circle: { center: { latitude: 25.08, longitude: 55.14 }, radius: 50000 } });
+  });
+
+  it('sends Arabic input exactly as typed, asking for Arabic results', () => {
+    const request = buildAutocompleteRequest('دبي مارينا', KEY, SESSION, 'ar');
+    expect(body(request)).toMatchObject({ input: 'دبي مارينا', languageCode: 'ar' });
+  });
+
+  it('can be pointed at a local fake for end-to-end tests', () => {
+    vi.stubEnv('GOOGLE_MAPS_API_URL', 'http://127.0.0.1:4010');
+    expect(buildAutocompleteRequest('x', KEY, SESSION, 'en').url).toBe('http://127.0.0.1:4010/v1/places:autocomplete');
+    expect(buildRouteRequest({ lat: 25, lng: 55 }, { lat: 25.1, lng: 55.1 }, KEY).url).toBe('http://127.0.0.1:4010/directions/v2:computeRoutes');
+  });
+});
+
+describe('Places Autocomplete response', () => {
+  it('turns predictions into rows, cleaning Google\'s " - " separated UAE text', () => {
+    const rows = parseAutocompleteResponse({
+      suggestions: [
+        {
+          placePrediction: {
+            placeId: 'ChIJ-marina-gate',
+            text: { text: 'Marina Gate 1 - Dubai Marina - Dubai - United Arab Emirates' },
+            structuredFormat: { mainText: { text: 'Marina Gate 1' }, secondaryText: { text: 'Dubai Marina - Dubai - United Arab Emirates' } },
+            types: ['premise', 'point_of_interest', 'establishment'],
+          },
+        },
+        {
+          placePrediction: {
+            placeId: 'ChIJ-business-bay',
+            text: { text: 'Business Bay - Dubai - United Arab Emirates' },
+            structuredFormat: { mainText: { text: 'Business Bay' }, secondaryText: { text: 'Dubai - United Arab Emirates' } },
+            types: ['sublocality_level_1', 'sublocality', 'political', 'geocode'],
+          },
+        },
+        // Query predictions have no place; they're skipped.
+        { placePrediction: undefined },
+      ],
+    });
+    expect(rows).toEqual([
+      { id: 'ChIJ-marina-gate', name: 'Marina Gate 1', secondary: 'Dubai Marina, Dubai, UAE', featureType: 'poi', resolved: null },
+      { id: 'ChIJ-business-bay', name: 'Business Bay', secondary: 'Dubai, UAE', featureType: 'area', resolved: null },
+    ]);
+  });
+
+  it('formats Arabic results with the Arabic comma and country name', () => {
+    const [row] = parseAutocompleteResponse(
+      {
+        suggestions: [
+          {
+            placePrediction: {
+              placeId: 'ChIJ-burj',
+              structuredFormat: { mainText: { text: 'برج خليفة' }, secondaryText: { text: 'دبي - الإمارات العربية المتحدة' } },
+              types: ['point_of_interest', 'establishment'],
+            },
+          },
+        ],
+      },
+      'ar',
+    );
+    expect(row.secondary).toBe('دبي، الإمارات');
+  });
+
+  it('returns no rows for an empty response', () => {
+    expect(parseAutocompleteResponse({})).toEqual([]);
+  });
+});
+
+describe('Place Details', () => {
+  it('builds a GET that ends the session, and refuses anything that is not a place id', () => {
+    const request = buildPlaceDetailsRequest('ChIJ-marina-gate', KEY, SESSION, 'ar');
+    expect(request.method).toBe('GET');
+    expect(request.url).toContain('/v1/places/ChIJ-marina-gate?');
+    expect(request.url).toContain(`sessionToken=${SESSION}`);
+    expect(request.url).toContain('languageCode=ar');
+    expect(request.headers['X-Goog-FieldMask']).toBe('id,displayName,formattedAddress,location,addressComponents,types');
+    expect(() => buildPlaceDetailsRequest('../../v1/other', KEY, SESSION, 'en')).toThrow(MapsProviderError);
+  });
+
+  it('keeps the Place ID, coordinates and a clean address for a business', () => {
+    const location = parsePlaceDetailsResponse({
+      id: 'ChIJ-marina-gate',
+      displayName: { text: 'Marina Gate 1' },
+      formattedAddress: 'Marina Gate 1 - King Salman Bin Abdulaziz Al Saud St - Dubai Marina - Dubai - United Arab Emirates',
+      location: { latitude: 25.0869, longitude: 55.1476 },
+      types: ['premise', 'point_of_interest', 'establishment'],
+      addressComponents: [
+        { longText: 'King Salman Bin Abdulaziz Al Saud Street', shortText: 'King Salman St', types: ['route'] },
+        { longText: 'Dubai Marina', shortText: 'Dubai Marina', types: ['sublocality_level_1', 'sublocality', 'political'] },
+        ...dubai,
+      ],
+    });
+    expect(location.coordinates).toEqual({ lat: 25.0869, lng: 55.1476 });
+    expect(location.place).toMatchObject({
+      placeId: 'ChIJ-marina-gate',
+      name: 'Marina Gate 1',
+      street: 'King Salman Bin Abdulaziz Al Saud Street',
+      neighborhood: 'Dubai Marina',
+      city: 'Dubai',
+      region: 'Dubai',
+      country: 'United Arab Emirates',
+    });
+    expect(location.formattedAddress).toBe('Marina Gate 1, King Salman Bin Abdulaziz Al Saud Street, Dubai Marina, Dubai, UAE');
+  });
+
+  it('files an area\'s own name as the neighbourhood, not a place name', () => {
+    const location = parsePlaceDetailsResponse({
+      id: 'ChIJ-al-nahda',
+      displayName: { text: 'Al Nahda' },
+      location: { latitude: 25.3, longitude: 55.37 },
+      types: ['sublocality_level_1', 'sublocality', 'political'],
+      addressComponents: [
+        { longText: 'Sharjah', shortText: 'Sharjah', types: ['locality', 'political'] },
+        { longText: 'Sharjah', shortText: 'Sharjah', types: ['administrative_area_level_1', 'political'] },
+        uae,
+      ],
+    });
+    expect(location.place.name).toBeNull();
+    expect(location.place.neighborhood).toBe('Al Nahda');
+    expect(location.formattedAddress).toBe('Al Nahda, Sharjah, UAE');
+  });
+
+  it('refuses a place without coordinates', () => {
+    expect(() => parsePlaceDetailsResponse({ id: 'x' })).toThrow(MapsProviderError);
+    expect(() => parsePlaceDetailsResponse({})).toThrow(MapsProviderError);
+  });
+});
+
+describe('Text Search (the fallback search)', () => {
+  it('restricts to the UAE rectangle', () => {
+    const request = buildTextSearchRequest('warehouse al quoz 3', KEY, 'en');
+    expect(request.url).toBe('https://places.googleapis.com/v1/places:searchText');
+    expect(request.headers['X-Goog-FieldMask']).toContain('places.location');
+    expect(body(request)).toMatchObject({ textQuery: 'warehouse al quoz 3', regionCode: 'ae', languageCode: 'en', pageSize: 6 });
+    expect(body(request).locationRestriction.rectangle).toBeDefined();
+  });
+
+  it('returns rows that already carry coordinates, dropping places outside the UAE', () => {
+    const rows = parseTextSearchResponse({
+      places: [
+        {
+          id: 'ChIJ-dip',
+          displayName: { text: 'Dubai Investments Park' },
+          location: { latitude: 24.99, longitude: 55.17 },
+          types: ['sublocality_level_1', 'political'],
+          addressComponents: dubai,
+        },
+        {
+          id: 'ChIJ-khasab',
+          displayName: { text: 'Khasab Port' },
+          location: { latitude: 26.2, longitude: 56.25 },
+          types: ['point_of_interest'],
+          addressComponents: [{ longText: 'Oman', shortText: 'OM', types: ['country', 'political'] }],
+        },
+      ],
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: 'ChIJ-dip', name: 'Dubai Investments Park', featureType: 'area' });
+    expect(rows[0].resolved?.coordinates).toEqual({ lat: 24.99, lng: 55.17 });
+    expect(rows[0].resolved?.place.placeId).toBe('ChIJ-dip');
+  });
+});
+
+describe('Reverse geocoding (dropped pins)', () => {
+  it('sends the coordinates and language, with the key as a query parameter', () => {
+    const request = buildReverseGeocodeRequest({ lat: 25.2, lng: 55.27 }, KEY, 'ar');
+    expect(request.url).toMatch(/^https:\/\/maps\.googleapis\.com\/maps\/api\/geocode\/json\?/);
+    expect(request.url).toContain('latlng=25.2%2C55.27');
+    expect(request.url).toContain('language=ar');
+  });
+
+  it('skips bare plus codes, keeps the exact pin, and borrows the emirate from a wider result', () => {
+    const pin = { lat: 25.197197, lng: 55.274376 };
+    const location = parseReverseGeocodeResponse(
+      {
+        status: 'OK',
+        results: [
+          {
+            place_id: 'plus',
+            types: ['plus_code'],
+            formatted_address: '5783+VQ Dubai - United Arab Emirates',
+            address_components: [{ long_name: '5783+VQ', short_name: '5783+VQ', types: ['plus_code'] }],
+          },
+          {
+            place_id: 'ChIJ-street',
+            types: ['street_address'],
+            formatted_address: '1 Sheikh Mohammed bin Rashid Blvd - Downtown Dubai - Dubai - United Arab Emirates',
+            geometry: { location: { lat: 25.1972, lng: 55.2744 } },
+            address_components: [
+              { long_name: 'Burj Khalifa', short_name: 'Burj Khalifa', types: ['premise'] },
+              { long_name: '1', short_name: '1', types: ['street_number'] },
+              { long_name: 'Sheikh Mohammed bin Rashid Boulevard', short_name: 'Sheikh Mohammed bin Rashid Blvd', types: ['route'] },
+              { long_name: 'Downtown Dubai', short_name: 'Downtown Dubai', types: ['neighborhood', 'political'] },
+              { long_name: 'Dubai', short_name: 'Dubai', types: ['locality', 'political'] },
+            ],
+          },
+          {
+            place_id: 'ChIJ-dubai',
+            types: ['administrative_area_level_1', 'political'],
+            address_components: [
+              { long_name: 'Dubai', short_name: 'Dubai', types: ['administrative_area_level_1', 'political'] },
+              { long_name: 'United Arab Emirates', short_name: 'AE', types: ['country', 'political'] },
+            ],
+          },
+        ],
+      },
+      pin,
+    );
+    expect(location.coordinates).toEqual(pin);
+    expect(location.place).toMatchObject({
+      placeId: 'ChIJ-street',
+      name: 'Burj Khalifa',
+      street: '1 Sheikh Mohammed bin Rashid Boulevard',
+      neighborhood: 'Downtown Dubai',
+      region: 'Dubai',
+      country: 'United Arab Emirates',
+    });
+    expect(location.formattedAddress).toBe('Burj Khalifa, 1 Sheikh Mohammed bin Rashid Boulevard, Downtown Dubai, Dubai, UAE');
+  });
+
+  it('treats no address (the sea, the desert) and refused keys as failures', () => {
+    const pin = { lat: 25, lng: 54 };
+    expect(() => parseReverseGeocodeResponse({ status: 'ZERO_RESULTS', results: [] }, pin)).toThrow('No address found');
+    // HTTP 200 with a refusal inside: must not look like success.
+    expect(() => parseReverseGeocodeResponse({ status: 'REQUEST_DENIED', error_message: 'API key not authorized' }, pin)).toThrow(
+      /REQUEST_DENIED/,
+    );
+  });
+});
+
+describe('Forward geocoding (staff CSV import)', () => {
+  it('restricts to the UAE', () => {
+    const request = buildForwardGeocodeRequest('Al Reem Island, Abu Dhabi', KEY);
+    expect(request.url).toContain('components=country%3AAE');
+    expect(request.url).toContain('region=ae');
+  });
+
+  it('returns the first match, or null when there is none', () => {
+    expect(
+      parseForwardGeocodeResponse({
+        status: 'OK',
+        results: [{ formatted_address: 'Al Reem Island - Abu Dhabi - United Arab Emirates', geometry: { location: { lat: 24.49, lng: 54.4 } } }],
+      }),
+    ).toEqual({ formattedAddress: 'Al Reem Island, Abu Dhabi, UAE', coordinates: { lat: 24.49, lng: 54.4 } });
+    expect(parseForwardGeocodeResponse({ status: 'ZERO_RESULTS', results: [] })).toBeNull();
+  });
+});
+
+describe('Routes API', () => {
+  it('asks for a traffic-unaware driving route (stable prices between quote and booking)', () => {
+    const request = buildRouteRequest({ lat: 25.08, lng: 55.14 }, { lat: 25.19, lng: 55.27 }, KEY);
+    expect(request.headers['X-Goog-FieldMask']).toBe('routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline');
+    expect(body(request)).toMatchObject({
+      origin: { location: { latLng: { latitude: 25.08, longitude: 55.14 } } },
+      destination: { location: { latLng: { latitude: 25.19, longitude: 55.27 } } },
+      travelMode: 'DRIVE',
+      routingPreference: 'TRAFFIC_UNAWARE',
+    });
+  });
+
+  it('reads distance, duration and the road path', () => {
+    const route = parseRouteResponse({
+      routes: [{ distanceMeters: 14823, duration: '1260s', polyline: { encodedPolyline: '_p~iF~ps|U_ulLnnqC_mqNvxq`@' } }],
+    });
+    expect(route.distanceKm).toBeCloseTo(14.823);
+    expect(route.durationMinutes).toBe(21);
+    expect(route.path).toHaveLength(3);
+  });
+
+  it('throws when Google finds no drivable route', () => {
+    expect(() => parseRouteResponse({})).toThrow(MapsProviderError);
+  });
+
+  it('decodes Google\'s reference polyline', () => {
+    // The example from Google's Encoded Polyline Algorithm documentation.
+    expect(decodePolyline('_p~iF~ps|U_ulLnnqC_mqNvxq`@')).toEqual([
+      { lat: 38.5, lng: -120.2 },
+      { lat: 40.7, lng: -120.95 },
+      { lat: 43.252, lng: -126.453 },
+    ]);
+  });
+});
+
+describe('display helpers', () => {
+  it('drops P.O. box numbers and repeated names', () => {
+    expect(cleanPlaceText('Al Quoz - Dubai - 12345 - Dubai - United Arab Emirates')).toBe('Al Quoz, Dubai, UAE');
+  });
+
+  it('classifies place types for the dropdown icon', () => {
+    expect(featureTypeOf(['park', 'point_of_interest', 'establishment'])).toBe('poi');
+    expect(featureTypeOf(['street_address'])).toBe('address');
+    expect(featureTypeOf(['route'])).toBe('street');
+    expect(featureTypeOf(['locality', 'political'])).toBe('area');
+  });
+
+  it('splits Arabic addresses into a title and subtitle', () => {
+    expect(splitAddress('برج خليفة، وسط مدينة دبي، دبي، الإمارات')).toEqual({
+      title: 'برج خليفة',
+      subtitle: 'وسط مدينة دبي، دبي، الإمارات',
+      pinnedCoordinates: null,
+    });
+  });
+});

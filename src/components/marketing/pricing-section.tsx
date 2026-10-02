@@ -25,8 +25,8 @@ const PricingSection = async ({ rules }: PricingSectionProps) => {
     `${rule.currency} ${format.number(value, { minimumFractionDigits: Number.isInteger(value) ? 0 : 2, maximumFractionDigits: 2 })}`;
 
   const plans = [
-    { key: 'nextDay', rule: nextDay, icon: CalendarClock, featured: true },
     { key: 'sameDay', rule: sameDay, icon: Zap, featured: false },
+    { key: 'nextDay', rule: nextDay, icon: CalendarClock, featured: false },
   ] as const;
 
   return (

@@ -7,16 +7,14 @@ import Button from '@/components/ui/button';
 import RouteMapGraphic from '@/components/marketing/route-map-graphic';
 import HeroAnimation from '@/components/marketing/hero-animation';
 import { localizeHref } from '@/i18n/config';
-import { getFormat, getRequestLocale } from '@/i18n/server';
-
-import type { PricingRule } from '@/lib/types';
+import { getRequestLocale } from '@/i18n/server';
 
 // Entrance motion is pure CSS (tw-animate-css), so the text is in the HTML
 // from the start; motion-reduce turns it off.
 const enter = 'animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both motion-reduce:animate-none';
 
-const Hero = async ({ nextDay }: { nextDay: PricingRule }) => {
-  const [t, locale, format] = await Promise.all([getTranslations('marketing.hero'), getRequestLocale(), getFormat()]);
+const Hero = async () => {
+  const [t, locale] = await Promise.all([getTranslations('marketing.hero'), getRequestLocale()]);
 
   return (
     <section aria-labelledby="hero-heading" className="relative overflow-hidden bg-brand-route-deep">
@@ -38,11 +36,11 @@ const Hero = async ({ nextDay }: { nextDay: PricingRule }) => {
       {/* Soft brand glow behind the headline */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -start-32 -top-40 size-144 rounded-full bg-brand-route/40 blur-3xl"
+        className="pointer-events-none absolute -inset-s-32 -top-40 size-144 rounded-full bg-brand-route/40 blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-48 end-0 size-120 rounded-full bg-brand-signal/20 blur-3xl"
+        className="pointer-events-none absolute -bottom-48 inset-e-0 size-120 rounded-full bg-brand-signal/20 blur-3xl"
       />
 
       <HeroAnimation />
@@ -83,12 +81,12 @@ const Hero = async ({ nextDay }: { nextDay: PricingRule }) => {
 
           <ul className={`${enter} delay-500 grid gap-3 pt-4 text-sm text-brand-paper/80 sm:grid-cols-3`}>
             <li className="flex items-center gap-2">
-              <CalendarClock className="size-4 shrink-0 text-brand-signal" aria-hidden />
-              {t('nextDayFrom', { price: `${nextDay.currency} ${format.number(nextDay.basePrice, { maximumFractionDigits: 0 })}` })}
-            </li>
-            <li className="flex items-center gap-2">
               <Zap className="size-4 shrink-0 text-brand-signal" aria-hidden />
               {t('sameDay')}
+            </li>
+            <li className="flex items-center gap-2">
+              <CalendarClock className="size-4 shrink-0 text-brand-signal" aria-hidden />
+              {t('nextDay')}
             </li>
             <li className="flex items-center gap-2">
               <BadgeCheck className="size-4 shrink-0 text-brand-signal" aria-hidden />

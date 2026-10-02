@@ -6,7 +6,7 @@ const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
 // Straight-line (haversine) distance in km. This is ONLY for sorting
 // available drivers by rough proximity to a pickup point in the dispatch
 // UI (spec section 23's "1.2 km from pickup") — never for pricing, which
-// always uses the real road-route distance from Mapbox (lib/maps).
+// always uses the real road-route distance from Google (lib/maps).
 export const haversineDistanceKm = (a: Coordinates, b: Coordinates): number => {
   const dLat = toRadians(b.lat - a.lat);
   const dLng = toRadians(b.lng - a.lng);

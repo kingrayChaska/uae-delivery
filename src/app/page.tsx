@@ -8,7 +8,6 @@ import Hero from "@/components/marketing/hero";
 import HowItWorks from "@/components/marketing/how-it-works";
 import LiveTrackingDemo from "@/components/marketing/live-tracking-demo";
 import PricingSection from "@/components/marketing/pricing-section";
-import ProductFacts from "@/components/marketing/product-facts";
 import Services from "@/components/marketing/services";
 import Testimonials from "@/components/marketing/testimonials";
 import SiteFooter from "@/components/marketing/site-footer";
@@ -40,7 +39,9 @@ export const generateMetadata = async (): Promise<Metadata> => {
   return {
     title,
     description,
-    keywords: t("keywords").split(",").map((keyword) => keyword.trim()),
+    keywords: t("keywords")
+      .split(",")
+      .map((keyword) => keyword.trim()),
     alternates,
     openGraph: {
       type: "website",
@@ -49,18 +50,31 @@ export const generateMetadata = async (): Promise<Metadata> => {
       title,
       description,
       locale: OG_LOCALES[locale],
-      alternateLocale: Object.values(OG_LOCALES).filter((og) => og !== OG_LOCALES[locale]),
+      alternateLocale: Object.values(OG_LOCALES).filter(
+        (og) => og !== OG_LOCALES[locale],
+      ),
     },
     twitter: { card: "summary_large_image", title, description },
   };
 };
 
-const faqItems = async (rules: Record<DeliveryType, PricingRule>, format: Formatters): Promise<FaqItem[]> => {
+const faqItems = async (
+  rules: Record<DeliveryType, PricingRule>,
+  format: Formatters,
+): Promise<FaqItem[]> => {
   const t = await getTranslations("marketing.faq.items");
   const { next_day: nextDay, same_day: sameDay } = rules;
   const money = (rule: PricingRule, value: number) =>
     `${rule.currency} ${format.number(value, { maximumFractionDigits: 2 })}`;
-  const keys = ["cost", "difference", "range", "track", "cod", "merchant", "multiple"] as const;
+  const keys = [
+    "cost",
+    "difference",
+    "range",
+    "track",
+    "cod",
+    "merchant",
+    "multiple",
+  ] as const;
   const values = {
     cost: {
       nextDayBase: money(nextDay, nextDay.basePrice),
@@ -72,7 +86,12 @@ const faqItems = async (rules: Record<DeliveryType, PricingRule>, format: Format
       includedWeight: format.kg(sameDay.includedWeightKg),
       perKg: money(sameDay, sameDay.additionalPricePerKg),
     },
-    range: { distance: format.km(Math.max(nextDay.maxDistanceKm, sameDay.maxDistanceKm), 0) },
+    range: {
+      distance: format.km(
+        Math.max(nextDay.maxDistanceKm, sameDay.maxDistanceKm),
+        0,
+      ),
+    },
   } as const;
   return keys.map((key) => ({
     question: t(`${key}.question`),
@@ -122,7 +141,10 @@ const HomePage = async () => {
       },
       ...(["next_day", "same_day"] as const).map((type) => ({
         "@type": "Service",
-        name: type === "next_day" ? tData("nextDayService") : tData("sameDayService"),
+        name:
+          type === "next_day"
+            ? tData("nextDayService")
+            : tData("sameDayService"),
         serviceType: tData("serviceType"),
         provider: { "@id": `${url}/#organization` },
         areaServed: { "@type": "Country", name: tData("country") },
@@ -159,11 +181,7 @@ const HomePage = async () => {
       </a>
       <SiteNav />
       <main id="main" className="flex flex-1 flex-col">
-        <Hero nextDay={individual.next_day} />
-        <ProductFacts
-          nextDay={individual.next_day}
-          sameDay={individual.same_day}
-        />
+        <Hero />
         <PricingSection rules={individual} />
         <Services />
         <HowItWorks />

@@ -447,13 +447,13 @@
         "name": "Supabase",
         "detail": "قاعدة البيانات والمصادقة والتخزين والتحديثات المباشرة. مفتاح service-role مطلوب لإضافة الموظفين."
       },
-      "mapboxPublic": {
-        "name": "Mapbox (عرض الخرائط)",
-        "detail": "رمز عام لعرض الخرائط في المتصفح. قيّده بنطاقاتك في Mapbox."
+      "googleMapsBrowser": {
+        "name": "خرائط Google (عرض الخريطة)",
+        "detail": "مفتاح المتصفح لواجهة Maps JavaScript API. قيّده بنطاقاتك (مُحيلو HTTP) وبهذه الواجهة وحدها في Google Cloud."
       },
-      "mapboxSecret": {
-        "name": "Mapbox (المسارات وتحديد المواقع)",
-        "detail": "رمز خاص بالخادم فقط. يعتمد عليه التسعير — ودونه لا يمكن تسعير أي حجز."
+      "googleMapsServer": {
+        "name": "خرائط Google (البحث وتحديد المواقع والمسارات)",
+        "detail": "مفتاح للخادم فقط لواجهات Places وGeocoding وRoutes. تعتمد عليه الأسعار؛ لا تكشفه للمتصفح أبدًا."
       },
       "turnstile": {
         "name": "الحماية من الروبوتات (Cloudflare Turnstile)",

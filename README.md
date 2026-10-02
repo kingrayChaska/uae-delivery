@@ -1,6 +1,6 @@
 # UAE Delivery
 
-Production logistics & last-mile delivery platform for the UAE. Next.js 16 (App Router) + TypeScript + Tailwind v4 + shadcn/ui + Supabase (Auth/Postgres/RLS/Storage) + Mapbox.
+Production logistics & last-mile delivery platform for the UAE. Next.js 16 (App Router) + TypeScript + Tailwind v4 + shadcn/ui + Supabase (Auth/Postgres/RLS/Storage) + Google Maps Platform.
 
 This is a separate, new project — not related to the ParcelLink codebase.
 
@@ -11,7 +11,7 @@ This is a separate, new project — not related to the ParcelLink codebase.
 3. ✅ **Auth & roles** — register/login/forgot-password/reset-password wired to Supabase Auth, role-aware dashboard nav shell
 4. ✅ **Public landing page + tracking page** — full marketing site (`components/marketing/`) and a real `/tracking` page wired to the `get_shipment_tracking` RPC
 5. ✅ **Pricing engine** — formula (Phase 1) + DB wiring (Phase 2) + the interactive fare calculator on the landing page (Phase 4), all sharing the same `calculatePrice()` function
-6. ✅ **Maps integration (Mapbox)** — address autocomplete, geocoding, and real road-route distance/duration; see `lib/maps/README.md`
+6. ✅ **Maps integration (Google Maps Platform)** — Places autocomplete (English/Arabic), map-pin selection, reverse geocoding, and real driving distance/duration from the Routes API; see `lib/maps/README.md`
 7. ✅ **Customer dashboard + booking flow** — full 5-step booking wizard (pickup/delivery/package incl. photo upload/payment/review), dashboard home, My Deliveries, shipment detail + live tracking, payments, notifications, profile, and full support tickets
 8. ✅ **Driver dashboard + delivery workflow** — accept/decline, the full status-progression workflow, proof of delivery (photo, signature pad, OTP via in-app notification, QR scan with manual fallback), COD collection, availability toggle, and location pings scoped to only-while-actively-delivering
 9. ✅ **Operator dashboard + dispatch + live map** — dispatch board with proximity-sorted driver assignment, realtime live map with filters, shipments (incl. booking on a customer's behalf), drivers, customers, COD reconciliation, support inbox, and activity log; plus a database hardening pass (migration 0015) closing role/column-level update gaps found while testing
@@ -24,7 +24,7 @@ This is a separate, new project — not related to the ParcelLink codebase.
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in Supabase + Mapbox keys
+cp .env.example .env.local   # fill in Supabase + Google Maps keys
 npm run dev
 npm test                     # unit tests (no network needed)
 npm run security:secrets     # scan for committed credentials

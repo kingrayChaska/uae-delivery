@@ -58,7 +58,7 @@ export const latestEmailLink = (to: string): string => {
 };
 
 // Same pricing formula the app uses, computed independently from the fake
-// Mapbox's route model (haversine x 1.3) — so the test checks the app's
+// Google Maps' route model (haversine x 1.3) — so the test checks the app's
 // price rather than echoing it back.
 export const expectedPrice = (
   a: { lat: number; lng: number },

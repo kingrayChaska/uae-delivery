@@ -1,40 +1,53 @@
-# Maps (Mapbox)
+# Maps (Google Maps Platform)
 
 ## Architecture
 
-- `mapbox-client.ts` — **pure** functions only: builds request URLs and parses Mapbox's JSON into this app's types. No `fetch` calls, so it's unit-tested without the network (`mapbox-client.test.ts`, `location-search.test.ts`).
-- `mapbox-provider.ts` — composes `mapbox-client.ts` with real `fetch` calls using `MAPBOX_SECRET_TOKEN`. Server-only.
-- `actions.ts` — server actions the browser calls: `searchLocationsAction`, `retrieveLocationAction`, `reverseGeocodeAction`, `getRouteAction`. Each requires a signed-in user and is rate limited.
-- `components/maps/location-picker.tsx` — the pickup/delivery location picker: search, "Use my current location", "Drop a pin on the map", and a confirmation card. `lib/hooks/use-location-search.ts` debounces (300 ms, 3 characters), drops stale responses and caches repeated queries.
-- `components/maps/map-location-selector.tsx` — the draggable-pin map, loaded only when a customer chooses to drop a pin.
-- `components/maps/route-map.tsx` — the route preview map. The two map components are the only places the public `NEXT_PUBLIC_MAPBOX_TOKEN` is used (for tiles).
+- `google-client.ts` — **pure** functions only: builds Google API requests and parses Google's JSON into this app's types. No `fetch` calls, so it's unit-tested without the network (`google-client.test.ts`).
+- `google-provider.ts` — composes `google-client.ts` with real `fetch` calls using `GOOGLE_MAPS_SERVER_API_KEY`. Server-only. Caches routes for an hour (the wizard's quote and the booking's own check ask for the same one).
+- `actions.ts` — server actions the browser calls: `searchLocationsAction`, `retrieveLocationAction`, `reverseGeocodeAction`, `getRouteAction`. Each requires a signed-in user and is rate limited. Google's error text goes to server logs; customers see the app's own messages.
+- `google-maps-loader.ts` + `use-google-map.ts` — load the Maps JavaScript API once per page (only the `maps` and `marker` libraries, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`), and create a map that follows the app's light/dark theme. A refused key (`gm_authFailure`) or a failed script shows the app's "map unavailable" message instead of Google's grey box.
+- `components/maps/location-picker.tsx` — the pickup/delivery picker: search, "Use my current location", "Drop a pin on the map", and a confirmation card. `lib/hooks/use-location-search.ts` debounces (300 ms, 3 characters), drops stale responses, caches repeated queries, and manages the Places session token.
+- `components/maps/map-location-selector.tsx` — the draggable-pin map: drag the pin, tap anywhere (including a business/landmark icon), or "Put pin at map centre".
+- `components/maps/route-map.tsx` — pickup (A) and delivery (B) pins and the driving route, framed to fit both. In the booking wizard the pins are draggable; the moved end is reverse-geocoded and the route and price are recalculated.
+- `components/operator/dispatch-map.tsx` — live driver positions for dispatch and the live map.
 
-## Which Mapbox APIs, and why
+## Which Google APIs, and why
 
-- **Search Box API** (`/search/searchbox/v1/suggest` + `/retrieve`) is the primary search. The Geocoding API doesn't index points of interest, which is why towers, malls, hotels, warehouses and businesses couldn't be found. Search Box covers POIs as well as addresses, streets and neighbourhoods. Requests use `country=ae`, `language=en`, the UAE bounding box, no `types` filter, and a session token per search (Mapbox bills suggest + retrieve as one session).
-- **Geocoding v6** — automatic fallback if Search Box fails (so search keeps working), reverse geocoding for dropped pins and current location, and forward geocoding for the staff CSV upload.
-- **Directions v5** — road distance between the chosen coordinates. Pricing and the distance limit use only this.
+| API | Used for | Where |
+| --- | --- | --- |
+| **Maps JavaScript API** | Drawing maps, Advanced Markers, route lines | Browser (`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`) |
+| **Places API (New)** — Autocomplete | Search-as-you-type: businesses, buildings, landmarks, parks, streets, communities, districts | Server |
+| **Places API (New)** — Place Details | Coordinates, address parts and Place ID of the chosen suggestion (ends the billing session) | Server |
+| **Places API (New)** — Text Search | Fallback when Autocomplete returns nothing or fails (more forgiving of partial/descriptive queries); staff CSV fallback | Server |
+| **Geocoding API** | Reverse geocoding (dropped pins, current location, the server's emirate check); forward geocoding for the staff CSV upload | Server |
+| **Routes API** — `computeRoutes` | Driving distance, duration and path. Pricing and the distance limit use only this | Server |
 
-A dropped pin or device location keeps its **exact** coordinates even when reverse geocoding fails; the customer then types building/unit details. Mapbox never has to know an address for a booking to go through.
+Nothing else needs enabling. Legacy Places, Directions and Distance Matrix are not used.
+
+**Search coverage.** Autocomplete has no type filter, so every kind of place Google indexes can come back. Results are restricted to the UAE (`includedRegionCodes: ['ae']`) and biased toward the other end of the trip (50 km circle) or, before that's known, the whole UAE. Queries are sent exactly as typed — Arabic or English — and Google answers in the page's language (`languageCode`). Autocomplete returns at most five predictions; if it has none, Text Search runs. If Google still has nothing, the dropdown's "Drop a pin on the map" is always there.
+
+**Exact pins as the fallback.** A dropped pin or device location keeps its **exact** coordinates even when reverse geocoding fails; the customer then types building/unit details. Google never has to know an address for a booking to go through.
+
+**Session tokens.** One UUID per search: every Autocomplete keystroke request and the Place Details call that ends it share the token, which Google bills as one session. A new token starts after each selection.
+
+**Routes are traffic-unaware** (`TRAFFIC_UNAWARE`). The wizard's price and the server's price at booking time are computed minutes apart; a traffic-aware route could change in between and the booking would be priced differently from the quote. The duration shown is Google's typical drive time for that route.
+
+**Map language.** The Maps JavaScript API fixes its language when it loads. After switching language, map labels and Google's own controls stay in the first language until the next full page load; everything ParcelLink draws (search results, addresses, messages) switches immediately. The switcher doesn't force a reload because that would discard a half-completed booking.
+
+## Stored data
+
+`pickup_address`/`pickup_lat`/`pickup_lng` (and `dropoff_*`) remain the source of truth. The Google Place ID is stored as `placeId` inside the existing `pickup_place`/`dropoff_place` jsonb (migration 0025), so no schema change was needed and older (Mapbox-era) rows stay readable as they were.
 
 ## Service areas (which emirates can be booked)
 
-`lib/service-areas/config.ts` is the one place the emirate rules live: `SERVICE_AREAS.fullySupported` (Dubai, Sharjah, Ajman) and `SERVICE_AREAS.requestOnly` (Abu Dhabi, Ras Al Khaimah, Fujairah, Umm Al Quwain). Move an emirate between the lists to change the rule.
+`lib/service-areas/config.ts` is the one place coverage lives: `EMIRATE_COVERAGE` maps each emirate to `active` (Dubai, Sharjah, Ajman) or `contact_support` (Abu Dhabi, Ras Al Khaimah, Fujairah, Umm Al Quwain). The emirate is the boundary; there is no neighbourhood list. `classifyServiceArea` gives one of four verdicts, for pickup and delivery alike: `active`, `contact_support`, `unverified` (a UAE location whose emirate couldn't be confirmed — support confirms it) or `outside_uae`. Only `active` continues to pricing, booking and payment.
 
-- **Which emirate?** Taken only from the region Mapbox reports for a point: its ISO 3166-2 code (`AE-DU`, returned as `region_code_full`/`region_code` and kept as `place.regionCode`) and, failing that, the region name. City and neighbourhood names are never used to guess. Anything that can't be confirmed is `unknown` and is never treated as supported.
-- **In the booking wizard:** the notice appears as soon as a location is chosen and Continue is disabled. Request-only emirates get "Delivery/Pickup available on request" naming the emirate; unknown locations get "Service area unavailable". "Contact ParcelLink" opens a support request already describing the delivery (customers) or the public contact section.
-- **On the server (the real check):** `quoteShipment` calls `requireServiceableTrip` (`lib/service-areas/verify.ts`), which reverse-geocodes the booking's **coordinates** itself and ignores the place details the browser sent. A failed lookup counts as unknown (fails closed). Every booking path goes through it: customer and merchant bookings, staff booking on behalf, and the staff CSV upload. The confirmed emirate is stored as `emirate` inside `pickup_place`/`dropoff_place`.
-- The database can't geocode, so it has no independent emirate check; direct inserts are still bound by the existing RLS price and distance checks.
+- **Which emirate?** From Google's address components, never the typed text or formatted address: the country (`AE`, else outside the UAE), then `administrative_area_level_1`, then — since Google often gives UAE places only a city — `locality` (the city of Dubai is in Dubai; towns like Hatta or Khor Fakkan are listed per emirate), then the ISO code on older bookings. English and Arabic spellings, "Emirate"/"إمارة", case, spacing, punctuation and Arabic letter variants are normalised.
+- **In the booking wizard:** instant when the selected place names its emirate; otherwise the server is asked straight away (`checkLocationCoverageAction`) and the step shows "Checking delivery availability…" — a location is never turned away because the browser lacked a detail.
+- **On the server (the real check):** `quoteShipment` calls `requireServiceableTrip` (`lib/service-areas/verify.ts`) for both ends independently. It re-fetches the **selected Google place** by its Place ID and uses its components, provided the place is within 2 km of the booking's coordinates; otherwise it reverse-geocodes the coordinates. It never trusts the place details the browser sent. A failed lookup is `unverified` (fails closed). Every booking path goes through it.
 
-## Why geocoding/autocomplete go through a server action instead of calling Mapbox directly from the browser
+## Testing
 
-Two reasons: it keeps `MAPBOX_SECRET_TOKEN` server-only (per `.env.example`'s split between the public map-rendering token and the secret geocoding/routing token), and it means UAE bounding-box bias and the `country=ae` filter are enforced in one place server-side rather than duplicated in every client call site.
-
-## Testing without live Mapbox access
-
-`api.mapbox.com` may not be reachable from every environment this gets built in (it wasn't from the sandbox this was built in). The pure-function split above means the request/response *logic* is fully verified by `npm test` regardless. What it can't verify without a real token and a real deployment:
-
-- That Mapbox's actual response shape still matches the fixtures in `mapbox-client.test.ts` (Mapbox's v6 Geocoding and v5 Directions APIs are stable, documented, versioned APIs, but this is worth a real smoke test once you have credentials).
-- The `/dev/maps-demo` page end-to-end (autocomplete → route → price).
-
-**Before relying on this in production:** set `NEXT_PUBLIC_MAPBOX_TOKEN` and `MAPBOX_SECRET_TOKEN` in `.env.local` and try the real booking flow at `/dashboard/customer/book` (Phase 7) — search a real UAE address for pickup and drop-off, confirm the route line and price look right.
+- `npm test` covers the request/response logic against Google's documented response shapes.
+- The end-to-end suite runs against `e2e/stack/fake-google-maps.mjs`, pointed to with `GOOGLE_MAPS_API_URL` (unset in real deployments).
+- With real keys, run the booking flow at `/dashboard/customer/book` and check the browser console for Google Maps or CSP errors — see the checklist in SECURITY.md.

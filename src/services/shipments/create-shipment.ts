@@ -1,44 +1,60 @@
-import 'server-only';
+import "server-only";
 
-import { createClient } from '@/lib/supabase/server';
-import { safeErrorMessage } from '@/lib/security/errors';
+import { createClient } from "@/lib/supabase/server";
+import { safeErrorMessage } from "@/lib/security/errors";
 import {
   BOOKING_ERRORS,
   distanceLimitMessage,
   validateBookingLocations,
   validateRoute,
-} from '@/lib/shipment/booking-guards';
-import { mapboxProvider } from '@/lib/maps/mapbox-provider';
-import { requireServiceableTrip } from '@/lib/service-areas/verify';
-import { getActivePricingRules } from '@/lib/pricing/get-active-rule';
-import { isFallbackRule } from '@/lib/pricing/config';
-import { calculateShipmentPrice } from '@/lib/pricing/calculate';
-import { mapRowToShipment, SHIPMENT_SELECT_COLUMNS } from '@/services/shipments/shipment-mapper';
+} from "@/lib/shipment/booking-guards";
+import { googleMapsProvider } from "@/lib/maps/google-provider";
+import { requireServiceableTrip } from "@/lib/service-areas/verify";
+import { getActivePricingRules } from "@/lib/pricing/get-active-rule";
+import { isFallbackRule } from "@/lib/pricing/config";
+import { calculateShipmentPrice } from "@/lib/pricing/calculate";
+import {
+  mapRowToShipment,
+  SHIPMENT_SELECT_COLUMNS,
+} from "@/services/shipments/shipment-mapper";
 
-import type { BookingInput } from '@/lib/shipment/schemas';
-import type { AccountType, PriceBreakdown, PricingRule, PricingRuleSet, Shipment } from '@/lib/types';
-import type { ShipmentRow } from '@/services/shipments/shipment-mapper';
-import type { Emirate } from '@/lib/service-areas/config';
+import type { BookingInput } from "@/lib/shipment/schemas";
+import type {
+  AccountType,
+  PriceBreakdown,
+  PricingRule,
+  PricingRuleSet,
+  Shipment,
+} from "@/lib/types";
+import type { ShipmentRow } from "@/services/shipments/shipment-mapper";
+import type { Emirate } from "@/lib/service-areas/config";
 
 // Cash on delivery (the goods amount and/or a cash delivery fee) is
 // recorded by a database trigger when a driver is assigned — see
 // sync_shipment_cod_transaction, migration 0022.
 
-const findByClientRequestId = async (customerId: string, clientRequestId: string): Promise<Shipment | null> => {
+const findByClientRequestId = async (
+  customerId: string,
+  clientRequestId: string,
+): Promise<Shipment | null> => {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('shipments')
+    .from("shipments")
     .select(SHIPMENT_SELECT_COLUMNS)
-    .eq('customer_id', customerId)
-    .eq('client_request_id', clientRequestId)
+    .eq("customer_id", customerId)
+    .eq("client_request_id", clientRequestId)
     .maybeSingle();
   return data ? mapRowToShipment(data as ShipmentRow) : null;
 };
 
-// Customer-typed details and Mapbox's structured address for one end of the
+// Customer-typed details and Google's structured address for one end of the
 // trip. The coordinates (pickup_lat/lng etc.) stay the authoritative location;
 // `emirate` in *_place is the one this server confirmed, not the browser's.
-const locationDetailColumns = (prefix: 'pickup' | 'dropoff', location: BookingInput['pickup'], emirate: Emirate) => ({
+const locationDetailColumns = (
+  prefix: "pickup" | "dropoff",
+  location: BookingInput["pickup"],
+  emirate: Emirate,
+) => ({
   [`${prefix}_building`]: location.building?.trim() || null,
   [`${prefix}_unit`]: location.unit?.trim() || null,
   [`${prefix}_floor`]: location.floor?.trim() || null,
@@ -56,29 +72,38 @@ export type BookingCustomer = {
 // Account type is read from the database, never from the request. The
 // caller's own session reads it: a customer can read their own profile,
 // staff can read any customer's.
-export const getBookingCustomer = async (customerId: string): Promise<BookingCustomer> => {
+export const getBookingCustomer = async (
+  customerId: string,
+): Promise<BookingCustomer> => {
   const supabase = await createClient();
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, account_type')
-    .eq('id', customerId)
+    .from("profiles")
+    .select("id, account_type")
+    .eq("id", customerId)
     .maybeSingle();
-  if (!profile) throw new Error('booking.errors.customerNotFound');
+  if (!profile) throw new Error("booking.errors.customerNotFound");
 
   let merchantBusinessAccountId: string | null = null;
-  if (profile.account_type === 'merchant') {
+  if (profile.account_type === "merchant") {
     const { data: membership } = await supabase
-      .from('business_account_members')
-      .select('business_account_id, business_accounts(active)')
-      .eq('profile_id', customerId);
+      .from("business_account_members")
+      .select("business_account_id, business_accounts(active)")
+      .eq("profile_id", customerId);
     const active = (membership ?? []).find((row) => {
-      const business = row.business_accounts as { active: boolean } | { active: boolean }[] | null;
+      const business = row.business_accounts as
+        | { active: boolean }
+        | { active: boolean }[]
+        | null;
       return Array.isArray(business) ? business[0]?.active : business?.active;
     });
     merchantBusinessAccountId = active?.business_account_id ?? null;
   }
 
-  return { id: profile.id, accountType: profile.account_type as AccountType, merchantBusinessAccountId };
+  return {
+    id: profile.id,
+    accountType: profile.account_type as AccountType,
+    merchantBusinessAccountId,
+  };
 };
 
 export type ShipmentQuote = {
@@ -103,24 +128,30 @@ export const quoteShipment = async (
   const locationError = validateBookingLocations(pickup, dropoff);
   if (locationError) throw new Error(locationError);
 
-  // Both ends must be in a fully supported emirate (lib/service-areas).
-  // Checked from the coordinates on this server, before anything is priced.
-  const emirates = await requireServiceableTrip(pickup, dropoff);
+  // Both ends must be in an active emirate (lib/service-areas), checked
+  // independently on this server — from the selected Google place (looked
+  // up again by its ID) or the coordinates — before anything is priced.
+  const emirates = await requireServiceableTrip(pickup, dropoff, {
+    pickup: input.pickup.place?.placeId,
+    dropoff: input.dropoff.place?.placeId,
+  });
 
-  if (customer.accountType === 'merchant' && (input.packageWeightKg === undefined || input.packageWeightKg <= 0)) {
+  if (input.packageWeightKg === undefined || input.packageWeightKg <= 0) {
     throw new Error(BOOKING_ERRORS.weightRequired);
   }
 
-  const rule = (rules ?? (await getActivePricingRules()))[customer.accountType][input.deliveryType];
+  const rule = (rules ?? (await getActivePricingRules()))[customer.accountType][
+    input.deliveryType
+  ];
   if (isFallbackRule(rule)) {
     // An in-code fallback has no database row, so the database's price
     // check would reject it anyway. Fail clearly instead.
-    throw new Error('booking.errors.pricingMissing');
+    throw new Error("booking.errors.pricingMissing");
   }
 
   let route;
   try {
-    route = await mapboxProvider.getRoute(pickup, dropoff);
+    route = await googleMapsProvider.getRoute(pickup, dropoff);
   } catch {
     // Whatever went wrong (network, bad token, no route) the customer sees
     // the spec's message; details belong in server logs, not the UI.
@@ -140,7 +171,9 @@ export const quoteShipment = async (
   });
 
   if (breakdown.exceedsDistanceLimit) {
-    throw new Error(distanceLimitMessage(breakdown.distanceKm, breakdown.maxDistanceKm));
+    throw new Error(
+      distanceLimitMessage(breakdown.distanceKm, breakdown.maxDistanceKm),
+    );
   }
 
   return { input, rule, breakdown, emirates };
@@ -154,7 +187,10 @@ export const quoteShipment = async (
 export const insertQuotedShipment = async (
   customer: BookingCustomer,
   { input, rule, breakdown, emirates }: ShipmentQuote,
-  { businessAccountId = null, batchId = null }: { businessAccountId?: string | null; batchId?: string | null } = {},
+  {
+    businessAccountId = null,
+    batchId = null,
+  }: { businessAccountId?: string | null; batchId?: string | null } = {},
 ): Promise<Shipment> => {
   const supabase = await createClient();
 
@@ -162,14 +198,16 @@ export const insertQuotedShipment = async (
   // to 'confirmed'. Card bookings sit at 'pending_payment' — there's no live
   // payment provider wired up yet (lib/payments is a documented stub), so
   // this is the honest state rather than faking a successful charge.
-  const status = input.paymentMethod === 'cod' ? 'confirmed' : 'pending_payment';
-  const postpaid = input.recipientPaymentType === 'postpaid';
+  const status =
+    input.paymentMethod === "cod" ? "confirmed" : "pending_payment";
+  const postpaid = input.recipientPaymentType === "postpaid";
 
   const { data, error } = await supabase
-    .from('shipments')
+    .from("shipments")
     .insert({
       customer_id: customer.id,
-      business_account_id: businessAccountId ?? customer.merchantBusinessAccountId,
+      business_account_id:
+        businessAccountId ?? customer.merchantBusinessAccountId,
       batch_id: batchId,
       status,
       pickup_address: input.pickup.address,
@@ -182,8 +220,8 @@ export const insertQuotedShipment = async (
       dropoff_lng: input.dropoff.lng,
       dropoff_contact_name: input.dropoff.contactName,
       dropoff_contact_phone: input.dropoff.contactPhone,
-      ...locationDetailColumns('pickup', input.pickup, emirates.pickup),
-      ...locationDetailColumns('dropoff', input.dropoff, emirates.dropoff),
+      ...locationDetailColumns("pickup", input.pickup, emirates.pickup),
+      ...locationDetailColumns("dropoff", input.dropoff, emirates.dropoff),
       distance_km: breakdown.distanceKm,
       duration_minutes: breakdown.durationMinutes,
       pricing_rule_id: rule.id,
@@ -213,13 +251,24 @@ export const insertQuotedShipment = async (
     .single();
 
   if (error || !data) {
+    if (error) {
+      console.error("Shipment insert failed", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+    }
     // Two identical submits raced past the lookup in createShipment; the
     // unique index (migration 0019) let exactly one insert through.
-    if (error?.code === '23505' && input.clientRequestId) {
-      const existing = await findByClientRequestId(customer.id, input.clientRequestId);
+    if (error?.code === "23505" && input.clientRequestId) {
+      const existing = await findByClientRequestId(
+        customer.id,
+        input.clientRequestId,
+      );
       if (existing) return existing;
     }
-    throw new Error(safeErrorMessage(error, 'booking.errors.createFailed'));
+    throw new Error(safeErrorMessage(error, "booking.errors.createFailed"));
   }
 
   return mapRowToShipment(data as ShipmentRow);
@@ -234,9 +283,12 @@ export const createShipment = async (
   batchId: string | null = null,
 ): Promise<Shipment> => {
   // A retry of a booking that already went through: hand back the original
-  // instead of creating a second shipment (and skip the paid Mapbox call).
+  // instead of creating a second shipment (and skip the paid route call).
   if (input.clientRequestId) {
-    const existing = await findByClientRequestId(customerId, input.clientRequestId);
+    const existing = await findByClientRequestId(
+      customerId,
+      input.clientRequestId,
+    );
     if (existing) return existing;
   }
 

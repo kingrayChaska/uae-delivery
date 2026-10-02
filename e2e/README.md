@@ -8,7 +8,7 @@ Real browser tests (Playwright) of the finished app against a **local Supabase s
 | Supabase Auth | The real `supabase/auth` (GoTrue) server binary, which runs its own `auth` schema migrations |
 | PostgREST | The real PostgREST binary — the same REST layer supabase-js talks to |
 | Gateway | `stack/gateway.mjs` — routes `/auth/v1` and `/rest/v1` on one origin, like `https://<project>.supabase.co` |
-| Mapbox | `stack/fake-mapbox.mjs` — returns real Mapbox response shapes for a few UAE landmarks; road distance = 1.3 × straight line |
+| Google Maps Platform | `stack/fake-google-maps.mjs` — returns real Places (New), Geocoding and Routes API response shapes for a few UAE landmarks; road distance = 1.3 × straight line |
 | Email | `stack/smtp-sink.py` — captures the Auth server's emails so tests follow the real invite links |
 | HTTPS | `stack/tls-proxy.mjs` — TLS-terminating proxy in front of the app, like Vercel's edge, so Secure cookies, HSTS and the HTTP→HTTPS redirect behave as in production |
 

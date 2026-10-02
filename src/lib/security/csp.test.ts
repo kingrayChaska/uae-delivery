@@ -39,6 +39,14 @@ describe('buildCsp', () => {
     expect(directive(prod, 'connect-src')).not.toContain('https://cdn.jsdelivr.net');
   });
 
+  it('allows Google Maps (tiles, fonts, API calls) without allowing eval', () => {
+    expect(directive(prod, 'img-src')).toEqual(expect.arrayContaining(['https://*.googleapis.com', 'https://*.gstatic.com']));
+    expect(directive(prod, 'connect-src')).toEqual(expect.arrayContaining(['https://*.googleapis.com', 'https://*.gstatic.com']));
+    expect(directive(prod, 'font-src')).toContain('https://fonts.gstatic.com');
+    expect(directive(prod, 'script-src')).not.toContain("'unsafe-eval'");
+    expect(prod).not.toContain('mapbox');
+  });
+
   it('blocks framing, plugins, and base-tag hijacking', () => {
     expect(directive(prod, 'frame-ancestors')).toEqual(["'none'"]);
     expect(directive(prod, 'object-src')).toEqual(["'none'"]);

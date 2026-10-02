@@ -7,7 +7,7 @@
   --radius: 0.625rem;
   /* ParcelLink brand colours, sampled from the official logo. Every token
      below derives from these two, so a brand refresh is a two-line change
-     (plus lib/brand.ts, which holds the same values for Mapbox/charts,
+     (plus lib/brand.ts, which holds the same values for maps/charts,
      where CSS variables can't be used). */
   --parcellink-purple: #7b3fa7;
   --parcellink-teal: #1a98a2;

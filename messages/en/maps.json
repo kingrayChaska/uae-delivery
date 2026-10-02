@@ -3,8 +3,8 @@
     "placeholder": "Building, street, area or business",
     "clear": "Clear search",
     "suggestions": "{label} suggestions",
-    "noMatch": "No exact match found.",
-    "noMatchHint": "Try another search or drop a pin on the map.",
+    "noMatch": "We couldn't find that location.",
+    "noMatchHint": "Try the building name, street, landmark, or move the pin on the map.",
     "unavailable": "Location search is temporarily unavailable. You can try again or select the location manually on the map.",
     "loadFailed": "That place could not be loaded. Try another result or drop a pin on the map.",
     "empty": "Enter a place to search for"
@@ -27,28 +27,19 @@
     "finding": "Finding the address…",
     "saved": "Location selected",
     "savedHint": "Coordinates saved successfully. Please add your address details manually after confirming.",
-    "confirm": "Confirm location"
+    "confirm": "Confirm location",
+    "updated": "Location updated"
   },
   "map": {
     "label": "Map. Drag the pin, tap the map, or pan with the arrow keys and use Put pin at map centre.",
     "pinAtCentre": "Put pin at map centre",
     "unavailable": "The map couldn’t load. Search for the address instead, or try again later.",
     "loading": "Loading map…",
-    "controls": {
-      "zoomIn": "Zoom in",
-      "zoomOut": "Zoom out",
-      "resetBearing": "Reset bearing to north",
-      "map": "Map",
-      "toggleAttribution": "Toggle attribution",
-      "logo": "Mapbox logo",
-      "enterFullscreen": "Enter fullscreen",
-      "exitFullscreen": "Exit fullscreen",
-      "findMyLocation": "Find my location",
-      "locationUnavailable": "Location not available",
-      "ctrlScroll": "Use ctrl + scroll to zoom the map",
-      "cmdScroll": "Use ⌘ + scroll to zoom the map",
-      "twoFingers": "Use two fingers to move the map"
-    }
+    "pin": "Selected location",
+    "pickup": "Pickup",
+    "dropoff": "Delivery",
+    "routeLabel": "Map of the pickup and delivery locations and the driving route between them",
+    "servicesUnavailable": "Map services are temporarily unavailable. Please try again shortly."
   },
   "errors": {
     "invalidCoordinates": "Invalid coordinates",

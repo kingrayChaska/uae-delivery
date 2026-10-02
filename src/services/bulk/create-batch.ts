@@ -3,7 +3,7 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { safeErrorMessage } from '@/lib/security/errors';
-import { mapboxProvider } from '@/lib/maps/mapbox-provider';
+import { googleMapsProvider } from '@/lib/maps/google-provider';
 import { bookingSchema } from '@/lib/shipment/schemas';
 import { createShipment } from '@/services/shipments/create-shipment';
 
@@ -74,7 +74,7 @@ export const openBatch = async (input: OpenBatchInput): Promise<OpenedBatch> => 
 // Each valid row is geocoded, routed and priced server-side by the same
 // createShipment() the booking wizard uses, so bulk shipments get exactly
 // the same price integrity as a single booking. Rows run one at a time to
-// stay within Mapbox rate limits; a row that fails never blocks the others.
+// stay within Google Maps rate limits; a row that fails never blocks the others.
 // Addresses repeat a lot in a bulk list (usually one warehouse pickup), so
 // each distinct address is geocoded once per list.
 export const createBatchShipments = async ({
@@ -88,10 +88,10 @@ export const createBatchShipments = async ({
   batchId: string | null;
   validations: BulkRowValidation[];
 }): Promise<BulkRowResult[]> => {
-  const geocodeCache = new Map<string, ReturnType<typeof mapboxProvider.geocode>>();
+  const geocodeCache = new Map<string, ReturnType<typeof googleMapsProvider.geocode>>();
   const geocode = (address: string) => {
     const key = address.trim().toLowerCase();
-    if (!geocodeCache.has(key)) geocodeCache.set(key, mapboxProvider.geocode(address));
+    if (!geocodeCache.has(key)) geocodeCache.set(key, googleMapsProvider.geocode(address));
     return geocodeCache.get(key)!;
   };
 

@@ -9,6 +9,7 @@ import {
   LoaderCircle,
   LocateFixed,
   MapPin,
+  Map as MapIcon,
   MapPinned,
   Search,
   Signpost,
@@ -26,7 +27,7 @@ import { reverseGeocodeAction } from '@/lib/maps/actions';
 import { SEARCH_MIN_CHARS, UAE_DEFAULT_CENTER } from '@/lib/maps/config';
 import { isInsideUae, toLocationValue } from '@/lib/maps/location';
 import { useAddressParts } from '@/lib/maps/use-address-parts';
-import { useMessage } from '@/i18n/hooks';
+import { useAppLocale, useMessage } from '@/i18n/hooks';
 import { cn } from '@/lib/utils';
 
 import type { LocationValue } from '@/lib/maps/location';
@@ -53,6 +54,9 @@ type PinState = {
   // "drop a pin" starts at a generic map centre that isn't anyone's address.
   placed: boolean;
   lookup: 'idle' | 'loading' | 'done' | 'failed';
+  // True once the customer has moved an already-placed pin — shows
+  // "Location updated" when the new address arrives.
+  moved: boolean;
   resolved: ResolvedLocation | null;
 };
 
@@ -60,6 +64,7 @@ const TYPE_ICONS: Record<string, typeof MapPin> = {
   poi: Building2,
   address: House,
   street: Signpost,
+  area: MapIcon,
 };
 
 const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinModeChange }: LocationPickerProps) => {
@@ -68,6 +73,7 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
   const translate = useMessage();
   const splitAddress = useAddressParts();
   const search = useLocationSearch(proximity);
+  const language = useAppLocale();
   const [mode, setMode] = useState<'search' | 'pin' | 'selected'>(value ? 'selected' : 'search');
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -126,14 +132,14 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
   // ── Pin ───────────────────────────────────────────────────────────────────
   const lookUp = async (coordinates: Coordinates) => {
     const current = ++lookupId.current;
-    setPin((state) => (state ? { ...state, coordinates, placed: true, lookup: 'loading' } : state));
+    setPin((state) => (state ? { ...state, coordinates, moved: state.placed, placed: true, lookup: 'loading' } : state));
     if (!isInsideUae(coordinates)) {
       setPin((state) => (state ? { ...state, lookup: 'done', resolved: null } : state));
       return;
     }
     // Failure (or a thrown action) keeps the coordinates; only the address
     // text is missing, and the customer adds details by hand.
-    const result = await reverseGeocodeAction(coordinates).catch(() => ({ success: false as const, error: 'lookup failed' }));
+    const result = await reverseGeocodeAction({ ...coordinates, language }).catch(() => ({ success: false as const, error: 'lookup failed' }));
     if (current !== lookupId.current) return; // the pin has moved again
     setPin((state) =>
       state
@@ -147,7 +153,7 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
     const start = value
       ? { lat: value.lat, lng: value.lng }
       : (proximity ?? { lat: UAE_DEFAULT_CENTER[1], lng: UAE_DEFAULT_CENTER[0] });
-    setPin({ coordinates: start, source: 'pin', zoom: value || proximity ? 15 : 11, placed: Boolean(value), lookup: 'idle', resolved: null });
+    setPin({ coordinates: start, source: 'pin', zoom: value || proximity ? 15 : 11, placed: Boolean(value), lookup: 'idle', resolved: null, moved: false });
     enterMode('pin');
     if (value) lookUp(start);
   }
@@ -163,7 +169,7 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
       (position) => {
         setGeoStatus('idle');
         const coordinates = { lat: position.coords.latitude, lng: position.coords.longitude };
-        setPin({ coordinates, source: 'current_location', zoom: 17, placed: true, lookup: 'idle', resolved: null });
+        setPin({ coordinates, source: 'current_location', zoom: 17, placed: true, lookup: 'idle', resolved: null, moved: false });
         enterMode('pin');
         lookUp(coordinates);
       },
@@ -257,6 +263,12 @@ const LocationPicker = ({ id, label, value, onChange, proximity, error, onPinMod
               </div>
             ) : pin.resolved ? (
               <div>
+                {pin.moved ? (
+                  <p className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium text-primary animate-in fade-in-0 duration-200 motion-reduce:animate-none">
+                    <CircleCheck className="size-3.5" aria-hidden />
+                    {t('pin.updated')}
+                  </p>
+                ) : null}
                 <p className="break-words font-medium">{title}</p>
                 {subtitle ? <p className="break-words text-sm text-muted-foreground">{subtitle}</p> : null}
               </div>

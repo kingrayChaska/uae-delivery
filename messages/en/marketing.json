@@ -1,11 +1,11 @@
 {
   "hero": {
-    "badge": "Parcel delivery across the UAE",
-    "title": "Same-day and next-day courier service, <highlight>tracked door to door</highlight>",
-    "subtitle": "Book a pickup in minutes, see the price before you confirm, and follow every parcel live — for personal deliveries and for businesses shipping every day.",
+    "badge": "UAE COURIER & DELIVERY SERVICE",
+    "title": "Fast Delivery Built For The <highlight>Emirates</highlight>",
+    "subtitle": "Book door-to-door courier delivery, get upfront pricing, and track your parcel from pickup to delivery.",
     "bookCta": "Book a delivery",
     "trackCta": "Track a shipment",
-    "nextDayFrom": "Next-day from {price}",
+    "nextDay": "Next-day delivery",
     "sameDay": "Same-day delivery",
     "proof": "Proof of delivery"
   },

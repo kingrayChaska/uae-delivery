@@ -447,13 +447,13 @@
         "name": "Supabase",
         "detail": "Database, auth, storage and realtime. The service-role key is required for staff onboarding."
       },
-      "mapboxPublic": {
-        "name": "Mapbox (map display)",
-        "detail": "Public token for rendering maps in the browser. Restrict it to your domains in Mapbox."
+      "googleMapsBrowser": {
+        "name": "Google Maps (map display)",
+        "detail": "Browser key for the Maps JavaScript API. Restrict it to your domains (HTTP referrers) and to that one API in Google Cloud."
       },
-      "mapboxSecret": {
-        "name": "Mapbox (routing & geocoding)",
-        "detail": "Server-only token. Pricing depends on it — without it no booking can be priced."
+      "googleMapsServer": {
+        "name": "Google Maps (search, geocoding & routing)",
+        "detail": "Server-only key for the Places, Geocoding and Routes APIs. Pricing depends on it; never expose it to the browser."
       },
       "turnstile": {
         "name": "Bot protection (Cloudflare Turnstile)",

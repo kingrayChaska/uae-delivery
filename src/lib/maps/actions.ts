@@ -2,41 +2,45 @@
 
 import { requireUser } from '@/lib/auth/guards';
 import { RATE_LIMIT_MESSAGE, checkRateLimit } from '@/lib/security/rate-limit';
-import { mapboxProvider, MapsProviderError } from '@/lib/maps/mapbox-provider';
+import { googleMapsProvider, MapsProviderError } from '@/lib/maps/google-provider';
 import { locationRetrieveSchema, locationSearchSchema, reverseGeocodeSchema, routeRequestSchema } from '@/lib/maps/schemas';
 import { BOOKING_ERRORS } from '@/lib/shipment/booking-guards';
 import { SEARCH_UNAVAILABLE_MESSAGE } from '@/lib/maps/config';
 
-import type { LocationRetrieveInput, LocationSearchInput, RouteRequestInput } from '@/lib/maps/schemas';
+import type { LocationRetrieveInput, LocationSearchInput, ReverseGeocodeInput, RouteRequestInput } from '@/lib/maps/schemas';
 import type { LocationSuggestion, ResolvedLocation, RouteResult } from '@/lib/maps/types';
-import type { Coordinates } from '@/lib/types';
 
-// Every maps action calls a paid Mapbox API, so each requires a signed-in
+// Every maps action calls a paid Google API, so each requires a signed-in
 // user and is rate limited per user — otherwise anyone could run up the bill.
+// Google's own error text goes to server logs only.
+
+const logFailure = (what: string, error: unknown) => {
+  console.error(what, error instanceof MapsProviderError ? error.message : error);
+};
 
 export type LocationSearchResult = { success: true; suggestions: LocationSuggestion[] } | { success: false; error: string };
 
-// Search Box first (it knows buildings, towers, malls, warehouses and other
-// POIs, as well as addresses and streets). If it fails, fall back to the
-// Geocoding API so search keeps working, just with fewer places.
+// Places Autocomplete first (businesses, buildings, landmarks, parks,
+// streets, communities). If it has nothing or fails, Places Text Search,
+// which is more forgiving of partial and descriptive queries.
 export const searchLocationsAction = async (input: LocationSearchInput): Promise<LocationSearchResult> => {
   const profile = await requireUser();
   if (!(await checkRateLimit('mapsPerUser', profile.id))) return { success: false, error: RATE_LIMIT_MESSAGE };
   const parsed = locationSearchSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: 'maps.search.empty' };
-  const { query, sessionToken, proximity } = parsed.data;
+  const { query, sessionToken, proximity, language } = parsed.data;
 
   try {
-    const suggestions = await mapboxProvider.suggest(query, sessionToken, proximity);
+    const suggestions = await googleMapsProvider.suggest(query, sessionToken, language, proximity);
     if (suggestions.length > 0) return { success: true, suggestions };
   } catch (error) {
-    if (error instanceof MapsProviderError) console.error('Search Box suggest failed, falling back to geocoding', error.message);
+    logFailure('Places Autocomplete failed, falling back to Text Search', error);
   }
 
   try {
-    return { success: true, suggestions: await mapboxProvider.searchPlaces(query, proximity) };
+    return { success: true, suggestions: await googleMapsProvider.searchPlaces(query, language) };
   } catch (error) {
-    if (error instanceof MapsProviderError) console.error('Location search failed', error.message);
+    logFailure('Location search failed', error);
     return { success: false, error: SEARCH_UNAVAILABLE_MESSAGE };
   }
 };
@@ -50,25 +54,27 @@ export const retrieveLocationAction = async (input: LocationRetrieveInput): Prom
   if (!parsed.success) return { success: false, error: 'maps.search.loadFailed' };
 
   try {
-    return { success: true, location: await mapboxProvider.retrieve(parsed.data.id, parsed.data.sessionToken) };
+    const { id, sessionToken, language } = parsed.data;
+    return { success: true, location: await googleMapsProvider.retrieve(id, sessionToken, language) };
   } catch (error) {
-    if (error instanceof MapsProviderError) console.error('Search Box retrieve failed', error.message);
+    logFailure('Place Details failed', error);
     return { success: false, error: 'maps.search.loadFailed' };
   }
 };
 
 // Describes a dropped pin or the device's location. A failure here is not
 // fatal: the caller keeps the coordinates and asks for address details.
-export const reverseGeocodeAction = async (input: Coordinates): Promise<ResolveLocationResult> => {
+export const reverseGeocodeAction = async (input: ReverseGeocodeInput): Promise<ResolveLocationResult> => {
   const profile = await requireUser();
   if (!(await checkRateLimit('mapsPerUser', profile.id))) return { success: false, error: RATE_LIMIT_MESSAGE };
   const parsed = reverseGeocodeSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: 'maps.errors.invalidCoordinates' };
 
   try {
-    return { success: true, location: await mapboxProvider.reverseGeocode(parsed.data) };
+    const { language, ...coordinates } = parsed.data;
+    return { success: true, location: await googleMapsProvider.reverseGeocode(coordinates, language) };
   } catch (error) {
-    if (error instanceof MapsProviderError) console.error('Reverse geocoding failed', error.message);
+    logFailure('Reverse geocoding failed', error);
     return { success: false, error: 'maps.errors.lookupFailed' };
   }
 };
@@ -82,10 +88,10 @@ export const getRouteAction = async (input: RouteRequestInput): Promise<GetRoute
   if (!parsed.success) return { success: false, error: 'maps.errors.invalidCoordinates' };
 
   try {
-    const route = await mapboxProvider.getRoute(parsed.data.origin, parsed.data.destination);
+    const route = await googleMapsProvider.getRoute(parsed.data.origin, parsed.data.destination);
     return { success: true, route };
   } catch (error) {
-    if (error instanceof MapsProviderError) console.error('Route calculation failed', error.message);
+    logFailure('Route calculation failed', error);
     return { success: false, error: BOOKING_ERRORS.routeFailed };
   }
 };

@@ -10,7 +10,7 @@ export const generateMetadata = async (): Promise<Metadata> => ({
   title: (await getTranslations('manager.settings'))('meta'),
 });
 
-type IntegrationKey = 'supabase' | 'mapboxPublic' | 'mapboxSecret' | 'turnstile' | 'payments' | 'sms';
+type IntegrationKey = 'supabase' | 'googleMapsBrowser' | 'googleMapsServer' | 'turnstile' | 'payments' | 'sms';
 type Integration = { key: IntegrationKey; configured: boolean; disabled?: boolean };
 
 // Only reports whether each variable is SET — never its value. Nothing
@@ -20,8 +20,8 @@ const getIntegrations = (): Integration[] => [
     key: 'supabase',
     configured: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY),
   },
-  { key: 'mapboxPublic', configured: Boolean(process.env.NEXT_PUBLIC_MAPBOX_TOKEN) },
-  { key: 'mapboxSecret', configured: Boolean(process.env.MAPBOX_SECRET_TOKEN) },
+  { key: 'googleMapsBrowser', configured: Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) },
+  { key: 'googleMapsServer', configured: Boolean(process.env.GOOGLE_MAPS_SERVER_API_KEY) },
   {
     key: 'turnstile',
     configured: Boolean(process.env.TURNSTILE_SECRET_KEY && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY),

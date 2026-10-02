@@ -9,29 +9,37 @@
     "ummAlQuwain": "Umm Al Quwain"
   },
   "notice": {
+    "available": "Delivery available · {emirate}",
+    "pickupAvailable": "Pickup available · {emirate}",
+    "checking": "Checking delivery availability…",
     "pickupOnRequest": "Pickup available on request",
     "deliveryOnRequest": "Delivery available on request",
-    "supported": "ParcelLink currently provides standard delivery services in {supported}.",
-    "pickupBody": "Pickups from {emirate} are available on request. Please contact ParcelLink to arrange this delivery.",
-    "deliveryBody": "Deliveries to {emirate} are available on request. Please contact ParcelLink to arrange this delivery.",
-    "unavailable": "Service area unavailable",
-    "unavailableBody": "We couldn’t confirm that this location is within ParcelLink’s current service area.",
-    "unavailableAction": "Please select another location or contact ParcelLink.",
-    "contact": "Contact ParcelLink"
+    "outsideCoverage": "This location in {emirate} is outside our standard same-day delivery coverage.",
+    "sameDayIn": "We currently provide same-day delivery in {supported}.",
+    "pickupContact": "For pickups from this location, please contact our support team and we’ll check availability for you.",
+    "deliveryContact": "For deliveries to this location, please contact our support team and we’ll check availability for you.",
+    "unverified": "We couldn’t verify delivery availability for this location.",
+    "unverifiedBody": "Please contact ParcelLink Support so we can confirm whether delivery is available.",
+    "outsideUae": "This location is outside the UAE",
+    "outsideUaeBody": "ParcelLink doesn’t currently deliver outside the UAE. We provide same-day delivery in {supported}.",
+    "outsideUaeAction": "Please choose a location inside the UAE.",
+    "contact": "Contact Support"
   },
   "errors": {
-    "pickupOnRequest": "Pickup location: Pickup available on request. ParcelLink currently provides standard delivery services in {supported}. Pickups from {emirate} are available on request. Please contact ParcelLink to arrange this delivery.",
-    "deliveryOnRequest": "Delivery location: Delivery available on request. ParcelLink currently provides standard delivery services in {supported}. Deliveries to {emirate} are available on request. Please contact ParcelLink to arrange this delivery.",
-    "pickupUnavailable": "Pickup location: Service area unavailable. We couldn’t confirm that this location is within ParcelLink’s current service area. Please select another location or contact ParcelLink.",
-    "deliveryUnavailable": "Delivery location: Service area unavailable. We couldn’t confirm that this location is within ParcelLink’s current service area. Please select another location or contact ParcelLink.",
+    "pickupOnRequest": "Pickup location: {emirate} is outside our standard same-day delivery coverage. We currently provide same-day delivery in {supported}. Please contact ParcelLink Support and we’ll check availability for you.",
+    "deliveryOnRequest": "Delivery location: {emirate} is outside our standard same-day delivery coverage. We currently provide same-day delivery in {supported}. Please contact ParcelLink Support and we’ll check availability for you.",
+    "pickupUnverified": "Pickup location: We couldn’t verify delivery availability for this location. Please contact ParcelLink Support so we can confirm whether delivery is available.",
+    "deliveryUnverified": "Delivery location: We couldn’t verify delivery availability for this location. Please contact ParcelLink Support so we can confirm whether delivery is available.",
+    "pickupOutsideUae": "Pickup location: This location is outside the UAE. ParcelLink doesn’t currently deliver outside the UAE.",
+    "deliveryOutsideUae": "Delivery location: This location is outside the UAE. ParcelLink doesn’t currently deliver outside the UAE.",
     "cantBook": "This location can’t be booked."
   },
   "request": {
     "subject": "Delivery request: {emirate}",
-    "subjectUnknown": "Delivery request: location outside the service area",
     "body": "I’d like to arrange a delivery involving {emirate}.",
-    "bodyUnknown": "I’d like to arrange a delivery to or from a location the booking form couldn’t confirm.",
     "from": "From: {address}",
-    "to": "To: {address}"
+    "to": "To: {address}",
+    "subjectUnverified": "Delivery availability check",
+    "bodyUnverified": "Please confirm whether delivery is available for this location — the booking form couldn’t verify it."
   }
 }

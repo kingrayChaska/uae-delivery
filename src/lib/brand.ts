@@ -1,5 +1,5 @@
-// ParcelLink brand colours for code that can't read CSS variables (Mapbox
-// markers/layers, Recharts). Keep in sync with --parcellink-* in
+// ParcelLink brand colours for code that can't read CSS variables (Google
+// Maps markers and route lines, Recharts). Keep in sync with --parcellink-* in
 // app/globals.css.
 export const BRAND = {
   name: 'ParcelLink',

@@ -21,7 +21,7 @@
     "pickupRecap": "Pickup location",
     "unit": "Unit {unit}",
     "changePickup": "Change<sr> pickup location</sr>",
-    "byRoad": "{distance} by road",
+    "byRoad": "{distance} by road · about {duration} drive",
     "longDistanceTitle": "Long-distance delivery restricted",
     "changeDelivery": "Change delivery address",
     "contactSupport": "Contact support",
@@ -30,7 +30,10 @@
     "booking": "Booking…",
     "saveShipment": "Save shipment",
     "addToBooking": "Add to booking",
-    "calculatingRoute": "Calculating route…"
+    "calculatingRoute": "Calculating route…",
+    "mapHint": "Drag a pin to fine-tune its exact spot.",
+    "mapUpdating": "Updating location…",
+    "mapUpdated": "Location updated"
   },
   "progress": {
     "label": "Booking progress",
@@ -139,8 +142,8 @@
   "errors": {
     "sameLocation": "Pickup and delivery are the same place. Choose a different delivery address.",
     "outsideUae": "We only deliver within the UAE. Choose addresses inside the UAE.",
-    "routeFailed": "Unable to calculate route. Please try again.",
-    "weightRequired": "Enter the shipment weight — it’s required for merchant shipments.",
+    "routeFailed": "We couldn't calculate a driving route between these locations.",
+    "weightRequired": "Enter the shipment weight. It must be greater than 0 kg.",
     "distanceLimit": "This delivery is {distance} km by road, which is beyond ParcelLink’s {max} km standard delivery distance, so it can’t be booked online. Choose a delivery address within {max} km of the pickup, or contact support to arrange a long-distance delivery.",
     "shipmentPrefix": "Shipment {number}: {message}",
     "cannotBook": "This shipment can’t be booked.",
@@ -156,7 +159,7 @@
     "invalidRow": "Invalid row"
   },
   "validation": {
-    "chooseLocation": "Choose a location",
+    "chooseLocation": "Please select a valid pickup or delivery location.",
     "chooseLocationHow": "Choose a location — search, drop a pin or use your current location",
     "addressTooLong": "That address is too long",
     "buildingTooLong": "Keep the building / villa under {max} characters",
@@ -193,5 +196,12 @@
     "twoDecimals": "Use at most 2 decimal places",
     "atLeastOne": "Add at least one shipment",
     "tooMany": "A booking can hold at most {max} shipments"
+  },
+  "routeSummary": {
+    "calculating": "Calculating route and delivery price…",
+    "distance": "Driving distance",
+    "duration": "Estimated drive time",
+    "price": "Delivery price",
+    "from": "from {price}"
   }
 }

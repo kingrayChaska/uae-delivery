@@ -15,7 +15,9 @@ const MAX_BYTES = 1_000_000;
 const PATTERNS = [
   { name: 'JWT (Supabase anon/service-role key)', regex: /eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/ },
   { name: 'Supabase secret key', regex: /sb_secret_[A-Za-z0-9_-]{16,}/ },
-  { name: 'Mapbox secret token', regex: /\bsk\.eyJ[A-Za-z0-9_.-]{20,}/ },
+  // Both Google Maps keys share this format. The browser key is public by
+  // design, but keys belong in .env files, never in source.
+  { name: 'Google API key', regex: /\bAIza[0-9A-Za-z_-]{35}\b/ },
   { name: 'Cloudflare Turnstile secret', regex: /\b0x4AAAAAAA[A-Za-z0-9_-]{16,}/ },
   { name: 'Stripe secret key', regex: /\b(sk|rk)_live_[A-Za-z0-9]{16,}/ },
   { name: 'Private key block', regex: /-----BEGIN [A-Z ]*PRIVATE KEY-----/ },

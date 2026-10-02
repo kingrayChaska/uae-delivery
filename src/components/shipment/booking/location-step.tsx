@@ -1,6 +1,7 @@
 'use client';
 
 import { useWatch } from 'react-hook-form';
+import { CircleCheck, LoaderCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import Input from '@/components/ui/input';
@@ -8,13 +9,16 @@ import Label from '@/components/ui/label';
 import FieldError from '@/components/ui/field-error';
 import LocationPicker from '@/components/maps/location-picker';
 import ServiceAreaNoticeCard from '@/components/shipment/booking/service-area-notice';
-import { classifyServiceArea } from '@/lib/service-areas/config';
+import { emirateRef } from '@/lib/service-areas/config';
+import { useMessage } from '@/i18n/hooks';
+import { msg } from '@/i18n/message';
 
 import type { UseFormReturn } from 'react-hook-form';
 import type { BookingShipmentInput } from '@/lib/shipment/schemas';
 import type { LocationValue } from '@/lib/maps/location';
 import type { Coordinates } from '@/lib/types';
 import type { ServiceArea } from '@/lib/service-areas/config';
+import type { LocationCoverage } from '@/lib/hooks/use-booking-wizard';
 
 type LocationStepProps = {
   form: UseFormReturn<BookingShipmentInput>;
@@ -28,6 +32,8 @@ type LocationStepProps = {
   // The other end of the trip, to bias search results nearby.
   proximity?: Coordinates;
   onPinModeChange?: (active: boolean) => void;
+  // This location's coverage verdict (from the wizard), once one is chosen.
+  area: LocationCoverage | null;
   contactHrefFor: (area: ServiceArea) => string;
 };
 
@@ -41,9 +47,11 @@ const LocationStep = ({
   draftKey,
   proximity,
   onPinModeChange,
+  area,
   contactHrefFor,
 }: LocationStepProps) => {
   const t = useTranslations('booking.location');
+  const translate = useMessage();
   const { register, setValue, formState, control } = form;
   const errors = formState.errors[field];
   const location = useWatch({ control, name: field });
@@ -51,10 +59,10 @@ const LocationStep = ({
   const value: LocationValue | null =
     chosen && location.place ? { address: location.address, lat: location.lat, lng: location.lng, place: location.place } : null;
   const locationError = errors?.lat?.message ?? errors?.address?.message;
-  // Outside Dubai, Sharjah and Ajman (lib/service-areas): say so, and skip
-  // the address details — this location can't be booked online.
-  const area = value ? classifyServiceArea(value.place) : null;
-  const blocked = area !== null && area.status !== 'supported';
+  // Outside active coverage (lib/service-areas): say so, and skip the
+  // address details — this location can't be booked online.
+  const verdict = value ? area : null;
+  const blocked = verdict !== null && verdict.status !== 'active' && verdict.status !== 'checking';
   const pinnedWithoutAddress = value?.place.source !== 'search' && !value?.place.street && !value?.place.name;
 
   return (
@@ -80,7 +88,23 @@ const LocationStep = ({
         }}
       />
 
-      {area && blocked ? <ServiceAreaNoticeCard area={area} end={field} contactHref={contactHrefFor(area)} /> : null}
+      {verdict?.status === 'active' ? (
+        <p className="-mt-2 flex items-center gap-1.5 text-sm font-medium text-primary animate-in fade-in-0 duration-200 motion-reduce:animate-none">
+          <CircleCheck className="size-4" aria-hidden />
+          {translate(
+            msg(field === 'pickup' ? 'serviceAreas.notice.pickupAvailable' : 'serviceAreas.notice.available', {
+              emirate: emirateRef(verdict.emirate),
+            }),
+          )}
+        </p>
+      ) : verdict?.status === 'checking' ? (
+        <p role="status" className="-mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+          <LoaderCircle className="size-4 animate-spin" aria-hidden />
+          {translate('serviceAreas.notice.checking')}
+        </p>
+      ) : verdict ? (
+        <ServiceAreaNoticeCard area={verdict} end={field} contactHref={contactHrefFor(verdict)} />
+      ) : null}
 
       {value && !blocked ? (
         <div className="flex flex-col gap-4 rounded-xl border border-dashed p-4 animate-in fade-in-0 duration-200 motion-reduce:animate-none">

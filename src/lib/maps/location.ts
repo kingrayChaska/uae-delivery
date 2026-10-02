@@ -14,6 +14,7 @@ export type LocationValue = {
 };
 
 const EMPTY_PLACE = {
+  placeId: null,
   name: null,
   street: null,
   neighborhood: null,
@@ -23,9 +24,10 @@ const EMPTY_PLACE = {
   regionCode: null,
   postcode: null,
   country: null,
+  countryCode: null,
 };
 
-// Used when a pin can't be described by Mapbox: the coordinates are kept and
+// Used when a pin can't be described by Google: the coordinates are kept and
 // the customer adds building/unit details by hand.
 export const pinnedAddress = ({ lat, lng }: Coordinates) => `Pinned location (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
 
@@ -48,8 +50,10 @@ export const splitAddress = (address: string) => {
   // The no-address fallback isn't comma-separated place names.
   const pinned = address.match(/^Pinned location \((.+)\)$/);
   if (pinned) return { title: 'Pinned location', subtitle: `Coordinates ${pinned[1]}`, pinnedCoordinates: pinned[1] };
-  const [first, ...rest] = address.split(',').map((part) => part.trim());
-  return { title: first ?? address, subtitle: rest.join(', '), pinnedCoordinates: null };
+  // Arabic addresses are joined with the Arabic comma.
+  const separator = address.includes('،') ? '، ' : ', ';
+  const [first, ...rest] = address.split(/[,،]/).map((part) => part.trim());
+  return { title: first ?? address, subtitle: rest.join(separator), pinnedCoordinates: null };
 };
 
 export { isInsideUae };

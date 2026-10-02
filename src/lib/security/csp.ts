@@ -6,8 +6,25 @@
 // allowed without allow-listing every page. An injected <script> tag from
 // an XSS bug has no nonce and won't run.
 //
-// Styles keep 'unsafe-inline': React, mapbox-gl, recharts and Turnstile all
-// set inline styles, and style injection is far lower risk than script.
+// Styles keep 'unsafe-inline': React, Google Maps, recharts and Turnstile
+// all set inline styles, and style injection is far lower risk than script.
+//
+// Google Maps (the Maps JavaScript API) is allowed on every page, not just
+// the dashboard: a page keeps the policy it was first loaded with, and
+// signing in reaches the dashboard by client-side navigation. The hosts
+// follow Google's published CSP guide. Its script is added by our own
+// (nonced) code, so 'strict-dynamic' admits it and what it loads. Google's
+// guide also lists 'unsafe-eval'; it's left out because loading the API,
+// creating maps, Advanced Markers and route lines raised no violations
+// without it — if a real key ever shows an eval violation in the console,
+// that's the line to revisit.
+const GOOGLE_MAPS = {
+  images: ['https://*.googleapis.com', 'https://*.gstatic.com', 'https://*.google.com', 'https://*.googleusercontent.com'],
+  connect: ['https://*.googleapis.com', 'https://*.google.com', 'https://*.gstatic.com'],
+  fonts: ['https://fonts.gstatic.com'],
+  styles: ['https://fonts.googleapis.com'],
+  frames: ['https://*.google.com'],
+};
 
 type CspOptions = {
   nonce: string;
@@ -46,22 +63,21 @@ export const buildCsp = ({ nonce, isDev, supabaseUrl, upgradeInsecureRequests = 
       // React's dev tooling needs eval; never allowed in production.
       ...(isDev ? ["'unsafe-eval'"] : []),
     ],
-    'style-src': ["'self'", "'unsafe-inline'"],
-    'img-src': ["'self'", 'data:', 'blob:', 'https://api.mapbox.com', ...(supabase ? [supabase] : [])],
-    'font-src': ["'self'"],
+    'style-src': ["'self'", "'unsafe-inline'", ...GOOGLE_MAPS.styles],
+    'img-src': ["'self'", 'data:', 'blob:', ...GOOGLE_MAPS.images, ...(supabase ? [supabase] : [])],
+    'font-src': ["'self'", ...GOOGLE_MAPS.fonts],
     'connect-src': [
       "'self'",
       ...(supabase && supabaseWs ? [supabase, supabaseWs] : []),
-      'https://api.mapbox.com',
-      'https://*.tiles.mapbox.com',
-      'https://events.mapbox.com',
+      ...GOOGLE_MAPS.connect,
+      'data:',
       'https://challenges.cloudflare.com',
       // The hero animation's .lottie file (its renderer is self-hosted).
       'https://lottie.host',
     ],
     'worker-src': ["'self'", 'blob:'],
     'child-src': ['blob:'],
-    'frame-src': ['https://challenges.cloudflare.com'],
+    'frame-src': ['https://challenges.cloudflare.com', ...GOOGLE_MAPS.frames],
     'frame-ancestors': ["'none'"],
     'base-uri': ["'self'"],
     'form-action': ["'self'"],

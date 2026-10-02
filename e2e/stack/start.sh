@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Starts the local stack in the background: PostgREST, Supabase Auth, the
-# gateway, fake Mapbox and the SMTP sink (+ the built app with --with-app).
+# gateway, fake Google Maps Platform and the SMTP sink (+ the built app with --with-app).
 # Run setup-db.sh first for a fresh database.
 set -euo pipefail
 source "$(dirname "$0")/app-env.sh"
@@ -35,7 +35,7 @@ launch auth.log env GOTRUE_API_HOST=127.0.0.1 PORT=$E2E_AUTH_PORT GOTRUE_DB_DRIV
   "$E2E_BIN/auth" serve
 
 launch gateway.log node gateway.mjs
-launch fake-mapbox.log node fake-mapbox.mjs
+launch fake-google-maps.log node fake-google-maps.mjs
 launch smtp.log python3 smtp-sink.py "$E2E_LOGS/mail" "$E2E_SMTP_PORT"
 if [[ "${1:-}" == "--with-app" ]]; then
   [[ -f "$E2E_LOGS/tls.crt" ]] || openssl req -x509 -newkey rsa:2048 -nodes -days 30 -subj "/CN=localhost" \
@@ -51,7 +51,7 @@ wait_for() {
 wait_for postgrest "http://127.0.0.1:$E2E_POSTGREST_PORT/"
 wait_for auth "http://127.0.0.1:$E2E_AUTH_PORT/health"
 wait_for gateway "$GW/auth/v1/health"
-wait_for fake-mapbox "http://127.0.0.1:$E2E_MAPBOX_PORT/"
+wait_for fake-google-maps "http://127.0.0.1:$E2E_GOOGLE_MAPS_PORT/"
 if [[ "${1:-}" == "--with-app" ]]; then
   wait_for app "http://localhost:$E2E_APP_PORT/login"
   for _ in $(seq 1 30); do curl -sk -o /dev/null "https://localhost:$E2E_TLS_PORT/login" && { echo "  ready: https proxy"; break; }; sleep 0.5; done

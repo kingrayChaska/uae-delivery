@@ -1,4 +1,4 @@
-// Roughly the UAE's bounding box — used to bias Mapbox search results
+// Roughly the UAE's bounding box — used to bias Google search results
 // toward the country this service actually operates in, and as the
 // default map view before a location is chosen.
 export const UAE_BBOX: [number, number, number, number] = [51.0, 22.5, 56.5, 26.5];

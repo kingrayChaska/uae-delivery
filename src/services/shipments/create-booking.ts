@@ -79,7 +79,7 @@ export const createBooking = async ({
 
   const rules = await getActivePricingRules();
   const quotes: ShipmentQuote[] = [];
-  // One at a time: stays within Mapbox rate limits, and a booking holds at
+  // One at a time: stays within Google Maps rate limits, and a booking holds at
   // most MAX_SHIPMENTS_PER_BOOKING shipments.
   for (const { index, ...shipment } of shipments) {
     try {
