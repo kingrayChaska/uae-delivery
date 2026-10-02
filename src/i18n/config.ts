@@ -15,6 +15,22 @@ export const LOCALE_HEADER = 'x-parcellink-locale';
 
 export const isLocale = (value: unknown): value is Locale => (LOCALES as readonly unknown[]).includes(value);
 
+// Browser only: the saved choice, as the proxy will read it on the next request.
+export const readSavedLocale = (): Locale | null => {
+  const saved = document.cookie
+    .split('; ')
+    .find((entry) => entry.startsWith(`${LOCALE_COOKIE}=`))
+    ?.slice(LOCALE_COOKIE.length + 1);
+  return isLocale(saved) ? saved : null;
+};
+
+// Browser only: remembers the chosen language (the proxy sets the same cookie
+// for /ar visits).
+export const saveLocale = (locale: Locale) => {
+  const secure = window.location.protocol === 'https:' ? '; secure' : '';
+  document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; samesite=lax${secure}`;
+};
+
 export const LOCALE_NAMES: Record<Locale, string> = { en: 'English', ar: 'العربية' };
 
 export const localeDirection = (locale: Locale) => (locale === 'ar' ? 'rtl' : 'ltr');

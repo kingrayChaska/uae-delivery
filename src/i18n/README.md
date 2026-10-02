@@ -13,8 +13,11 @@ machine-translated at runtime.
 - Public pages (`LOCALIZED_PATHS` in `config.ts`) have Arabic URLs under `/ar/…`,
   rewritten to the same page. English keeps the unprefixed URLs; `/en/…` redirects
   to them. Dashboards have no prefix — they follow the cookie.
-- `LanguageSwitcher` sets the cookie, then `router.replace` (if the URL changes)
-  and `router.refresh()`, which re-renders `<html lang dir>` and the messages.
+- `LanguageSwitcher` sets the cookie, then reloads the page (moving to the other
+  language's URL on public pages). A full load, so the router cache, client state
+  and the Google Maps script never keep the old language. `LocaleSync` (root
+  layout) reloads too if a client-side navigation lands in the other language.
+- Only real page loads of `/ar/…` save the cookie; prefetches and RSC fetches don't.
 - The language never affects authorization: role checks don't read it.
 
 ## Adding text

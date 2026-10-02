@@ -1,11 +1,10 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState } from 'react';
 import { Languages } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
-import { LOCALES, LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE, LOCALE_NAMES, localizedPath, splitLocalePrefix } from '@/i18n/config';
+import { LOCALES, LOCALE_NAMES, localizedPath, saveLocale, splitLocalePrefix } from '@/i18n/config';
 import { useAppLocale } from '@/i18n/hooks';
 import { cn } from '@/lib/utils';
 
@@ -15,44 +14,41 @@ type LanguageSwitcherProps = {
   className?: string;
   // "onDark" for the dark hero/header surfaces.
   tone?: 'default' | 'onDark';
-  // Short labels (EN / ع) for tight spaces such as the mobile header.
+  // Short labels (EN / AR) for tight spaces such as the mobile header.
   compact?: boolean;
   // Stacked, for the collapsed dashboard sidebar.
   vertical?: boolean;
 };
 
-const SHORT_NAMES: Record<Locale, string> = { en: 'EN', ar: 'ع' };
-
-const saveLocale = (locale: Locale) => {
-  const secure = window.location.protocol === 'https:' ? '; secure' : '';
-  document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; samesite=lax${secure}`;
-};
+const SHORT_NAMES: Record<Locale, string> = { en: 'EN', ar: 'AR' };
 
 // English | العربية. Saves the choice in the locale cookie (the single
-// source of truth, read by the proxy), then re-renders the page on the
-// server in the new language — no full page reload. Public pages also move
-// to their own URL for that language (/tracking ↔ /ar/tracking).
+// source of truth, read by the proxy), then loads the page again in the new
+// language. Public pages also move to their own URL for that language
+// (/tracking ↔ /ar/tracking).
+//
+// It's a full page load on purpose. A soft refresh keeps the browser's
+// router cache, client state that already holds translated text, and a
+// Google Maps script loaded in the old language — which is how pages ended
+// up half English, half Arabic.
 const LanguageSwitcher = ({ className, tone = 'default', compact = false, vertical = false }: LanguageSwitcherProps) => {
   const t = useTranslations('common.language');
-  const router = useRouter();
   const current = useAppLocale();
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
 
   const choose = (next: Locale) => {
     if (next === current || pending) return;
+    setPending(true);
     saveLocale(next);
 
     const { pathname } = splitLocalePrefix(window.location.pathname);
     const target = localizedPath(pathname, next);
-    startTransition(() => {
-      // Same page, the other language's address (public pages only).
-      if (target !== window.location.pathname) {
-        router.replace(`${target}${window.location.search}${window.location.hash}`, { scroll: false });
-      }
-      // Both languages share the root layout, which a navigation alone keeps
-      // as it was — the refresh re-renders it (<html lang dir>, messages).
-      router.refresh();
-    });
+    // Same page, the other language's address (public pages only).
+    if (target !== window.location.pathname) {
+      window.location.replace(`${target}${window.location.search}${window.location.hash}`);
+    } else {
+      window.location.reload();
+    }
   };
 
   return (
@@ -82,7 +78,8 @@ const LanguageSwitcher = ({ className, tone = 'default', compact = false, vertic
           <button
             key={locale}
             type="button"
-            lang={locale}
+            lang={compact ? undefined : locale}
+            disabled={pending}
             aria-pressed={selected}
             aria-label={compact ? LOCALE_NAMES[locale] : undefined}
             onClick={() => choose(locale)}

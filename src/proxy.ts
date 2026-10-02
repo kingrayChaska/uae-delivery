@@ -33,10 +33,17 @@ export const proxy = async (request: NextRequest) => {
     cookieLocale: request.cookies.get(LOCALE_COOKIE)?.value,
     acceptLanguage: request.headers.get("accept-language"),
   });
+  // Only a page the person actually opens may change the saved language.
+  // Router prefetches and client-side fetches (the "rsc" header) of /ar
+  // links happen in the background, and would otherwise switch the whole
+  // site back to Arabic right after someone picked English.
+  const isPageLoad =
+    !request.headers.has("rsc") && !request.headers.has("next-router-prefetch");
   if (localeDecision.type === "redirect") {
     const url = request.nextUrl.clone();
     url.pathname = localeDecision.to;
-    return rememberLocale(NextResponse.redirect(url), localeDecision.locale);
+    const redirect = NextResponse.redirect(url);
+    return isPageLoad ? rememberLocale(redirect, localeDecision.locale) : redirect;
   }
   request.headers.set(LOCALE_HEADER, localeDecision.locale);
 
@@ -60,7 +67,9 @@ export const proxy = async (request: NextRequest) => {
   response.headers.set("Content-Security-Policy", csp);
   // The same URL can render in either language (the cookie decides).
   response.headers.append("Vary", "Cookie, Accept-Language");
-  return localeDecision.remember ? rememberLocale(response, localeDecision.locale) : response;
+  return localeDecision.remember && isPageLoad
+    ? rememberLocale(response, localeDecision.locale)
+    : response;
 };
 
 const rememberLocale = (response: NextResponse, locale: Locale) => {

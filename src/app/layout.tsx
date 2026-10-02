@@ -17,6 +17,7 @@ import { connection } from 'next/server';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 
+import LocaleSync from '@/components/i18n/locale-sync';
 import { OG_LOCALES, localeDirection } from '@/i18n/config';
 import { PUBLIC_CLIENT_NAMESPACES } from '@/i18n/messages';
 import { getRequestLocale } from '@/i18n/server';
@@ -71,7 +72,10 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang={locale} dir={localeDirection(locale)} className="h-full antialiased">
       <body className="min-h-full flex flex-col font-sans">
-        <NextIntlClientProvider messages={publicMessages}>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider messages={publicMessages}>
+          <LocaleSync />
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );
