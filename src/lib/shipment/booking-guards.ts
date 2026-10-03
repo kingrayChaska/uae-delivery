@@ -19,8 +19,9 @@ export const BOOKING_ERRORS = {
 } as const;
 
 // The long-distance restriction: booking is refused beyond the rule's
-// maximum distance (50 km by default, set per pricing rule). The same limit
-// is enforced by createShipment() and by the database for every caller.
+// maximum distance (90 km for individuals, none for merchants; set per
+// pricing rule). The same limit is enforced by createShipment() and by the
+// database for every caller.
 export const distanceLimitMessage = (distanceKm: number, maxDistanceKm: number) =>
   msg('booking.errors.distanceLimit', { distance: distanceKm.toFixed(1), max: maxDistanceKm });
 

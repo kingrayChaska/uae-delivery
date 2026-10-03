@@ -142,8 +142,18 @@
     "qrAlt": "رمز QR للشحنة {code}",
     "from": "من",
     "to": "إلى",
+    "package": "تفاصيل الطرد",
     "contents": "المحتويات",
     "fragile": "قابل للكسر",
-    "print": "طباعة الملصق"
+    "instructions": "التعليمات",
+    "quantity": "الكمية",
+    "weight": "الوزن",
+    "dimensions": "الأبعاد",
+    "delivery": "التوصيل",
+    "deliverOn": "التوصيل في {date}",
+    "deliveryFee": "رسوم التوصيل",
+    "amountToCollect": "المبلغ المطلوب تحصيله من المستلم",
+    "nothingToCollect": "مدفوع مسبقًا — لا يوجد مبلغ للتحصيل",
+    "printOrDownload": "طباعة الملصق / حفظ بصيغة PDF"
   }
 }

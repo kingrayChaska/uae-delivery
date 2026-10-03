@@ -20,7 +20,7 @@ export type PricingRuleRow = {
   included_weight_kg: number | string;
   additional_price_per_kg: number | string;
   cod_fee: number | string;
-  max_distance_km: number | string;
+  max_distance_km: number | string | null;
   currency: string;
   is_active: boolean;
 };
@@ -36,7 +36,7 @@ export const mapPricingRule = (row: PricingRuleRow): PricingRule => ({
   includedWeightKg: Number(row.included_weight_kg),
   additionalPricePerKg: Number(row.additional_price_per_kg),
   codFee: Number(row.cod_fee),
-  maxDistanceKm: Number(row.max_distance_km),
+  maxDistanceKm: row.max_distance_km == null ? null : Number(row.max_distance_km),
   currency: row.currency,
   isActive: row.is_active,
 });

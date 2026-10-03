@@ -36,7 +36,7 @@ const FareCalculator = ({ rules, defaultDeliveryType = 'next_day', className = '
 
   const rule = rules[deliveryType] ?? rules[available[0]]!;
   // Let the slider go a little past the limit, so the restriction is visible.
-  const sliderMax = Math.ceil(rule.maxDistanceKm + 10);
+  const sliderMax = rule.maxDistanceKm === null ? 200 : Math.ceil(rule.maxDistanceKm + 10);
   const breakdown = calculateShipmentPrice({ rule, distanceKm, weightKg });
 
   return (
@@ -105,7 +105,7 @@ const FareCalculator = ({ rules, defaultDeliveryType = 'next_day', className = '
         {breakdown.exceedsDistanceLimit ? (
           <p className="flex items-start gap-2 rounded-xl bg-destructive/5 p-4 text-sm text-destructive">
             <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-            {t('overLimit', { distance: format.km(rule.maxDistanceKm, 0) })}
+            {t('overLimit', { distance: format.km(rule.maxDistanceKm!, 0) })}
           </p>
         ) : (
           <PriceBreakdownList

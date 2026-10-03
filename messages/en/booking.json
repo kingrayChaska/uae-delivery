@@ -16,6 +16,7 @@
     "contactName": "Contact name",
     "dropoffTitle": "Where is it going?",
     "dropoffDescription": "We deliver within {supported}, up to {distance} from the pickup.",
+    "dropoffDescriptionAnyDistance": "We deliver within {supported}, at any distance from the pickup.",
     "dropoffLabel": "Delivery location",
     "recipientName": "Recipient name",
     "pickupRecap": "Pickup location",

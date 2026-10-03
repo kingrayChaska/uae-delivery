@@ -212,7 +212,9 @@ const MerchantHub = async ({ application }: { application: MerchantApplication |
                   <p className="mt-1 font-brand-mono text-2xl font-semibold">{format.money(rule.basePrice, rule.currency)}</p>
                   <p className="text-sm text-muted-foreground">
                     {isFlatRate(rule)
-                      ? t('flatRate', { distance: format.km(rule.maxDistanceKm, 0) })
+                      ? rule.maxDistanceKm === null
+                        ? t('flatRateAnyDistance')
+                        : t('flatRate', { distance: format.km(rule.maxDistanceKm, 0) })
                       : t('tiered', {
                           distance: format.km(rule.baseDistanceKm, 0),
                           perKm: format.money(rule.additionalPricePerKm, rule.currency),

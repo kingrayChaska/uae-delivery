@@ -30,18 +30,23 @@ const ManagerPricingPage = async () => {
 
   const money = (rule: PricingRule, value: number) =>
     format.money(value, rule.currency);
-  const describe = (rule: PricingRule) =>
-    isFlatRate(rule)
-      ? t("flat", {
-          price: money(rule, rule.basePrice),
-          distance: format.km(rule.maxDistanceKm, 0),
-        })
-      : t("tiered", {
-          price: money(rule, rule.basePrice),
-          distance: format.km(rule.baseDistanceKm, 0),
-          perKm: money(rule, rule.additionalPricePerKm),
-          max: format.km(rule.maxDistanceKm, 0),
-        });
+  const describe = (rule: PricingRule) => {
+    const max = rule.maxDistanceKm;
+    if (isFlatRate(rule)) {
+      const price = money(rule, rule.basePrice);
+      return max === null
+        ? t("flatUnlimited", { price })
+        : t("flat", { price, distance: format.km(max, 0) });
+    }
+    const tiered = {
+      price: money(rule, rule.basePrice),
+      distance: format.km(rule.baseDistanceKm, 0),
+      perKm: money(rule, rule.additionalPricePerKm),
+    };
+    return max === null
+      ? t("tieredUnlimited", tiered)
+      : t("tiered", { ...tiered, max: format.km(max, 0) });
+  };
   const target = (rule: Pick<PricingRule, "accountType" | "deliveryType">) =>
     t("target", {
       account: t(`accounts.${rule.accountType}`),

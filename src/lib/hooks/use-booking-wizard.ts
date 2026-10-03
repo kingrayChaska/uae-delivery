@@ -213,7 +213,7 @@ export const useBookingWizard = ({
     );
     if (quotes.length === 0 || !quotes.every((q) => q.exceedsDistanceLimit))
       return null;
-    const limit = Math.max(...quotes.map((q) => q.maxDistanceKm));
+    const limit = Math.max(...quotes.map((q) => q.maxDistanceKm!));
     return distanceLimitMessage(quotes[0].distanceKm, limit);
   })();
 
@@ -368,7 +368,7 @@ export const useBookingWizard = ({
     if (!price) return false;
     if (price.exceedsDistanceLimit) {
       setRouteError(
-        distanceLimitMessage(price.distanceKm, price.maxDistanceKm),
+        distanceLimitMessage(price.distanceKm, price.maxDistanceKm!),
       );
       return false;
     }

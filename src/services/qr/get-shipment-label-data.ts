@@ -7,10 +7,33 @@ import { createClient } from '@/lib/supabase/server';
 export type ShipmentLabelData = {
   trackingNumber: string;
   pickupAddress: string;
+  pickupContactName: string;
+  pickupContactPhone: string;
+  pickupBuilding: string | null;
+  pickupUnit: string | null;
+  pickupFloor: string | null;
+  pickupInstructions: string | null;
   dropoffAddress: string;
   dropoffContactName: string;
   dropoffContactPhone: string;
+  dropoffBuilding: string | null;
+  dropoffUnit: string | null;
+  dropoffFloor: string | null;
+  dropoffInstructions: string | null;
+  deliveryType: 'same_day' | 'next_day';
+  deliveryDate: string | null;
+  deliveryFee: number;
+  deliveryFeeCurrency: string;
+  paymentMethod: 'card' | 'cod';
+  recipientPaymentType: 'prepaid' | 'postpaid';
+  codAmount: number;
+  packageType: 'document' | 'parcel' | 'fragile' | 'bulk';
   packageDescription: string;
+  packageQuantity: number;
+  packageWeightKg: number | null;
+  packageLengthCm: number | null;
+  packageWidthCm: number | null;
+  packageHeightCm: number | null;
   isFragile: boolean;
   qrSvg: string;
 };
@@ -24,7 +47,7 @@ export const getShipmentLabelData = async (shipmentId: string): Promise<Shipment
   const [{ data: shipment }, { data: token, error: tokenError }] = await Promise.all([
     supabase
       .from('shipments')
-      .select('tracking_number, pickup_address, dropoff_address, dropoff_contact_name, dropoff_contact_phone, package_description, is_fragile')
+      .select('tracking_number, pickup_address, pickup_contact_name, pickup_contact_phone, pickup_building, pickup_unit, pickup_floor, pickup_instructions, dropoff_address, dropoff_contact_name, dropoff_contact_phone, dropoff_building, dropoff_unit, dropoff_floor, dropoff_instructions, delivery_type, delivery_date, price, currency, payment_method, recipient_payment_type, cod_amount, package_type, package_description, package_quantity, package_weight_kg, package_length_cm, package_width_cm, package_height_cm, is_fragile')
       .eq('id', shipmentId)
       .maybeSingle(),
     supabase.rpc('get_shipment_qr_token', { p_shipment_id: shipmentId }),
@@ -37,10 +60,33 @@ export const getShipmentLabelData = async (shipmentId: string): Promise<Shipment
   return {
     trackingNumber: shipment.tracking_number,
     pickupAddress: shipment.pickup_address,
+    pickupContactName: shipment.pickup_contact_name,
+    pickupContactPhone: shipment.pickup_contact_phone,
+    pickupBuilding: shipment.pickup_building,
+    pickupUnit: shipment.pickup_unit,
+    pickupFloor: shipment.pickup_floor,
+    pickupInstructions: shipment.pickup_instructions,
     dropoffAddress: shipment.dropoff_address,
     dropoffContactName: shipment.dropoff_contact_name,
     dropoffContactPhone: shipment.dropoff_contact_phone,
+    dropoffBuilding: shipment.dropoff_building,
+    dropoffUnit: shipment.dropoff_unit,
+    dropoffFloor: shipment.dropoff_floor,
+    dropoffInstructions: shipment.dropoff_instructions,
+    deliveryType: shipment.delivery_type,
+    deliveryDate: shipment.delivery_date,
+    deliveryFee: Number(shipment.price),
+    deliveryFeeCurrency: shipment.currency,
+    paymentMethod: shipment.payment_method,
+    recipientPaymentType: shipment.recipient_payment_type,
+    codAmount: Number(shipment.cod_amount),
+    packageType: shipment.package_type,
     packageDescription: shipment.package_description,
+    packageQuantity: shipment.package_quantity,
+    packageWeightKg: shipment.package_weight_kg === null ? null : Number(shipment.package_weight_kg),
+    packageLengthCm: shipment.package_length_cm === null ? null : Number(shipment.package_length_cm),
+    packageWidthCm: shipment.package_width_cm === null ? null : Number(shipment.package_width_cm),
+    packageHeightCm: shipment.package_height_cm === null ? null : Number(shipment.package_height_cm),
     isFragile: shipment.is_fragile,
     qrSvg,
   };

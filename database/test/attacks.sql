@@ -444,13 +444,20 @@ insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pick
 values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 30, 40, :'v2_msd', 'same_day', 25, 15, 0, 5, 0, 20, 'AED', 'card', 'parcel')
 returning price;
 
+\echo 'LEGITIMATE: merchant books 250 km at the flat rate — merchants have no distance limit'
+insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, pricing_rule_id, delivery_type, package_weight_kg, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
+values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 250, 180, :'v2_msd', 'same_day', 1, 15, 0, 0, 0, 15, 'AED', 'card', 'parcel')
+returning price;
+
 set request.jwt.uid = '00000000-0000-0000-0000-000000000007'; -- customer3 (individual)
 
-\echo 'ATTACK: customer3 books a 60 km delivery (over the 50 km limit) with an otherwise correct price'
+\echo 'ATTACK: customer3 books a 100 km delivery (over the 90 km individual limit) with an otherwise correct price'
 insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
   dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
   distance_km, duration_minutes, pricing_rule_id, delivery_type, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
-values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 60, 70, :'v2_sd', 'same_day', 12, 55, 0, 0, 67, 'AED', 'card', 'parcel');
+values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 100, 110, :'v2_sd', 'same_day', 12, 95, 0, 0, 107, 'AED', 'card', 'parcel');
 
 \echo 'ATTACK: customer3 prices a same-day delivery with the cheaper next-day rule'
 insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,

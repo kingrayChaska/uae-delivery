@@ -23,7 +23,9 @@ export const pricingRuleSchema = z.object({
   maxDistanceKm: z
     .number({ error: 'manager.pricing.validation.number' })
     .positive('manager.pricing.validation.positive')
-    .max(500, msg('manager.pricing.validation.max', { max: 500 })),
+    .max(500, msg('manager.pricing.validation.max', { max: 500 }))
+    // null = no distance limit (how merchant rules work).
+    .nullable(),
   activate: z.boolean(),
 });
 

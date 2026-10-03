@@ -8,6 +8,7 @@ import {
   RECIPIENT_PAYMENT_TYPES,
 } from "@/lib/types";
 import { LOCATION_SOURCES } from "@/lib/maps/types";
+import { BOOKING_ERRORS, validateBookingLocations } from "@/lib/shipment/booking-guards";
 
 import { msg, ref } from "@/i18n/message";
 
@@ -192,8 +193,28 @@ const refineCod = <
   }
 };
 
-export const bookingShipmentSchema =
-  bookingShipmentFields.superRefine(refineCod);
+const refineBookingLocations = (
+  value: {
+    pickup: { lat: number; lng: number };
+    dropoff: { lat: number; lng: number };
+  },
+  ctx: z.RefinementCtx,
+) => {
+  if (
+    validateBookingLocations(value.pickup, value.dropoff) ===
+    BOOKING_ERRORS.sameLocation
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["dropoff", "lat"],
+      message: BOOKING_ERRORS.sameLocation,
+    });
+  }
+};
+
+export const bookingShipmentSchema = bookingShipmentFields
+  .superRefine(refineCod)
+  .superRefine(refineBookingLocations);
 
 export type BookingShipmentInput = z.infer<typeof bookingShipmentFields>;
 
@@ -201,7 +222,8 @@ export type BookingShipmentInput = z.infer<typeof bookingShipmentFields>;
 // createShipment() books (also used by the staff CSV upload).
 export const bookingSchema = bookingShipmentFields
   .extend({ paymentMethod: z.enum(PAYMENT_METHODS) })
-  .superRefine(refineCod);
+  .superRefine(refineCod)
+  .superRefine(refineBookingLocations);
 
 export type BookingInput = z.infer<typeof bookingSchema>;
 

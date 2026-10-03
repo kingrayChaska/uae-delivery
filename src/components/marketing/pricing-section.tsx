@@ -81,10 +81,12 @@ const PricingSection = async ({ rules }: PricingSectionProps) => {
                     <Check className="mt-0.5 size-4 shrink-0 text-brand-signal" aria-hidden />
                     {t('trackingFeature')}
                   </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 size-4 shrink-0 text-brand-signal" aria-hidden />
-                    {t('range', { distance: format.km(rule.maxDistanceKm, 0) })}
-                  </li>
+                  {rule.maxDistanceKm !== null ? (
+                    <li className="flex items-start gap-2">
+                      <Check className="mt-0.5 size-4 shrink-0 text-brand-signal" aria-hidden />
+                      {t('range', { distance: format.km(rule.maxDistanceKm, 0) })}
+                    </li>
+                  ) : null}
                 </ul>
                 <Button
                   asChild

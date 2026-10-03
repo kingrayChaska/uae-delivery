@@ -82,7 +82,7 @@ export const calculateShipmentPrice = ({
     totalPrice: (baseFils + distanceFils + weightFils + codFils) / 100,
     currency: rule.currency,
     maxDistanceKm: rule.maxDistanceKm,
-    exceedsDistanceLimit: distanceHundredths > toHundredths(rule.maxDistanceKm),
+    exceedsDistanceLimit: rule.maxDistanceKm !== null && distanceHundredths > toHundredths(rule.maxDistanceKm),
   };
 };
 

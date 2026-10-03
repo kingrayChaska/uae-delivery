@@ -13,6 +13,7 @@ import Testimonials from "@/components/marketing/testimonials";
 import SiteFooter from "@/components/marketing/site-footer";
 import SiteNav from "@/components/marketing/site-nav";
 import { getActivePricingRules } from "@/lib/pricing/get-active-rule";
+import { widestDistanceLimit } from "@/lib/pricing/config";
 import { SITE_NAME, localizedAlternates, siteUrl } from "@/lib/seo";
 import { BRAND } from "@/lib/brand";
 import { OG_LOCALES, localizedPath } from "@/i18n/config";
@@ -64,6 +65,7 @@ const faqItems = async (
 ): Promise<FaqItem[]> => {
   const t = await getTranslations("marketing.faq.items");
   const { next_day: nextDay, same_day: sameDay } = rules;
+  const range = widestDistanceLimit(nextDay, sameDay);
   const money = (rule: PricingRule, value: number) =>
     `${rule.currency} ${format.number(value, { maximumFractionDigits: 2 })}`;
   const keys = [
@@ -86,14 +88,10 @@ const faqItems = async (
       includedWeight: format.kg(sameDay.includedWeightKg),
       perKg: money(sameDay, sameDay.additionalPricePerKg),
     },
-    range: {
-      distance: format.km(
-        Math.max(nextDay.maxDistanceKm, sameDay.maxDistanceKm),
-        0,
-      ),
-    },
+    range: { distance: range === null ? "" : format.km(range, 0) },
   } as const;
-  return keys.map((key) => ({
+  // With no distance limit there's no range to answer about.
+  return keys.filter((key) => key !== "range" || range !== null).map((key) => ({
     question: t(`${key}.question`),
     answer:
       key === "cost"

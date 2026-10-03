@@ -11,7 +11,7 @@ import { getActivePricingRules } from '@/lib/pricing/get-active-rule';
 import { isFallbackRule } from '@/lib/pricing/config';
 import { calculateShipmentPrice, sumPrices } from '@/lib/pricing/calculate';
 import { bookingSchema } from '@/lib/shipment/schemas';
-import { distanceLimitMessage } from '@/lib/shipment/booking-guards';
+import { BOOKING_ERRORS, distanceLimitMessage, validateBookingLocations } from '@/lib/shipment/booking-guards';
 import { EMIRATE_COVERAGE, classifyServiceArea, serviceAreaError } from '@/lib/service-areas/config';
 import { todayInUae } from '@/lib/bulk/schemas';
 import {
@@ -782,6 +782,14 @@ const recheck = (row: RowRecord, rules: PricingRuleSet, accountType: BookingCust
   const fail = (issue: RowIssue): Partial<RowUpdate> => ({ status: 'invalid', issues: [...(row.issues ?? []), issue] });
 
   if (booking.deliveryDate < today) return fail({ field: 'delivery_date', message: 'bulk.validation.datePast', severity: 'error' });
+  if (
+    validateBookingLocations(
+      { lat: booking.input.pickup.lat, lng: booking.input.pickup.lng },
+      { lat: booking.input.dropoff.lat, lng: booking.input.dropoff.lng },
+    ) === BOOKING_ERRORS.sameLocation
+  ) {
+    return fail({ field: 'delivery_address', message: BOOKING_ERRORS.sameLocation, severity: 'error' });
+  }
   for (const [end, emirate] of [['pickup', booking.emirates.pickup], ['dropoff', booking.emirates.dropoff]] as const) {
     if (EMIRATE_COVERAGE[emirate] !== 'active') {
       return fail({ field: 'coverage', message: serviceAreaError({ status: 'contact_support', emirate }, end) ?? 'serviceAreas.errors.cantBook', severity: 'error' });
@@ -798,7 +806,7 @@ const recheck = (row: RowRecord, rules: PricingRuleSet, accountType: BookingCust
     recipientPaymentType: booking.input.recipientPaymentType,
   });
   if (breakdown.exceedsDistanceLimit) {
-    return fail({ field: 'distance', message: distanceLimitMessage(breakdown.distanceKm, breakdown.maxDistanceKm), severity: 'error' });
+    return fail({ field: 'distance', message: distanceLimitMessage(breakdown.distanceKm, breakdown.maxDistanceKm!), severity: 'error' });
   }
   // Pricing changed since the merchant reviewed it: show the new price and
   // let them confirm it, rather than charge something they didn't see.

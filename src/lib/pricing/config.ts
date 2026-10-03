@@ -4,7 +4,7 @@ import type { AccountType, DeliveryType, PricingRule, PricingRuleSet } from '@/l
 // (no Supabase env in a preview build, or an unseeded database). Real
 // prices come from the active pricing_rules rows (migration 0022), which a
 // manager edits on the Pricing page — nothing else should hard-code these
-// numbers. They mirror what migration 0022 seeds.
+// numbers. They mirror what migrations 0022 and 0027 seed.
 const rule = (
   id: string,
   name: string,
@@ -20,7 +20,8 @@ const rule = (
   includedWeightKg: 20,
   additionalPricePerKg: 1,
   codFee: 0,
-  maxDistanceKm: 50,
+  // Merchants can send to any distance; individuals up to 90 km.
+  maxDistanceKm: accountType === 'merchant' ? null : 90,
   currency: 'AED',
   isActive: true,
 });
@@ -62,3 +63,9 @@ export const MAX_COD_AMOUNT = 100000;
 
 // A merchant rule with no per-km charge is a flat rate up to the distance limit.
 export const isFlatRate = (pricingRule: PricingRule) => pricingRule.additionalPricePerKm === 0;
+
+// The longest trip any of these rules accepts; null when one has no limit.
+export const widestDistanceLimit = (...pricingRules: PricingRule[]) =>
+  pricingRules.some((r) => r.maxDistanceKm === null)
+    ? null
+    : Math.max(...pricingRules.map((r) => r.maxDistanceKm as number));

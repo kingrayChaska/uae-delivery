@@ -248,7 +248,7 @@ describe('pricing used by bulk rows', () => {
   it('matches AED 12 for the first 5 km then AED 1 per km', () => {
     const rule = DEFAULT_PRICING_RULES.individual.same_day;
     expect([5, 8, 14].map((distanceKm) => calculateShipmentPrice({ rule, distanceKm, weightKg: 1 }).totalPrice)).toEqual([12, 15, 21]);
-    expect(calculateShipmentPrice({ rule, distanceKm: 50.01, weightKg: 1 }).exceedsDistanceLimit).toBe(true);
+    expect(calculateShipmentPrice({ rule, distanceKm: 90.01, weightKg: 1 }).exceedsDistanceLimit).toBe(true);
   });
 
   it('uses the merchant rule for merchants, not the customer one', () => {

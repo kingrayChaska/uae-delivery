@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 
 import Reveal from '@/components/marketing/reveal';
 import { getFormat } from '@/i18n/server';
+import { widestDistanceLimit } from '@/lib/pricing/config';
 
 import type { PricingRule } from '@/lib/types';
 
@@ -9,13 +10,14 @@ import type { PricingRule } from '@/lib/types';
 // pricing rules and real features — rather than marketing statistics.
 const ProductFacts = async ({ nextDay, sameDay }: { nextDay: PricingRule; sameDay: PricingRule }) => {
   const [t, format] = await Promise.all([getTranslations('marketing.facts'), getFormat()]);
+  const range = widestDistanceLimit(nextDay, sameDay);
   const facts = [
     {
       value: `${nextDay.currency} ${format.number(nextDay.basePrice, { maximumFractionDigits: 0 })}`,
       label: t('nextDay', { distance: format.km(nextDay.baseDistanceKm, 0) }),
     },
     { value: format.kg(sameDay.includedWeightKg), label: t('includedWeight') },
-    { value: format.km(Math.max(nextDay.maxDistanceKm, sameDay.maxDistanceKm), 0), label: t('range') },
+    ...(range === null ? [] : [{ value: format.km(range, 0), label: t('range') }]),
     { value: t('proofValue'), label: t('proof') },
   ];
 

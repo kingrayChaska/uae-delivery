@@ -86,17 +86,23 @@ describe('calculateShipmentPrice — weight (20 kg included, AED 1 per extra kg)
 
 describe('calculateShipmentPrice — distance limit', () => {
   it.each([
-    [49.99, false],
-    [50, false],
-    [50.01, true],
-    [80, true],
-  ])('%s km exceeds the 50 km limit: %s', (distanceKm, exceeds) => {
+    [89.99, false],
+    [90, false],
+    [90.01, true],
+    [120, true],
+  ])('%s km exceeds the 90 km individual limit: %s', (distanceKm, exceeds) => {
     expect(calculateShipmentPrice({ rule: SAME_DAY, distanceKm }).exceedsDistanceLimit).toBe(exceeds);
   });
 
   it('checks the stored (2-decimal) distance, like the database does', () => {
-    // 50.004 km is stored as 50.00 km, which is within the limit.
-    expect(calculateShipmentPrice({ rule: SAME_DAY, distanceKm: 50.004 }).exceedsDistanceLimit).toBe(false);
+    // 90.004 km is stored as 90.00 km, which is within the limit.
+    expect(calculateShipmentPrice({ rule: SAME_DAY, distanceKm: 90.004 }).exceedsDistanceLimit).toBe(false);
+  });
+
+  it('never limits merchants', () => {
+    for (const distanceKm of [50.01, 90.01, 500, 2000]) {
+      expect(calculateShipmentPrice({ rule: MERCHANT_SAME_DAY, distanceKm, weightKg: 1 }).exceedsDistanceLimit).toBe(false);
+    }
   });
 });
 

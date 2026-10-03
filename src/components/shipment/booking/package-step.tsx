@@ -105,7 +105,7 @@ const PackageStep = ({
                 {blocked && quote ? (
                   <span className="text-xs font-medium text-destructive">
                     {t("notAvailableBeyond", {
-                      distance: format.km(quote.maxDistanceKm, 0),
+                      distance: format.km(quote.maxDistanceKm!, 0),
                     })}
                   </span>
                 ) : null}

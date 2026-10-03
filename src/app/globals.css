@@ -137,6 +137,32 @@
   }
 }
 
+@page shipment-label {
+  size: A5 portrait;
+  margin: 8mm;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  [data-print-content],
+  [data-print-content] * {
+    visibility: visible !important;
+  }
+
+  [data-print-content] {
+    page: shipment-label;
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+}
+
 /* ── Arabic / right-to-left ────────────────────────────────────────────────
    Layout mirrors through logical utilities (ms-/me-/ps-/pe-/start-/end-,
    text-start) and dir="rtl" on <html>. Letter-spacing breaks the joins in

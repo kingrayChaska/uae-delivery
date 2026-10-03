@@ -193,6 +193,7 @@
       },
       "ratesTitle": "Your merchant rates",
       "flatRate": "Flat rate for any distance up to {distance}.",
+      "flatRateAnyDistance": "Flat rate for any distance.",
       "tiered": "First {distance}, then {perKm}/km.",
       "weight": "{weight} included, then {perKg} per kg.",
       "ratesNote": "Weight is required on every merchant shipment. Prices exclude the goods amount collected on delivery.",

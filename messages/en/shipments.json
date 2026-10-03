@@ -142,8 +142,18 @@
     "qrAlt": "QR code for {code}",
     "from": "From",
     "to": "To",
+    "package": "Package details",
     "contents": "Contents",
     "fragile": "FRAGILE",
-    "print": "Print label"
+    "instructions": "Instructions",
+    "quantity": "Quantity",
+    "weight": "Weight",
+    "dimensions": "Dimensions",
+    "delivery": "Delivery",
+    "deliverOn": "Deliver on {date}",
+    "deliveryFee": "Delivery fee",
+    "amountToCollect": "Amount to collect from recipient",
+    "nothingToCollect": "Prepaid — nothing to collect",
+    "printOrDownload": "Print label / Save as PDF"
   }
 }

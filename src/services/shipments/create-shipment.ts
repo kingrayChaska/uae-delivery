@@ -191,7 +191,7 @@ export const quoteShipment = async (
 
   if (breakdown.exceedsDistanceLimit) {
     throw new Error(
-      distanceLimitMessage(breakdown.distanceKm, breakdown.maxDistanceKm),
+      distanceLimitMessage(breakdown.distanceKm, breakdown.maxDistanceKm!),
     );
   }
 

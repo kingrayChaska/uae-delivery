@@ -16,6 +16,7 @@
     "contactName": "اسم جهة الاتصال",
     "dropoffTitle": "إلى أين ستذهب الشحنة؟",
     "dropoffDescription": "نوصّل داخل {supported}، لمسافة تصل إلى {distance} من موقع الاستلام.",
+    "dropoffDescriptionAnyDistance": "نوصّل داخل {supported}، لأي مسافة من موقع الاستلام.",
     "dropoffLabel": "موقع التسليم",
     "recipientName": "اسم المستلم",
     "pickupRecap": "موقع الاستلام",

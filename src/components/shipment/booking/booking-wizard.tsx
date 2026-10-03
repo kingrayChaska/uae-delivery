@@ -29,6 +29,7 @@ import { useBookingWizard } from "@/lib/hooks/use-booking-wizard";
 import { useAddressParts } from "@/lib/maps/use-address-parts";
 import { reverseGeocodeAction } from "@/lib/maps/actions";
 import { isInsideUae, toLocationValue } from "@/lib/maps/location";
+import { widestDistanceLimit } from "@/lib/pricing/config";
 import { DELIVERY_TYPES } from "@/lib/types";
 import {
   SUPPORTED_EMIRATES,
@@ -109,10 +110,7 @@ const BookingWizard = ({
     : drafts.length + 1;
   const blockedByDistance =
     step === "package" && wizard.distanceRestriction !== null;
-  const maxDistanceKm = Math.max(
-    rules.same_day.maxDistanceKm,
-    rules.next_day.maxDistanceKm,
-  );
+  const maxDistanceKm = widestDistanceLimit(rules.same_day, rules.next_day);
   const currency = rules.same_day.currency;
 
   // Where "Contact Support" goes: a support request already describing
@@ -335,10 +333,14 @@ const BookingWizard = ({
               draftKey={wizard.editingKey}
               title={t("dropoffTitle")}
               description={translate(
-                msg("booking.wizard.dropoffDescription", {
-                  supported: SUPPORTED_EMIRATES,
-                  distance: format.km(maxDistanceKm, 0),
-                }),
+                maxDistanceKm === null
+                  ? msg("booking.wizard.dropoffDescriptionAnyDistance", {
+                      supported: SUPPORTED_EMIRATES,
+                    })
+                  : msg("booking.wizard.dropoffDescription", {
+                      supported: SUPPORTED_EMIRATES,
+                      distance: format.km(maxDistanceKm, 0),
+                    }),
               )}
               locationLabel={t("dropoffLabel")}
               contactNameLabel={t("recipientName")}

@@ -74,7 +74,7 @@ export const usePricingRuleForm = (current: PricingRuleSet) => {
     includedWeightKg: finite(values.includedWeightKg),
     additionalPricePerKg: finite(values.additionalPricePerKg),
     codFee: finite(values.codFee),
-    maxDistanceKm: finite(values.maxDistanceKm) || 1,
+    maxDistanceKm: values.maxDistanceKm == null ? null : finite(values.maxDistanceKm) || 1,
     currency: current[accountType][deliveryType].currency,
     isActive: false,
   };

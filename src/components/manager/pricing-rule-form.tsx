@@ -87,7 +87,7 @@ const PricingRuleForm = ({ current }: { current: PricingRuleSet }) => {
             <Field id="includedWeightKg" type="number" step="0.5" min={0} label={t('form.includedWeight')} error={errors.includedWeightKg?.message} {...register('includedWeightKg', number)} />
             <Field id="additionalPricePerKg" type="number" step="0.01" min={0} label={t('form.perKg')} error={errors.additionalPricePerKg?.message} {...register('additionalPricePerKg', number)} />
             <Field id="codFee" type="number" step="0.01" min={0} label={t('form.codFee')} error={errors.codFee?.message} {...register('codFee', number)} />
-            <Field id="maxDistanceKm" type="number" step="1" min={1} label={t('form.maxDistance')} error={errors.maxDistanceKm?.message} {...register('maxDistanceKm', number)} />
+            <Field id="maxDistanceKm" type="number" step="1" min={1} label={t('form.maxDistance')} error={errors.maxDistanceKm?.message} {...register('maxDistanceKm', { setValueAs: (v) => (v === '' || v == null ? null : Number(v)) })} />
           </div>
         </fieldset>
 

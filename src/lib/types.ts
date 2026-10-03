@@ -98,7 +98,8 @@ export type PricingRule = {
   includedWeightKg: number;
   additionalPricePerKg: number;
   codFee: number;
-  maxDistanceKm: number;
+  // null = no distance limit (merchant rules).
+  maxDistanceKm: number | null;
   currency: string;
   isActive: boolean;
 };
@@ -124,7 +125,7 @@ export type PriceBreakdown = {
   otherCharges: number;
   totalPrice: number;
   currency: string;
-  maxDistanceKm: number;
+  maxDistanceKm: number | null;
   // True when the trip is longer than the rule allows: it can't be booked.
   exceedsDistanceLimit: boolean;
 };
