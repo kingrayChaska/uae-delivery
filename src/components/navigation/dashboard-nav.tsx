@@ -19,6 +19,7 @@ import type { NavSection, Profile } from '@/lib/types';
 
 type DashboardNavProps = {
   profile: Profile;
+  unreadNotificationCount: number;
   // Read from a cookie on the server, so a collapsed sidebar renders
   // collapsed on the first paint instead of jumping after hydration.
   defaultCollapsed?: boolean;
@@ -34,12 +35,14 @@ const NavLinks = ({
   pathname,
   home,
   collapsed,
+  unreadNotificationCount,
   onNavigate,
 }: {
   sections: NavSection[];
   pathname: string;
   home: string;
   collapsed: boolean;
+  unreadNotificationCount: number;
   onNavigate?: () => void;
 }) => {
   const t = useTranslations('dashboard.nav');
@@ -61,12 +64,16 @@ const NavLinks = ({
               const active = isActive(pathname, item.href, home);
               const Icon = NAV_ICONS[item.icon];
               const label = t(`items.${item.icon}`);
+              const showUnreadCount = item.icon === 'notifications' && unreadNotificationCount > 0;
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     onClick={onNavigate}
                     aria-current={active ? 'page' : undefined}
+                    aria-label={
+                      showUnreadCount ? `${label}, ${t('unreadNotifications', { count: unreadNotificationCount })}` : undefined
+                    }
                     title={collapsed ? label : undefined}
                     className={cn(
                       'group relative flex min-h-11 items-center gap-3 rounded-xl px-3 text-[0.9375rem] transition-colors duration-150',
@@ -90,6 +97,17 @@ const NavLinks = ({
                       aria-hidden
                     />
                     <span className={cn('truncate', collapsed && 'sr-only')}>{label}</span>
+                    {showUnreadCount ? (
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[0.6875rem] leading-none font-semibold text-destructive-foreground',
+                          collapsed ? 'absolute -top-1 end-1' : 'ms-auto',
+                        )}
+                      >
+                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                      </span>
+                    ) : null}
                   </Link>
                 </li>
               );
@@ -120,7 +138,7 @@ const Identity = ({ profile, collapsed }: { profile: Profile; collapsed: boolean
   );
 };
 
-const DashboardNav = ({ profile, defaultCollapsed = false }: DashboardNavProps) => {
+const DashboardNav = ({ profile, unreadNotificationCount, defaultCollapsed = false }: DashboardNavProps) => {
   const t = useTranslations('dashboard.nav');
   const pathname = usePathname();
   const merchant = profile.accountType === 'merchant';
@@ -158,10 +176,22 @@ const DashboardNav = ({ profile, defaultCollapsed = false }: DashboardNavProps) 
             <DialogPrimitive.Trigger asChild>
               <button
                 type="button"
-                className="flex size-11 items-center justify-center rounded-xl text-foreground transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                aria-label={t('openMenu')}
+                className="relative flex size-11 items-center justify-center rounded-xl text-foreground transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                aria-label={
+                  unreadNotificationCount > 0
+                    ? `${t('openMenu')}, ${t('unreadNotifications', { count: unreadNotificationCount })}`
+                    : t('openMenu')
+                }
               >
                 <Menu className="size-6" aria-hidden />
+                {unreadNotificationCount > 0 ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -top-1 end-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[0.6875rem] leading-none font-semibold text-destructive-foreground"
+                  >
+                    {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                  </span>
+                ) : null}
               </button>
             </DialogPrimitive.Trigger>
             <DialogPrimitive.Portal>
@@ -182,7 +212,14 @@ const DashboardNav = ({ profile, defaultCollapsed = false }: DashboardNavProps) 
                 <DialogPrimitive.Title className="sr-only">{t('navigation')}</DialogPrimitive.Title>
                 <Identity profile={profile} collapsed={false} />
                 <nav aria-label={t('label')} className="flex-1">
-                  <NavLinks sections={sections} pathname={pathname} home={home} collapsed={false} onNavigate={() => setDrawerOpen(false)} />
+                  <NavLinks
+                    sections={sections}
+                    pathname={pathname}
+                    home={home}
+                    collapsed={false}
+                    unreadNotificationCount={unreadNotificationCount}
+                    onNavigate={() => setDrawerOpen(false)}
+                  />
                 </nav>
                 <div className="flex flex-col gap-2 border-t pt-3">
                   <LanguageSwitcher className="w-full [&>button]:flex-1" />
@@ -217,7 +254,13 @@ const DashboardNav = ({ profile, defaultCollapsed = false }: DashboardNavProps) 
         </div>
         <Identity profile={profile} collapsed={collapsed} />
         <nav aria-label={t('label')} className="-mx-1 flex-1 overflow-y-auto px-1">
-          <NavLinks sections={sections} pathname={pathname} home={home} collapsed={collapsed} />
+          <NavLinks
+            sections={sections}
+            pathname={pathname}
+            home={home}
+            collapsed={collapsed}
+            unreadNotificationCount={unreadNotificationCount}
+          />
         </nav>
         <div className={cn('flex flex-col gap-1 border-t pt-3', collapsed && 'items-center')}>
           <LanguageSwitcher compact={collapsed} vertical={collapsed} className={cn('mb-1', !collapsed && 'w-full [&>button]:flex-1')} />

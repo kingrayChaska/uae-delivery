@@ -248,6 +248,7 @@ export const NAV_SECTIONS: Record<Role, NavSection[]> = {
       items: [
         { href: '/dashboard/operator/drivers', icon: 'drivers' },
         { href: '/dashboard/operator/customers', icon: 'customers' },
+        { href: '/dashboard/operator/notifications', icon: 'notifications' },
         { href: '/dashboard/operator/support', icon: 'support' },
         { href: '/dashboard/operator/activity', icon: 'activity' },
       ],

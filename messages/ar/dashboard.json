@@ -44,6 +44,7 @@
       "manager": "المدير"
     },
     "portal": "بوابة {role}",
+    "unreadNotifications": "{count} إشعارات غير مقروءة",
     "openMenu": "فتح قائمة التنقل",
     "closeMenu": "إغلاق قائمة التنقل",
     "navigation": "التنقل",

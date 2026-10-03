@@ -44,6 +44,7 @@
       "manager": "Manager"
     },
     "portal": "{role} portal",
+    "unreadNotifications": "{count} unread notifications",
     "openMenu": "Open navigation menu",
     "closeMenu": "Close navigation menu",
     "navigation": "Navigation",

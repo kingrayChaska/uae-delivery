@@ -33,6 +33,20 @@ export const listNotificationsAction = async (): Promise<NotificationRecord[]> =
   }));
 };
 
+export const getUnreadNotificationCountAction = async (): Promise<number> => {
+  const profile = await requireUser();
+  const supabase = await createClient();
+
+  const { count, error } = await supabase
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('profile_id', profile.id)
+    .is('read_at', null);
+
+  if (error) throw error;
+  return count ?? 0;
+};
+
 export const markNotificationReadAction = async (notificationId: string): Promise<{ success: boolean }> => {
   if (!isUuid(notificationId)) return { success: false };
   const profile = await requireUser();
