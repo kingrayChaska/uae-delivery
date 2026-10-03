@@ -60,6 +60,14 @@ The end-to-end suite found four bugs that every other check had passed — most 
 - **Merchant emails** use `RESEND_API_KEY` and `EMAIL_FROM` (e.g. `ParcelLink <notifications@yourdomain.ae>`). Without them, the in-app notification is still sent and the email is skipped (logged).
 - **Tracking IDs** are 8 characters (e.g. `PL7K29X4`). Existing `DLV-…` numbers still work on `/tracking`.
 
+## Merchant bulk shipments
+
+- **Deploy order:** apply `database/migrations/0026_merchant_bulk_shipments.sql` **before** deploying this code. Every shipment read selects the new `delivery_date` column.
+- Merchants upload a CSV at **Bulk Shipments** (`/dashboard/customer/bulk`). The server checks every row (address, coverage, route, price), the merchant reviews and fixes rows, then books them in one all-or-nothing step. Staff see the batches under **Bulk Shipments**, and can filter **Shipments** by batch (`?batch=<id>`).
+- **Background checking:** set `BULK_WORKER_SECRET` (a random string of 16+ characters, e.g. `openssl rand -hex 32`). Rows are then checked by `/api/internal/bulk-worker` even after the merchant closes the tab. Each run restarts itself until the batch is done. On Vercel, `CRON_SECRET` works too. You can also add a cron that GETs that route with `Authorization: Bearer <secret>` (for example every 5 minutes on plans that allow it) to resume a run that was cut short. Without a secret, the merchant's open review screen does all the checking, so they need to keep it open until it finishes. The worker calls the app at `NEXT_PUBLIC_APP_URL` (or Vercel's URL).
+- Google lookups for uploads are cached in `maps_cache` for a day and shared by every server instance. Driving routes are cached there for an hour, which also helps single bookings.
+- Card payment is not offered for bulk bookings until a real payment provider replaces the stub in `lib/payments` (see `cardPaymentsLive()`).
+
 ## Supabase email templates
 
 Staff invitations and password resets use Supabase's server-side `token_hash` flow, handled by `/auth/confirm`. In the Supabase dashboard (Authentication → Email Templates), point these links at it:

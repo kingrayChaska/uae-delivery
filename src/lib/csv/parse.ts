@@ -1,7 +1,12 @@
 // Minimal RFC 4180 CSV parser: quoted fields, escaped quotes (""),
 // commas and newlines inside quotes, CRLF or LF line endings, and a UTF-8
 // BOM from Excel exports. Kept dependency-free so it's fully unit-tested.
-export const parseCsv = (input: string): string[][] => {
+//
+// Each record comes with its spreadsheet row number: the 1-based count of
+// records up to it, blank ones included (a blank line is a blank row in
+// Excel; a newline inside quotes is not a new row). So "row 18" in an error
+// is row 18 in the merchant's spreadsheet.
+export const parseCsvRecords = (input: string): { cells: string[]; row: number }[] => {
   const text = input.replace(/^\uFEFF/, '');
   const rows: string[][] = [];
   let row: string[] = [];
@@ -46,9 +51,12 @@ export const parseCsv = (input: string): string[][] => {
     rows.push(row);
   }
 
-  // Drop fully blank lines (e.g. a trailing newline or spacer rows).
-  return rows.filter((r) => r.some((cell) => cell.trim() !== ''));
+  // Drop fully blank lines (e.g. a trailing newline or spacer rows) —
+  // after numbering, so the numbers still match the spreadsheet.
+  return rows.map((cells, index) => ({ cells, row: index + 1 })).filter(({ cells }) => cells.some((cell) => cell.trim() !== ''));
 };
+
+export const parseCsv = (input: string): string[][] => parseCsvRecords(input).map(({ cells }) => cells);
 
 // Maps rows to objects keyed by a normalized header (trimmed, lowercased).
 export const parseCsvWithHeaders = (input: string): { headers: string[]; records: Record<string, string>[] } => {

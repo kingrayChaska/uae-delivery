@@ -123,7 +123,11 @@ const Identity = ({ profile, collapsed }: { profile: Profile; collapsed: boolean
 const DashboardNav = ({ profile, defaultCollapsed = false }: DashboardNavProps) => {
   const t = useTranslations('dashboard.nav');
   const pathname = usePathname();
-  const sections = NAV_SECTIONS[profile.role];
+  const merchant = profile.accountType === 'merchant';
+  const sections = NAV_SECTIONS[profile.role].map((section) => ({
+    ...section,
+    items: section.items.filter((item) => !item.merchantOnly || merchant),
+  }));
   const home = DASHBOARD_HOME[profile.role];
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [drawerOpen, setDrawerOpen] = useState(false);

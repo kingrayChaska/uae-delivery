@@ -3,7 +3,7 @@
 ## Architecture
 
 - `google-client.ts` — **pure** functions only: builds Google API requests and parses Google's JSON into this app's types. No `fetch` calls, so it's unit-tested without the network (`google-client.test.ts`).
-- `google-provider.ts` — composes `google-client.ts` with real `fetch` calls using `GOOGLE_MAPS_SERVER_API_KEY`. Server-only. Caches routes for an hour (the wizard's quote and the booking's own check ask for the same one).
+- `google-provider.ts` — composes `google-client.ts` with real `fetch` calls using `GOOGLE_MAPS_SERVER_API_KEY`. Server-only. Caches routes for an hour (the wizard's quote and the booking's own check ask for the same one), in memory and in the shared `maps_cache` table.
 - `delivery-route.ts` — `getDeliveryRoute()`, **the** delivery distance. The wizard's quote (`getRouteAction`) and the booking (`quoteShipment`) both call it, so they always agree. A place the customer searched for is routed by its Place ID (Google then uses the place's own entrance, as Google Maps does), but only after the server confirms that place is at the booking's coordinates; pins and device locations are routed by their exact coordinates with `vehicleStopover`, so Google won't snap them onto a highway carriageway. If Google can't route to a place, it retries with the coordinates; if there's still no route, the booking fails — there is no straight-line fallback.
 - `actions.ts` — server actions the browser calls: `searchLocationsAction`, `retrieveLocationAction`, `reverseGeocodeAction`, `getRouteAction`. Each requires a signed-in user and is rate limited. Google's error text goes to server logs; customers see the app's own messages.
 - `google-maps-loader.ts` + `use-google-map.ts` — load the Maps JavaScript API once per page (only the `maps` and `marker` libraries, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`), and create a map that follows the app's light/dark theme. A refused key (`gm_authFailure`) or a failed script shows the app's "map unavailable" message instead of Google's grey box.
@@ -19,8 +19,8 @@
 | **Maps JavaScript API** | Drawing maps, Advanced Markers, route lines | Browser (`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`) |
 | **Places API (New)** — Autocomplete | Search-as-you-type: businesses, buildings, landmarks, parks, streets, communities, districts | Server |
 | **Places API (New)** — Place Details | Coordinates, address parts and Place ID of the chosen suggestion (ends the billing session) | Server |
-| **Places API (New)** — Text Search | Fallback when Autocomplete returns nothing or fails (more forgiving of partial/descriptive queries); staff CSV fallback | Server |
-| **Geocoding API** | Reverse geocoding (dropped pins, current location, the server's emirate check); forward geocoding for the staff CSV upload | Server |
+| **Places API (New)** — Text Search | Fallback when Autocomplete returns nothing or fails (more forgiving of partial/descriptive queries); staff and merchant CSV fallback | Server |
+| **Geocoding API** | Reverse geocoding (dropped pins, current location, the server's emirate check); forward geocoding for the staff and merchant CSV uploads | Server |
 | **Routes API** — `computeRoutes` | Driving distance, duration and path (`DRIVE`, field mask `routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline`). Pricing and the distance limit use only `distanceMeters / 1000` from this | Server |
 
 Nothing else needs enabling. Legacy Places, Directions and Distance Matrix are not used.
@@ -34,6 +34,10 @@ Nothing else needs enabling. Legacy Places, Directions and Distance Matrix are n
 **Routes are traffic-unaware** (`TRAFFIC_UNAWARE`). The wizard's price and the server's price at booking time are computed minutes apart; a traffic-aware route could change in between and the booking would be priced differently from the quote. The duration shown is Google's typical drive time for that route.
 
 **Map language.** The Maps JavaScript API fixes its language when it loads. After switching language, map labels and Google's own controls stay in the first language until the next full page load; everything ParcelLink draws (search results, addresses, messages) switches immediately. The switcher doesn't force a reload because that would discard a half-completed booking.
+
+## Merchant bulk uploads
+
+`googleMapsProvider.resolveAddress()` turns a CSV address into a full `ResolvedLocation` (Place ID and address components), trying the Geocoding API first and then Text Search. A result that names only a city or emirate is rejected as too general, and a partial match is flagged for the merchant to check. Each address is resolved once per request, then cached for a day: in memory, and in the `maps_cache` table shared by every server instance (`lib/maps/shared-cache.ts`). Routes use the same two-level cache for an hour, so the wizard's quote and the booking reuse one route even when they land on different instances. Cache failures count as misses and never block a booking. Resolving seeds the Place Details cache, so the bulk row then goes through the unchanged `quoteShipment`: coverage from the place's components, then a route by Place ID, exactly like a searched place in the wizard. This costs no extra Place Details call. Per distinct address that is one geocode (or one Text Search); per distinct pickup/delivery pair, one route. The review screen renders no maps.
 
 ## Stored data
 

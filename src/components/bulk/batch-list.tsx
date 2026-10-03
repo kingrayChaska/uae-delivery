@@ -48,8 +48,15 @@ const BatchList = ({ batches, hrefBase, showSender = false, emptyMessage }: Batc
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-            <span className="font-brand-mono">{t('counts', { shipments: batch.shipmentCount, items: batch.parcelCount })}</span>
-            <span className="font-brand-mono">{format.money(batch.totalPrice, batch.currency)}</span>
+            {batch.status === 'draft' ? (
+              // An upload still under review: no shipments yet.
+              <span className="font-brand-mono">{t('draftRows', { count: batch.rowsSubmitted })}</span>
+            ) : (
+              <>
+                <span className="font-brand-mono">{t('counts', { shipments: batch.shipmentCount, items: batch.parcelCount })}</span>
+                <span className="font-brand-mono">{format.money(batch.totalPrice, batch.currency)}</span>
+              </>
+            )}
             {batch.progress.awaitingDispatch > 0 ? (
               <span className="text-muted-foreground">{t('awaiting', { count: batch.progress.awaitingDispatch })}</span>
             ) : null}

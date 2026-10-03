@@ -25,7 +25,8 @@
       "merchants": "طلبات التجار",
       "pricing": "الأسعار",
       "reports": "التقارير",
-      "settings": "الإعدادات"
+      "settings": "الإعدادات",
+      "bulkShipments": "الشحنات المجمّعة"
     },
     "sections": {
       "account": "الحساب",

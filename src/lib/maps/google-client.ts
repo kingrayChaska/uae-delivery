@@ -427,6 +427,36 @@ export const parseForwardGeocodeResponse = (json: GeocodingResponse): GeocodeRes
   return { formattedAddress: cleanPlaceText(first.formatted_address), coordinates: { lat, lng } };
 };
 
+// Types of a result that only names an area (a whole city or emirate) —
+// too vague to deliver to. A district ("Business Bay") or anything more
+// specific is a usable address.
+const TOO_GENERAL_TYPES = new Set(['country', 'administrative_area_level_1', 'administrative_area_level_2', 'locality', 'political', 'colloquial_area']);
+
+export const isTooGeneral = (types: string[]) => types.length > 0 && types.every((type) => TOO_GENERAL_TYPES.has(type));
+
+export type ForwardGeocodeLocation = {
+  location: ResolvedLocation;
+  types: string[];
+  // Google matched only part of what was written.
+  partialMatch: boolean;
+};
+
+// The same forward geocode as parseForwardGeocodeResponse, keeping the
+// structured address (and Place ID) so the server can decide coverage from
+// Google's own components without a second lookup. Null when no match.
+export const parseForwardGeocodeLocation = (json: GeocodingResponse & { results?: (GeocodingResult & { partial_match?: boolean })[] }): ForwardGeocodeLocation | null => {
+  checkGeocodingStatus(json);
+  const [first] = json.results ?? [];
+  const { lat, lng } = first?.geometry?.location ?? {};
+  if (!first || typeof lat !== 'number' || typeof lng !== 'number') return null;
+  const types = first.types ?? [];
+  return {
+    location: resolvedFrom(null, types, fromGeocodingComponents(first.address_components), first.place_id ?? null, { lat, lng }, first.formatted_address, 'en'),
+    types,
+    partialMatch: first.partial_match === true,
+  };
+};
+
 // ── Routes API: driving distance, duration and path ─────────────────────────
 // TRAFFIC_UNAWARE on purpose: the price is quoted in the booking wizard and
 // recomputed by the server when the booking is made, so the route must not

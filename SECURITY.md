@@ -14,8 +14,9 @@ This maps the project's pre-launch security checklist to what is implemented, ho
    - Don't reuse the browser key on the server: a referrer-restricted key is refused for server calls, and loosening it would let anyone who reads the page source spend on Places and Routes.
 4. In Supabase → Authentication: set the Site URL and Redirect URLs to your domain, update the three email templates (README, "Supabase email templates"), and set the minimum password length to 8.
 5. Apply all migrations in `database/migrations/` in order, then the seed.
-6. Run `npm run security:secrets` and `npm run security:audit` before every release (ideally in CI).
-7. If any key has **ever** been committed, pasted into a chat or ticket, or shared, rotate it in the provider's dashboard. Deleting it from the code is not enough.
+6. For merchant bulk uploads, set `BULK_WORKER_SECRET` (32+ random characters) so rows are checked in the background. `/api/internal/bulk-worker` answers 404 to anyone without it (README, "Merchant bulk shipments").
+7. Run `npm run security:secrets` and `npm run security:audit` before every release (ideally in CI).
+8. If any key has **ever** been committed, pasted into a chat or ticket, or shared, rotate it in the provider's dashboard. Deleting it from the code is not enough.
 
 ## The 20 items
 

@@ -4,11 +4,13 @@ import { useTranslations } from 'next-intl';
 
 import { Card, CardContent } from '@/components/ui/card';
 import StatCard from '@/components/dashboard/stat-card';
+import Pagination from '@/components/dashboard/pagination';
 import BatchStatusBadge from '@/components/bulk/batch-status-badge';
 import ShipmentListItem from '@/components/shipment/shipment-list-item';
 import { bookingNameCount, formatPickupDate } from '@/lib/bulk/format';
 import { useAppLocale, useFormat, useMessage } from '@/i18n/hooks';
 
+import type { ReactNode } from 'react';
 import type { BatchDetail as BatchDetailData } from '@/services/bulk/list-batches';
 
 type BatchDetailProps = {
@@ -17,9 +19,14 @@ type BatchDetailProps = {
   shipmentBasePath: string;
   // Staff get the sender's contact details; the customer already knows them.
   showSender?: boolean;
+  // This page's own path, for paging through the shipments.
+  pageHref: string;
+  // Extra buttons beside the status (e.g. the merchant's report download).
+  actions?: ReactNode;
+  backLabel?: string;
 };
 
-const BatchDetail = ({ batch, backHref, shipmentBasePath, showSender = false }: BatchDetailProps) => {
+const BatchDetail = ({ batch, backHref, shipmentBasePath, showSender = false, pageHref, actions, backLabel }: BatchDetailProps) => {
   const t = useTranslations('operator.bulk');
   const locale = useAppLocale();
   const format = useFormat();
@@ -29,7 +36,7 @@ const BatchDetail = ({ batch, backHref, shipmentBasePath, showSender = false }: 
     <main className="flex flex-1 flex-col gap-6 p-6">
       <Link href={backHref} className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:underline">
         <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden />
-        {t('back')}
+        {backLabel ?? t('back')}
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -45,7 +52,10 @@ const BatchDetail = ({ batch, backHref, shipmentBasePath, showSender = false }: 
             })}
           </p>
         </div>
-        <BatchStatusBadge status={batch.status} />
+        <div className="flex flex-wrap items-center gap-2">
+          {actions}
+          <BatchStatusBadge status={batch.status} />
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -60,6 +70,28 @@ const BatchDetail = ({ batch, backHref, shipmentBasePath, showSender = false }: 
         />
         <StatCard label={t('detailStats.total')} value={format.money(batch.totalPrice, batch.currency)} />
       </div>
+
+      {batch.shipmentCount > 0 ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex h-2 overflow-hidden rounded-full bg-muted" aria-hidden>
+            {(['delivered', 'inProgress', 'awaitingDispatch', 'issues'] as const).map((key) => (
+              <span
+                key={key}
+                className={{ delivered: 'bg-success', inProgress: 'bg-primary', awaitingDispatch: 'bg-muted-foreground/40', issues: 'bg-destructive' }[key]}
+                style={{ width: `${(batch.progress[key] / batch.shipmentCount) * 100}%` }}
+              />
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {t('progressLine', {
+              delivered: format.number(batch.progress.delivered),
+              inProgress: format.number(batch.progress.inProgress),
+              awaiting: format.number(batch.progress.awaitingDispatch),
+              issues: format.number(batch.progress.issues),
+            })}
+          </p>
+        </div>
+      ) : null}
 
       {showSender || batch.notes ? (
         <Card>
@@ -101,13 +133,14 @@ const BatchDetail = ({ batch, backHref, shipmentBasePath, showSender = false }: 
       <div className="flex flex-col gap-2">
         <h2 className="text-lg font-medium">{t('shipments')}</h2>
         {batch.status === 'processing' ? <p className="text-sm text-muted-foreground">{t('processing')}</p> : null}
-        {batch.shipments.length === 0 ? (
+        {batch.shipments.items.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('none')}</p>
         ) : (
-          batch.shipments.map((shipment) => (
+          batch.shipments.items.map((shipment) => (
             <ShipmentListItem key={shipment.id} shipment={shipment} basePath={shipmentBasePath} />
           ))
         )}
+        <Pagination page={batch.shipments.page} totalPages={batch.shipments.totalPages} href={pageHref} />
       </div>
     </main>
   );

@@ -101,6 +101,12 @@ const DriverDeliveryDetailPage = async ({ params }: { params: Promise<{ id: stri
                 <span className="text-muted-foreground">{t('quantity')}</span>
                 <span>{format.number(shipment.packageQuantity)}</span>
               </div>
+              {shipment.deliveryDate ? (
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">{t('deliveryDate')}</span>
+                  <span>{format.calendarDate(shipment.deliveryDate)}</span>
+                </div>
+              ) : null}
               {shipment.isFragile ? <p className="text-warning-foreground">{t('fragile')}</p> : null}
               {packageImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- signed Supabase Storage URL

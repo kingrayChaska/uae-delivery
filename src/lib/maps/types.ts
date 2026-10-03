@@ -66,6 +66,17 @@ export type LocationSuggestion = {
   resolved: ResolvedLocation | null;
 };
 
+// A free-text address resolved by the server (merchant CSV upload).
+export type AddressResolution = {
+  location: ResolvedLocation;
+  // 'geocode' (Geocoding API) or 'text_search' (Places Text Search fallback).
+  via: 'geocode' | 'text_search';
+  // Google only matched part of the text: still usable, but worth a look.
+  approximate: boolean;
+  // Google only found a whole city/emirate: not a deliverable address.
+  tooGeneral: boolean;
+};
+
 // One end of a route. With a placeId, Google routes to that place's own
 // entrance/access points (as Google Maps does for a selected place);
 // without one, to the exact coordinates. lib/maps/delivery-route.ts
@@ -84,6 +95,7 @@ export type MapsProvider = {
   retrieve: (id: string, sessionToken: string | null, language: MapsLanguage) => Promise<ResolvedLocation>;
   searchPlaces: (query: string, language: MapsLanguage) => Promise<LocationSuggestion[]>;
   geocode: (address: string) => Promise<GeocodeResult>;
+  resolveAddress: (address: string) => Promise<AddressResolution>;
   reverseGeocode: (coordinates: Coordinates, language?: MapsLanguage) => Promise<ResolvedLocation>;
   getRoute: (origin: RouteWaypoint, destination: RouteWaypoint) => Promise<RouteResult>;
 };

@@ -7,4 +7,9 @@ import type { PaymentProvider } from '@/lib/payments/types';
 // interface rather than a concrete provider.
 export const paymentProvider: PaymentProvider = stubProvider;
 
+// Whether card payment actually works. While the stub is in place a card
+// booking can only wait at 'pending_payment', so flows that would create
+// many of them at once (merchant bulk shipments) offer cash only.
+export const cardPaymentsLive = (): boolean => paymentProvider !== stubProvider;
+
 export type { PaymentIntent, CreatePaymentIntentInput, RefundInput } from '@/lib/payments/types';

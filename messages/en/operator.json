@@ -52,7 +52,9 @@
     "new": "New Shipment",
     "total": "{count, plural, one {# total} other {# total}}",
     "empty": "No shipments yet",
-    "newMeta": "New shipment · ParcelLink"
+    "newMeta": "New shipment · ParcelLink",
+    "filteredBy": "Showing bulk batch",
+    "clearFilter": "Show all shipments"
   },
   "shipmentDetail": {
     "meta": "Shipment · ParcelLink",
@@ -67,7 +69,8 @@
     "reassign": "Reassign driver",
     "history": "Status history",
     "markReturned": "Mark Returned",
-    "marking": "Marking…"
+    "marking": "Marking…",
+    "batch": "Bulk batch"
   },
   "customers": {
     "meta": "Customers · ParcelLink",
@@ -134,7 +137,9 @@
       "processing": "Processing",
       "submitted": "Submitted",
       "partially_failed": "Some rows failed",
-      "failed": "Failed"
+      "failed": "Failed",
+      "draft": "Draft",
+      "cancelled": "Discarded"
     },
     "back": "All bulk lists",
     "submitted": "Submitted {date} · Pickup {pickup}",
@@ -151,7 +156,10 @@
     "row": "Row {number}",
     "shipments": "Shipments",
     "processing": "This list is still being processed — refresh in a moment.",
-    "none": "No shipments were created from this list."
+    "none": "No shipments were created from this list.",
+    "progressLine": "{delivered} delivered · {inProgress} in progress · {awaiting} awaiting dispatch · {issues} failed, cancelled or returned",
+    "draftRows": "{count, plural, one {# row} other {# rows}} to review",
+    "openInShipments": "Open in shipments list"
   },
   "errors": {
     "notFound": "Not found",

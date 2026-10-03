@@ -23,6 +23,7 @@ import errors from './errors.json';
 import maps from './maps.json';
 import serviceAreas from './serviceAreas.json';
 import legal from './legal.json';
+import bulk from './bulk.json';
 
 const messages = {
   common,
@@ -48,6 +49,7 @@ const messages = {
   maps,
   serviceAreas,
   legal,
+  bulk,
 };
 
 export default messages;

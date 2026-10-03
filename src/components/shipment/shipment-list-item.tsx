@@ -24,6 +24,14 @@ const ShipmentListItem = ({ shipment, basePath = '/dashboard/customer/deliveries
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span dir="ltr" className="font-brand-mono text-sm font-semibold tracking-wider">{shipment.trackingNumber}</span>
           <span className="text-xs text-muted-foreground">{t(`deliveryType.${shipment.deliveryType}.label`)}</span>
+          {shipment.deliveryDate ? (
+            <span className="text-xs text-muted-foreground">{t('detail.deliverOn', { date: format.calendarDate(shipment.deliveryDate) })}</span>
+          ) : null}
+          {shipment.batchReference ? (
+            <span dir="ltr" className="rounded-md bg-secondary px-1.5 py-0.5 font-brand-mono text-[0.6875rem] text-secondary-foreground">
+              {shipment.batchReference}
+            </span>
+          ) : null}
           {shipment.recipientPaymentType === 'postpaid' ? (
             <span className="text-xs text-muted-foreground">
               {t('list.cod', { amount: format.money(shipment.codAmount, shipment.currency) })}

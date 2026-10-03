@@ -17,6 +17,9 @@ export const RATE_LIMITS = {
   otpIssuePerShipment: { max: 5, windowSeconds: 60 * 60 },
   ticketPerUser: { max: 10, windowSeconds: 60 * 60 },
   bulkUploadPerUser: { max: 10, windowSeconds: 60 * 60 },
+  // Merchant bulk review: one call per 20 rows checked (a 1,000-row file is
+  // 50 calls) plus one per corrected row.
+  bulkProcessPerUser: { max: 600, windowSeconds: 60 * 60 },
   staffCreatePerUser: { max: 30, windowSeconds: 60 * 60 },
   merchantApplyPerUser: { max: 10, windowSeconds: 60 * 60 },
 } as const;

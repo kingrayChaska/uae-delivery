@@ -24,6 +24,9 @@ const ShipmentChargesCard = ({ shipment }: { shipment: Shipment }) => {
           <span className="flex items-center gap-2 font-medium">
             <DeliveryIcon className="size-4 text-primary" aria-hidden />
             {t(`deliveryType.${shipment.deliveryType}.label`)}
+            {shipment.deliveryDate ? (
+              <span className="font-normal text-muted-foreground">· {t('detail.deliverOn', { date: format.calendarDate(shipment.deliveryDate) })}</span>
+            ) : null}
           </span>
           <Badge variant="outline">{format.km(shipment.distanceKm)}</Badge>
         </div>

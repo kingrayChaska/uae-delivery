@@ -92,7 +92,8 @@
     "history": "Full status history",
     "to": "to",
     "distance": "Distance",
-    "duration": "Estimated drive time"
+    "duration": "Estimated drive time",
+    "deliverOn": "Deliver on {date}"
   },
   "charges": {
     "feePaidBy": "Delivery fee paid by",

@@ -23,6 +23,8 @@ describe('decideRoute — signed out', () => {
     '/opengraph-image',
     // Self-hosted assets the public landing page loads.
     '/vendor/dotlottie-player.wasm',
+    // Background jobs authenticate with their own secret.
+    '/api/internal/bulk-worker',
   ])(
     'allows public route %s',
     (pathname) => {

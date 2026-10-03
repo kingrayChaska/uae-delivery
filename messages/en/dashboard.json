@@ -25,7 +25,8 @@
       "merchants": "Merchant Applications",
       "pricing": "Pricing",
       "reports": "Reports",
-      "settings": "Settings"
+      "settings": "Settings",
+      "bulkShipments": "Bulk Shipments"
     },
     "sections": {
       "account": "Account",

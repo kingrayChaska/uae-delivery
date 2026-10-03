@@ -4,11 +4,13 @@ import Badge from '@/components/ui/badge';
 
 import type { BatchStatus } from '@/lib/bulk/schemas';
 
-const BATCH_VARIANT: Record<BatchStatus, 'secondary' | 'success' | 'warning' | 'destructive'> = {
+const BATCH_VARIANT: Record<BatchStatus, 'secondary' | 'success' | 'warning' | 'destructive' | 'outline'> = {
+  draft: 'outline',
   processing: 'secondary',
   submitted: 'success',
   partially_failed: 'warning',
   failed: 'destructive',
+  cancelled: 'outline',
 };
 
 const BatchStatusBadge = ({ status }: { status: BatchStatus }) => {

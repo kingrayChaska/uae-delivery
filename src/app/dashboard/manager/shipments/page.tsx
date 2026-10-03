@@ -1,13 +1,12 @@
 import ShipmentsView from '@/components/staff-views/shipments-view';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { parsePage } from '@/lib/pagination';
+import { isUuid } from '@/lib/security/validate';
 
-import type { PageSearchParams } from '@/lib/pagination';
-
-const ManagerShipmentsPage = async ({ searchParams }: { searchParams: PageSearchParams }) => {
+const ManagerShipmentsPage = async ({ searchParams }: { searchParams: Promise<{ page?: string | string[]; batch?: string }> }) => {
   await requireRoleOrRedirect('manager');
-  const { page } = await searchParams;
-  return <ShipmentsView basePath="/dashboard/manager" page={parsePage(page)} />;
+  const { page, batch } = await searchParams;
+  return <ShipmentsView basePath="/dashboard/manager" page={parsePage(page)} batchId={isUuid(batch) ? batch : null} />;
 };
 
 export default ManagerShipmentsPage;

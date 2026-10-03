@@ -61,7 +61,8 @@
     "goods": "Goods (from recipient)",
     "fee": "Delivery fee (cash)",
     "total": "Total cash",
-    "prepaid": "Prepaid — nothing to collect."
+    "prepaid": "Prepaid — nothing to collect.",
+    "deliveryDate": "Delivery date"
   },
   "workflow": {
     "failureReason": "Reason the delivery failed",

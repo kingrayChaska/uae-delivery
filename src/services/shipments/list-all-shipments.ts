@@ -15,15 +15,14 @@ const DISPATCH_QUEUE_LIMIT = 200;
 
 // RLS (shipments_select) grants staff unrestricted read on this table —
 // that's what makes this "all shipments" rather than "my shipments".
-export const listAllShipments = async (page: number): Promise<Paginated<Shipment>> => {
+// `batchId` narrows it to one bulk batch (the staff shipments list's filter).
+export const listAllShipments = async (page: number, { batchId = null }: { batchId?: string | null } = {}): Promise<Paginated<Shipment>> => {
   const supabase = await createClient();
   const { from, to } = pageRange(page);
 
-  const { data, count } = await supabase
-    .from('shipments')
-    .select(SHIPMENT_SELECT_COLUMNS, { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(from, to);
+  let query = supabase.from('shipments').select(SHIPMENT_SELECT_COLUMNS, { count: 'exact' });
+  if (batchId) query = query.eq('batch_id', batchId);
+  const { data, count } = await query.order('created_at', { ascending: false }).range(from, to);
 
   return toPaginated(((data ?? []) as ShipmentRow[]).map(mapRowToShipment), count ?? 0, page);
 };

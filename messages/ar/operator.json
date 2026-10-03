@@ -52,7 +52,9 @@
     "new": "شحنة جديدة",
     "total": "الإجمالي: {count}",
     "empty": "لا توجد شحنات بعد",
-    "newMeta": "شحنة جديدة · ParcelLink"
+    "newMeta": "شحنة جديدة · ParcelLink",
+    "filteredBy": "عرض دفعة الشحنات",
+    "clearFilter": "عرض كل الشحنات"
   },
   "shipmentDetail": {
     "meta": "الشحنة · ParcelLink",
@@ -67,7 +69,8 @@
     "reassign": "إعادة إسناد السائق",
     "history": "سجل الحالات",
     "markReturned": "تحديد كمُعادة",
-    "marking": "جارٍ التحديد…"
+    "marking": "جارٍ التحديد…",
+    "batch": "دفعة الشحنات"
   },
   "customers": {
     "meta": "العملاء · ParcelLink",
@@ -134,7 +137,9 @@
       "processing": "قيد المعالجة",
       "submitted": "تم الإرسال",
       "partially_failed": "تعذّر إنشاء بعض الصفوف",
-      "failed": "فشل"
+      "failed": "فشل",
+      "draft": "مسودة",
+      "cancelled": "تم التجاهل"
     },
     "back": "جميع القوائم المجمّعة",
     "submitted": "أُرسلت في {date} · الاستلام {pickup}",
@@ -151,7 +156,10 @@
     "row": "الصف {number}",
     "shipments": "الشحنات",
     "processing": "لا تزال هذه القائمة قيد المعالجة — حدّث الصفحة بعد قليل.",
-    "none": "لم تُنشأ أي شحنات من هذه القائمة."
+    "none": "لم تُنشأ أي شحنات من هذه القائمة.",
+    "progressLine": "{delivered} تم التوصيل · {inProgress} قيد التنفيذ · {awaiting} بانتظار الإرسال · {issues} فشلت أو أُلغيت أو أُعيدت",
+    "draftRows": "{count, plural, zero {لا صفوف للمراجعة} one {صف واحد للمراجعة} two {صفان للمراجعة} few {# صفوف للمراجعة} many {# صفًا للمراجعة} other {# صف للمراجعة}}",
+    "openInShipments": "فتح في قائمة الشحنات"
   },
   "errors": {
     "notFound": "غير موجود",

@@ -155,6 +155,10 @@ export type Shipment = {
   codCharge: number | null;
   businessAccountId: string | null;
   batchId: string | null;
+  // The bulk batch it was booked in (BLK-…), when the viewer may see it.
+  batchReference: string | null;
+  // The day the merchant asked for delivery (bulk uploads), YYYY-MM-DD.
+  deliveryDate: string | null;
   packageType: PackageType;
   packageDescription: string;
   packageQuantity: number;
@@ -171,12 +175,13 @@ export type Shipment = {
 // file stays free of UI imports.
 export type NavIcon =
   | 'dashboard' | 'book' | 'deliveries' | 'track' | 'merchant' | 'payments' | 'notifications' | 'profile' | 'support'
-  | 'current' | 'history' | 'cod' | 'shipments' | 'bulk' | 'dispatch' | 'drivers' | 'customers' | 'map' | 'activity'
+  | 'current' | 'history' | 'cod' | 'shipments' | 'bulk' | 'bulkShipments' | 'dispatch' | 'drivers' | 'customers' | 'map' | 'activity'
   | 'operators' | 'business' | 'merchants' | 'pricing' | 'reports' | 'settings';
 
 // Labels live in the translations (dashboard.nav.items.<icon> and
 // dashboard.nav.sections.<heading>): each icon names one destination.
-export type NavItem = { href: string; icon: NavIcon };
+// merchantOnly: shown only to approved merchants (account_type 'merchant').
+export type NavItem = { href: string; icon: NavIcon; merchantOnly?: boolean };
 export type NavSectionKey = 'account' | 'operations' | 'people' | 'customersMerchants' | 'team' | 'business';
 export type NavSection = { heading: NavSectionKey | null; items: NavItem[] };
 
@@ -187,6 +192,7 @@ export const NAV_SECTIONS: Record<Role, NavSection[]> = {
       items: [
         { href: '/dashboard/customer', icon: 'dashboard' },
         { href: '/dashboard/customer/book', icon: 'book' },
+        { href: '/dashboard/customer/bulk', icon: 'bulkShipments', merchantOnly: true },
         { href: '/dashboard/customer/deliveries', icon: 'deliveries' },
         { href: '/dashboard/customer/track', icon: 'track' },
       ],

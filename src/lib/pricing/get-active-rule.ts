@@ -3,6 +3,7 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { DEFAULT_PRICING_RULES } from '@/lib/pricing/config';
 
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AccountType, DeliveryType, PricingRule, PricingRuleSet } from '@/lib/types';
 
 export const PRICING_RULE_COLUMNS =
@@ -46,7 +47,9 @@ export const mapPricingRule = (row: PricingRuleRow): PricingRule => ({
 // caller can't read — or a database that isn't configured — falls back to
 // the in-code defaults, so a quote can always be SHOWN. Bookings never use
 // a fallback (see isFallbackRule).
-export const getActivePricingRules = async (): Promise<PricingRuleSet> => {
+// The merchant bulk background worker has no session and passes the
+// service-role client instead.
+export const getActivePricingRules = async (client?: SupabaseClient): Promise<PricingRuleSet> => {
   const rules: PricingRuleSet = {
     individual: { ...DEFAULT_PRICING_RULES.individual },
     merchant: { ...DEFAULT_PRICING_RULES.merchant },
@@ -55,7 +58,7 @@ export const getActivePricingRules = async (): Promise<PricingRuleSet> => {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return rules;
 
   try {
-    const supabase = await createClient();
+    const supabase = client ?? (await createClient());
     const { data } = await supabase.from('pricing_rules').select(PRICING_RULE_COLUMNS).eq('is_active', true);
     for (const row of (data ?? []) as PricingRuleRow[]) {
       rules[row.account_type][row.delivery_type] = mapPricingRule(row);

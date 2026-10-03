@@ -15,6 +15,7 @@ import TrackingCode from '@/components/shipment/tracking-code';
 import { getShipmentDetail } from '@/services/shipments/get-shipment';
 import { getProofOfDelivery } from '@/services/shipments/get-proof-of-delivery';
 import { getProfileName } from '@/services/profiles/get-profile-name';
+import { getBatchLabel } from '@/services/bulk/list-batches';
 import { getFormat } from '@/i18n/server';
 
 import type { StaffDetailViewProps } from '@/components/staff-views/types';
@@ -24,8 +25,9 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
   if (!detail) notFound();
 
   const { shipment, history } = detail;
-  const [driverName, proof, t, tShipments, format] = await Promise.all([
+  const [driverName, batch, proof, t, tShipments, format] = await Promise.all([
     getProfileName(shipment.driverId),
+    getBatchLabel(shipment.batchId),
     shipment.status === 'delivered' ? getProofOfDelivery(shipment.id) : Promise.resolve(null),
     getTranslations('operator.shipmentDetail'),
     getTranslations('shipments'),
@@ -66,6 +68,17 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
                 <span className="text-muted-foreground">{t('driver')}</span>
                 <span>{driverName ?? t('unassigned')}</span>
               </div>
+              {batch ? (
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">{t('batch')}</span>
+                  <Link href={`${basePath}/bulk/${batch.id}`} className="text-end hover:underline">
+                    <span dir="ltr" className="font-brand-mono">
+                      {batch.reference}
+                    </span>
+                    {batch.sender ? <span className="text-muted-foreground"> · {batch.sender}</span> : null}
+                  </Link>
+                </div>
+              ) : null}
               <AddressBlock heading={tShipments('detail.pickup')} address={shipment.pickup} />
               <AddressBlock heading={tShipments('detail.delivery')} address={shipment.dropoff} />
               <div className="grid grid-cols-2 gap-4 border-t pt-3 font-brand-mono">

@@ -8,17 +8,21 @@ import {
   buildReverseGeocodeRequest,
   buildRouteRequest,
   buildTextSearchRequest,
+  isTooGeneral,
   parseAutocompleteResponse,
+  parseForwardGeocodeLocation,
   parseForwardGeocodeResponse,
   parsePlaceDetailsResponse,
   parseReverseGeocodeResponse,
   parseRouteResponse,
   parseTextSearchResponse,
 } from '@/lib/maps/google-client';
+import { readSharedCache, writeSharedCache } from '@/lib/maps/shared-cache';
 
 import type { ApiRequest } from '@/lib/maps/google-client';
 import type { Coordinates } from '@/lib/types';
 import type {
+  AddressResolution,
   GeocodeResult,
   LocationSuggestion,
   MapsLanguage,
@@ -75,8 +79,8 @@ export { MapsProviderError };
 
 // The booking wizard's quote and the booking itself (quoteShipment) ask for
 // the same route minutes apart. Routes are traffic-unaware, so the answer
-// is the same: reuse it for an hour (per server instance) rather than pay
-// for it twice. Failures aren't cached.
+// is the same: reuse it for an hour (on this instance, then the shared
+// cache) rather than pay for it twice. Failures aren't cached.
 const ROUTE_CACHE_TTL_MS = 60 * 60 * 1000;
 const ROUTE_CACHE_MAX_ENTRIES = 500;
 const routeCache = new Map<string, { route: RouteResult; expires: number }>();
@@ -92,6 +96,16 @@ const routeKey = (a: RouteWaypoint, b: RouteWaypoint) => `${waypointKey(a)}|${wa
 const PLACE_CACHE_TTL_MS = 60 * 60 * 1000;
 const PLACE_CACHE_MAX_ENTRIES = 1000;
 const placeCache = new Map<string, { location: ResolvedLocation; expires: number }>();
+
+// Bulk uploads repeat addresses constantly (one warehouse pickup for every
+// row, the same customers week after week) and are processed in several
+// requests, often on different server instances, so resolved addresses are
+// reused for a day — here, then in the shared cache (lib/maps/shared-cache).
+// Only successes are cached.
+const ADDRESS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const ADDRESS_CACHE_MAX_ENTRIES = 5000;
+const addressCache = new Map<string, { resolution: AddressResolution; expires: number }>();
+const addressKey = (address: string) => address.trim().replace(/\s+/g, ' ').toLowerCase();
 
 export const googleMapsProvider: MapsProvider = {
   suggest: async (query: string, sessionToken: string, language: MapsLanguage, proximity?: Coordinates): Promise<LocationSuggestion[]> => {
@@ -130,6 +144,50 @@ export const googleMapsProvider: MapsProvider = {
     return { formattedAddress: place.resolved.formattedAddress, coordinates: place.resolved.coordinates };
   },
 
+  // Merchant CSV upload: like geocode(), but keeps Google's structured
+  // address and Place ID (coverage and routing use them) and says how sure
+  // the match is. Throws when Google has nothing.
+  resolveAddress: async (address: string): Promise<AddressResolution> => {
+    const cacheKey = addressKey(address);
+    const cached = addressCache.get(cacheKey);
+    if (cached && cached.expires > Date.now()) return cached.resolution;
+
+    const remember = (resolution: AddressResolution) => {
+      if (addressCache.size >= ADDRESS_CACHE_MAX_ENTRIES) addressCache.delete(addressCache.keys().next().value!);
+      addressCache.set(cacheKey, { resolution, expires: Date.now() + ADDRESS_CACHE_TTL_MS });
+      // The route's own place check asks for this place next; seed it.
+      const placeId = resolution.location.place.placeId;
+      if (placeId && !placeCache.has(`en|${placeId}`)) {
+        if (placeCache.size >= PLACE_CACHE_MAX_ENTRIES) placeCache.delete(placeCache.keys().next().value!);
+        placeCache.set(`en|${placeId}`, { location: resolution.location, expires: Date.now() + PLACE_CACHE_TTL_MS });
+      }
+      return resolution;
+    };
+
+    const shared = await readSharedCache<AddressResolution>(`address:${cacheKey}`);
+    if (shared) return remember(shared);
+
+    const key = getKey();
+    const geocoded = parseForwardGeocodeLocation(await send(buildForwardGeocodeRequest(address, key)));
+    let resolution: AddressResolution;
+    if (geocoded && !isTooGeneral(geocoded.types)) {
+      resolution = { location: geocoded.location, via: 'geocode', approximate: geocoded.partialMatch, tooGeneral: false };
+    } else {
+      // Building and business names ("Dubai Mall") are Places' strength.
+      const [place] = parseTextSearchResponse(await send(buildTextSearchRequest(address, key, 'en', 1)));
+      if (place?.resolved) {
+        resolution = { location: place.resolved, via: 'text_search', approximate: false, tooGeneral: false };
+      } else if (geocoded) {
+        resolution = { location: geocoded.location, via: 'geocode', approximate: true, tooGeneral: true };
+      } else {
+        throw new MapsProviderError('No results found for that address');
+      }
+    }
+
+    await writeSharedCache(`address:${cacheKey}`, resolution, ADDRESS_CACHE_TTL_MS);
+    return remember(resolution);
+  },
+
   reverseGeocode: async (coordinates: Coordinates, language: MapsLanguage = 'en'): Promise<ResolvedLocation> => {
     const json = await send(buildReverseGeocodeRequest(coordinates, getKey(), language));
     return parseReverseGeocodeResponse(json, coordinates, language);
@@ -140,9 +198,19 @@ export const googleMapsProvider: MapsProvider = {
     const cached = routeCache.get(key);
     if (cached && cached.expires > Date.now()) return cached.route;
 
+    const remember = (route: RouteResult) => {
+      if (routeCache.size >= ROUTE_CACHE_MAX_ENTRIES) routeCache.delete(routeCache.keys().next().value!);
+      routeCache.set(key, { route, expires: Date.now() + ROUTE_CACHE_TTL_MS });
+      return route;
+    };
+
+    // Another instance may already have priced this exact trip (the
+    // wizard's quote and the booking often land on different instances).
+    const shared = await readSharedCache<RouteResult>(`route:${key}`);
+    if (shared) return remember(shared);
+
     const route = parseRouteResponse(await send(buildRouteRequest(origin, destination, getKey())));
-    if (routeCache.size >= ROUTE_CACHE_MAX_ENTRIES) routeCache.delete(routeCache.keys().next().value!);
-    routeCache.set(key, { route, expires: Date.now() + ROUTE_CACHE_TTL_MS });
-    return route;
+    await writeSharedCache(`route:${key}`, route, ROUTE_CACHE_TTL_MS);
+    return remember(route);
   },
 };

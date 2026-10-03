@@ -27,6 +27,7 @@ import type {
   Shipment,
 } from "@/lib/types";
 import type { ShipmentRow } from "@/services/shipments/shipment-mapper";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Emirate } from "@/lib/service-areas/config";
 
 // Cash on delivery (the goods amount and/or a cash delivery fee) is
@@ -71,11 +72,13 @@ export type BookingCustomer = {
 
 // Account type is read from the database, never from the request. The
 // caller's own session reads it: a customer can read their own profile,
-// staff can read any customer's.
+// staff can read any customer's. (The merchant bulk background worker,
+// which has no session, passes the service-role client.)
 export const getBookingCustomer = async (
   customerId: string,
+  client?: SupabaseClient,
 ): Promise<BookingCustomer> => {
-  const supabase = await createClient();
+  const supabase = client ?? (await createClient());
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, account_type")
@@ -195,21 +198,21 @@ export const quoteShipment = async (
   return { input, rule, breakdown, emirates };
 };
 
-// Inserts a priced shipment with the caller's own session, so the
-// shipments_insert RLS policy independently re-checks every component of
-// the price against the active rule, the distance limit and the customer's
-// account type (migration 0022) — a backstop against a request that skips
-// this service and hits the Supabase REST API directly.
-export const insertQuotedShipment = async (
+export type ShipmentInsertOptions = {
+  businessAccountId?: string | null;
+  batchId?: string | null;
+  // The merchant's requested delivery day (bulk upload), YYYY-MM-DD.
+  deliveryDate?: string | null;
+};
+
+// The shipments row for a priced shipment — shared by single bookings
+// (insertQuotedShipment) and merchant bulk bookings, which insert many of
+// these in one statement (services/bulk/merchant-bulk.ts).
+export const shipmentInsertValues = (
   customer: BookingCustomer,
   { input, rule, breakdown, emirates }: ShipmentQuote,
-  {
-    businessAccountId = null,
-    batchId = null,
-  }: { businessAccountId?: string | null; batchId?: string | null } = {},
-): Promise<Shipment> => {
-  const supabase = await createClient();
-
+  { businessAccountId = null, batchId = null, deliveryDate = null }: ShipmentInsertOptions = {},
+) => {
   // Cash-paid delivery fees don't need upfront payment, so they go straight
   // to 'confirmed'. Card bookings sit at 'pending_payment' — there's no live
   // payment provider wired up yet (lib/payments is a documented stub), so
@@ -218,51 +221,70 @@ export const insertQuotedShipment = async (
     input.paymentMethod === "cod" ? "confirmed" : "pending_payment";
   const postpaid = input.recipientPaymentType === "postpaid";
 
+  return {
+    customer_id: customer.id,
+    business_account_id:
+      businessAccountId ?? customer.merchantBusinessAccountId,
+    batch_id: batchId,
+    status,
+    pickup_address: input.pickup.address,
+    pickup_lat: input.pickup.lat,
+    pickup_lng: input.pickup.lng,
+    pickup_contact_name: input.pickup.contactName,
+    pickup_contact_phone: input.pickup.contactPhone,
+    dropoff_address: input.dropoff.address,
+    dropoff_lat: input.dropoff.lat,
+    dropoff_lng: input.dropoff.lng,
+    dropoff_contact_name: input.dropoff.contactName,
+    dropoff_contact_phone: input.dropoff.contactPhone,
+    ...locationDetailColumns("pickup", input.pickup, emirates.pickup),
+    ...locationDetailColumns("dropoff", input.dropoff, emirates.dropoff),
+    distance_km: breakdown.distanceKm,
+    duration_minutes: breakdown.durationMinutes,
+    pricing_rule_id: rule.id,
+    delivery_type: input.deliveryType,
+    base_charge: breakdown.basePrice,
+    distance_charge: breakdown.distanceCharge,
+    weight_charge: breakdown.weightCharge,
+    cod_charge: breakdown.codCharge,
+    price: breakdown.totalPrice,
+    currency: breakdown.currency,
+    payment_method: input.paymentMethod,
+    recipient_payment_type: input.recipientPaymentType,
+    cod_amount: postpaid ? (input.codAmount ?? 0) : 0,
+    product_value: input.productValue ?? null,
+    package_type: input.packageType,
+    package_description: input.packageDescription,
+    package_quantity: input.packageQuantity,
+    package_weight_kg: breakdown.weightKg,
+    package_length_cm: input.packageLengthCm ?? null,
+    package_width_cm: input.packageWidthCm ?? null,
+    package_height_cm: input.packageHeightCm ?? null,
+    is_fragile: input.isFragile,
+    package_image_url: input.packageImagePath ?? null,
+    client_request_id: input.clientRequestId ?? null,
+    // Only set when there is one, so single bookings send the same
+    // columns as before.
+    ...(deliveryDate ? { delivery_date: deliveryDate } : {}),
+  };
+};
+
+// Inserts a priced shipment with the caller's own session, so the
+// shipments_insert RLS policy independently re-checks every component of
+// the price against the active rule, the distance limit and the customer's
+// account type (migration 0022) — a backstop against a request that skips
+// this service and hits the Supabase REST API directly.
+export const insertQuotedShipment = async (
+  customer: BookingCustomer,
+  quote: ShipmentQuote,
+  options: ShipmentInsertOptions = {},
+): Promise<Shipment> => {
+  const supabase = await createClient();
+  const { input } = quote;
+
   const { data, error } = await supabase
     .from("shipments")
-    .insert({
-      customer_id: customer.id,
-      business_account_id:
-        businessAccountId ?? customer.merchantBusinessAccountId,
-      batch_id: batchId,
-      status,
-      pickup_address: input.pickup.address,
-      pickup_lat: input.pickup.lat,
-      pickup_lng: input.pickup.lng,
-      pickup_contact_name: input.pickup.contactName,
-      pickup_contact_phone: input.pickup.contactPhone,
-      dropoff_address: input.dropoff.address,
-      dropoff_lat: input.dropoff.lat,
-      dropoff_lng: input.dropoff.lng,
-      dropoff_contact_name: input.dropoff.contactName,
-      dropoff_contact_phone: input.dropoff.contactPhone,
-      ...locationDetailColumns("pickup", input.pickup, emirates.pickup),
-      ...locationDetailColumns("dropoff", input.dropoff, emirates.dropoff),
-      distance_km: breakdown.distanceKm,
-      duration_minutes: breakdown.durationMinutes,
-      pricing_rule_id: rule.id,
-      delivery_type: input.deliveryType,
-      base_charge: breakdown.basePrice,
-      distance_charge: breakdown.distanceCharge,
-      weight_charge: breakdown.weightCharge,
-      cod_charge: breakdown.codCharge,
-      price: breakdown.totalPrice,
-      currency: breakdown.currency,
-      payment_method: input.paymentMethod,
-      recipient_payment_type: input.recipientPaymentType,
-      cod_amount: postpaid ? (input.codAmount ?? 0) : 0,
-      product_value: input.productValue ?? null,
-      package_type: input.packageType,
-      package_description: input.packageDescription,
-      package_quantity: input.packageQuantity,
-      package_weight_kg: breakdown.weightKg,
-      package_length_cm: input.packageLengthCm ?? null,
-      package_width_cm: input.packageWidthCm ?? null,
-      package_height_cm: input.packageHeightCm ?? null,
-      is_fragile: input.isFragile,
-      package_image_url: input.packageImagePath ?? null,
-      client_request_id: input.clientRequestId ?? null,
-    })
+    .insert(shipmentInsertValues(customer, quote, options))
     .select(SHIPMENT_SELECT_COLUMNS)
     .single();
 

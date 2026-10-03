@@ -17,6 +17,9 @@ export const isPublicRoute = (pathname: string) =>
   pathname.startsWith('/auth/') ||
   // Self-hosted static assets, e.g. the hero animation's WebAssembly renderer.
   pathname.startsWith('/vendor/') ||
+  // Server-to-server jobs (the bulk shipment worker, cron): no session;
+  // each handler checks its own secret and answers 404 without it.
+  pathname.startsWith('/api/internal/') ||
   pathname.startsWith('/tracking/');
 
 export type RouteProfile = { role: Role; active: boolean } | null;
