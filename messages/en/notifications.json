@@ -95,6 +95,22 @@
     "merchantRejected": {
       "title": "Your Merchant application requires attention",
       "body": "You can edit and resubmit your application from the Merchant page."
+    },
+    "cancelledByDriver": {
+      "title": "Shipment cancelled",
+      "body": "{code} was cancelled by the driver."
+    },
+    "cancelledByDriverStaff": {
+      "title": "Driver cancelled a shipment",
+      "body": "{code} was cancelled by the driver before pickup."
+    },
+    "returned": {
+      "title": "Shipment returned",
+      "body": "{code} is being returned to the sender."
+    },
+    "returnedStaff": {
+      "title": "Driver returned a shipment",
+      "body": "{code} was not delivered and is being returned to the sender."
     }
   }
 }

@@ -64,6 +64,12 @@
     "distanceLimit": "مسافة هذه التوصيلة {distance} كم، وهي تتجاوز الحد الأقصى للتوصيل لدى ParcelLink البالغ {limit} كم.",
     "invalidTransition": "لا يمكن نقل الشحنة من «{from}» إلى «{to}».",
     "driverStatus": "لا يمكن للسائقين تعيين الحالة «{status}».",
-    "applicationLocked": "لا يمكن تعديل هذا الطلب وهو «{status}»."
+    "applicationLocked": "لا يمكن تعديل هذا الطلب وهو «{status}».",
+    "photoRequired": "صورة التسليم مطلوبة.",
+    "codConfirmRequired": "أكّد أنك حصّلت مبلغ الدفع عند الاستلام.",
+    "cancelBeforePickup": "لا يمكن إلغاء إلا شحنة لم يتم استلامها بعد. أعِدها إلى المُرسل بدلًا من ذلك.",
+    "returnAfterPickup": "لا يمكن إرجاع إلا شحنة تم استلامها.",
+    "outcomeReasonRequired": "أدخل السبب.",
+    "outcomeReasonTooLong": "يجب ألا يتجاوز السبب 500 حرف."
   }
 }

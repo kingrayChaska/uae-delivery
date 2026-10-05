@@ -10,7 +10,12 @@ export type CodOverviewRecord = {
   shipmentId: string;
   trackingNumber: string;
   driverName: string;
+  // amount = productAmount + deliveryFeeAmount: all the cash the driver
+  // accounts for. Only productAmount comes from the recipient; the fee is
+  // the sender's cash delivery fee (migration 0022).
   amount: number;
+  productAmount: number;
+  deliveryFeeAmount: number;
   currency: string;
   status: string;
   collectedAt: string | null;
@@ -18,12 +23,14 @@ export type CodOverviewRecord = {
 };
 
 const COD_SELECT =
-  'id, shipment_id, amount, status, collected_at, reconciled_at, shipments(tracking_number, currency), profiles!cod_transactions_driver_id_fkey(full_name)';
+  'id, shipment_id, amount, product_amount, delivery_fee_amount, status, collected_at, reconciled_at, shipments(tracking_number, currency), profiles!cod_transactions_driver_id_fkey(full_name)';
 
 type CodRow = {
   id: string;
   shipment_id: string;
   amount: number;
+  product_amount: number | string;
+  delivery_fee_amount: number | string;
   status: string;
   collected_at: string | null;
   reconciled_at: string | null;
@@ -40,7 +47,9 @@ const toRecord = (row: CodRow): CodOverviewRecord => {
     shipmentId: row.shipment_id,
     trackingNumber: shipment?.tracking_number ?? '—',
     driverName: driver?.full_name ?? '—',
-    amount: row.amount,
+    amount: Number(row.amount),
+    productAmount: Number(row.product_amount),
+    deliveryFeeAmount: Number(row.delivery_fee_amount),
     currency: shipment?.currency ?? 'AED',
     status: row.status,
     collectedAt: row.collected_at,

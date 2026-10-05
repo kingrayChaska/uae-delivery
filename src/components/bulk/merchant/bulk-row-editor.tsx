@@ -20,8 +20,9 @@ type BulkRowEditorProps = {
   onSave: (rowId: string, input: MerchantRowInput) => Promise<string | null>;
 };
 
-// Fix one row in place: the same columns as the CSV, each with the
-// problems found in it. Saving re-checks just this row on the server
+// Fix one row in place: the same 8 columns as the CSV, each with the
+// problems found in it (the batch's pickup address, Next Day and COD
+// aren't per row). Saving re-checks just this row on the server
 // (address, coverage, route and price) — no re-upload.
 const BulkRowEditor = ({ row, onSave }: BulkRowEditorProps) => {
   const t = useTranslations('bulk');
@@ -82,7 +83,7 @@ const BulkRowEditor = ({ row, onSave }: BulkRowEditorProps) => {
           {MERCHANT_BULK_COLUMNS.map((column) => {
             const issues = issuesFor(column);
             const id = `bulk-${row.id}-${column}`;
-            const wide = column.endsWith('_address') || column === 'notes' || column === 'package_description';
+            const wide = column === 'delivery_address' || column === 'package_description';
             return (
               <div key={column} className={`flex flex-col gap-1.5 ${wide ? 'sm:col-span-2' : ''}`}>
                 <Label htmlFor={id}>
@@ -94,10 +95,10 @@ const BulkRowEditor = ({ row, onSave }: BulkRowEditorProps) => {
                 </Label>
                 <Input
                   id={id}
-                  value={values[column]}
+                  value={values[column] ?? ''}
                   maxLength={MAX_CELL_LENGTH}
-                  type={column === 'delivery_date' ? 'date' : 'text'}
-                  inputMode={['quantity', 'weight_kg', 'package_value', 'cod_amount'].includes(column) ? 'decimal' : undefined}
+                  type={column === 'date' ? 'date' : 'text'}
+                  inputMode={column === 'quantity' ? 'numeric' : column === 'weight_kg' || column === 'cod_amount' ? 'decimal' : undefined}
                   aria-invalid={issues.some((issue) => issue.severity === 'error') || undefined}
                   onChange={(event) => setValues((current) => ({ ...current, [column]: event.target.value }))}
                 />

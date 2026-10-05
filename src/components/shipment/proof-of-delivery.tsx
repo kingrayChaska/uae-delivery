@@ -1,6 +1,6 @@
 'use client';
 
-import { BadgeCheck, Camera, Clock, FileCheck2, KeyRound, MapPin, PenLine, QrCode, UserRound } from 'lucide-react';
+import { BadgeCheck, Banknote, Camera,Clock, FileCheck2, KeyRound, MapPin, PenLine, QrCode, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
@@ -68,13 +68,16 @@ const ProofOfDeliveryButton = ({ proof, status, trackingCode }: ProofOfDeliveryB
                   </dd>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <UserRound className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                <div>
-                  <dt className="text-muted-foreground">{t('receivedBy')}</dt>
-                  <dd className="font-medium">{proof.recipientName || '—'}</dd>
+              {/* Drivers no longer enter a name (migration 0028); older proofs may have one. */}
+              {proof.recipientName ? (
+                <div className="flex gap-3">
+                  <UserRound className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                  <div>
+                    <dt className="text-muted-foreground">{t('receivedBy')}</dt>
+                    <dd className="font-medium">{proof.recipientName}</dd>
+                  </div>
                 </div>
-              </div>
+              ) : null}
               {proof.location ? (
                 <div className="flex gap-3 sm:col-span-2">
                   <MapPin className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
@@ -110,6 +113,11 @@ const ProofOfDeliveryButton = ({ proof, status, trackingCode }: ProofOfDeliveryB
                 {proof.signatureUrl ? (
                   <li className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-success">
                     <PenLine className="size-3.5" aria-hidden /> {t('signature')}
+                  </li>
+                ) : null}
+                {proof.codCollected ? (
+                  <li className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-success">
+                    <Banknote className="size-3.5" aria-hidden /> {t('codCollected')}
                   </li>
                 ) : null}
               </ul>

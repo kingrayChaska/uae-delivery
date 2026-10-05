@@ -4,11 +4,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import Badge from '@/components/ui/badge';
 import Pagination from '@/components/dashboard/pagination';
 import MarkCodCollectedButton from '@/components/driver/mark-cod-collected-button';
+import CodAmountLines from '@/components/shipment/cod-amount-lines';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { parsePage } from '@/lib/pagination';
 import { listDriverCodTransactions } from '@/services/shipments/list-driver-cod';
 import { COD_STATUSES } from '@/lib/types';
-import { getFormat } from '@/i18n/server';
 
 import type { Metadata } from 'next';
 import type { PageSearchParams } from '@/lib/pagination';
@@ -26,11 +26,10 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'success'> = {
 
 const DriverCodPage = async ({ searchParams }: { searchParams: PageSearchParams }) => {
   const profile = await requireRoleOrRedirect('driver');
-  const [records, t, tStatus, format] = await Promise.all([
+  const [records, t, tStatus] = await Promise.all([
     listDriverCodTransactions(profile.id, parsePage((await searchParams).page)),
     getTranslations('driver.cod'),
     getTranslations('shipments.codStatus'),
-    getFormat(),
   ]);
 
   return (
@@ -50,7 +49,12 @@ const DriverCodPage = async ({ searchParams }: { searchParams: PageSearchParams 
                   <p dir="ltr" className="font-brand-mono text-sm text-muted-foreground rtl:text-right">
                     {record.trackingNumber}
                   </p>
-                  <p className="font-brand-mono text-lg">{format.money(record.amount, record.currency)}</p>
+                  <CodAmountLines
+                    productAmount={record.productAmount}
+                    deliveryFeeAmount={record.deliveryFeeAmount}
+                    total={record.amount}
+                    currency={record.currency}
+                  />
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant={STATUS_VARIANT[record.status] ?? 'default'}>

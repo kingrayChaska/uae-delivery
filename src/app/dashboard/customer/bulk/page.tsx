@@ -8,6 +8,7 @@ import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { parsePage } from '@/lib/pagination';
 import { todayInUae } from '@/lib/bulk/schemas';
 import { listBatches } from '@/services/bulk/list-batches';
+import { getDefaultPickupAddress } from '@/services/bulk/merchant-bulk';
 
 import type { Metadata } from 'next';
 import type { PageSearchParams } from '@/lib/pagination';
@@ -28,7 +29,10 @@ const MerchantBulkPage = async ({ searchParams }: { searchParams: PageSearchPara
 
   const [{ page }, t] = await Promise.all([searchParams, getTranslations('bulk.page')]);
   // RLS limits this to the merchant's own (and their business's) batches.
-  const batches = await listBatches(parsePage(page), ['draft', 'processing', 'submitted', 'partially_failed', 'failed']);
+  const [batches, defaultPickupAddress] = await Promise.all([
+    listBatches(parsePage(page), ['draft', 'processing', 'submitted', 'partially_failed', 'failed']),
+    getDefaultPickupAddress(profile.id),
+  ]);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:py-8">
@@ -37,7 +41,7 @@ const MerchantBulkPage = async ({ searchParams }: { searchParams: PageSearchPara
         <p className="max-w-3xl text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      <BulkUploadCard today={todayInUae()} />
+      <BulkUploadCard today={todayInUae()} defaultPickupAddress={defaultPickupAddress} />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{t('history')}</h2>

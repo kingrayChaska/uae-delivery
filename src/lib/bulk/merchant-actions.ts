@@ -42,14 +42,17 @@ const asMerchant = async (): Promise<MerchantContext> => getMerchantContext(awai
 
 export type CreateBulkDraftResult = { success: true; batchId: string; rows: number } | Failure;
 
-export const createBulkDraftAction = async (fileName: string, csvText: string): Promise<CreateBulkDraftResult> => {
+// `pickupAddress` is the batch's one pickup address (every row uses it);
+// the server resolves and coverage-checks it before storing anything.
+export const createBulkDraftAction = async (fileName: string, csvText: string, pickupAddress: string): Promise<CreateBulkDraftResult> => {
   if (typeof fileName !== 'string' || typeof csvText !== 'string') return { success: false, error: 'bulk.errors.notCsv' };
+  if (typeof pickupAddress !== 'string' || pickupAddress.length > MAX_CELL_LENGTH) return { success: false, error: 'bulk.errors.pickupRequired' };
   if (!fileName.toLowerCase().endsWith('.csv')) return { success: false, error: 'bulk.errors.notCsv' };
   if (csvText.length > MERCHANT_BULK_MAX_FILE_BYTES) return { success: false, error: 'bulk.errors.tooLarge' };
   try {
     const merchant = await asMerchant();
     if (!(await checkRateLimit('bulkUploadPerUser', merchant.id))) return { success: false, error: RATE_LIMIT_MESSAGE };
-    const draft = await createMerchantDraft(merchant, { fileName, csvText });
+    const draft = await createMerchantDraft(merchant, { fileName, csvText, pickupAddress });
     // Checking carries on in the background even if the merchant leaves;
     // their review screen joins in while it's open.
     after(() => startBulkWorker(draft.id));

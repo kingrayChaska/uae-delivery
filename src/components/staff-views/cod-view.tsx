@@ -4,6 +4,7 @@ import Badge from '@/components/ui/badge';
 import StatCard from '@/components/dashboard/stat-card';
 import { Card, CardContent } from '@/components/ui/card';
 import CodActionsCell from '@/components/operator/cod-actions-cell';
+import CodAmountLines from '@/components/shipment/cod-amount-lines';
 import ExportLink from '@/components/manager/export-link';
 import { getCurrentProfile } from '@/lib/auth/session';
 import Pagination from '@/components/dashboard/pagination';
@@ -68,7 +69,12 @@ const CodView = async ({ basePath, page }: StaffListViewProps) => {
                     {record.trackingNumber}
                   </p>
                   <p>{t('driver', { name: record.driverName })}</p>
-                  <p className="font-brand-mono">{format.money(record.amount, record.currency)}</p>
+                  <CodAmountLines
+                    productAmount={record.productAmount}
+                    deliveryFeeAmount={record.deliveryFeeAmount}
+                    total={record.amount}
+                    currency={record.currency}
+                  />
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant={STATUS_VARIANT[record.status] ?? 'default'}>{statusLabel(record.status)}</Badge>

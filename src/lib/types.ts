@@ -168,6 +168,10 @@ export type Shipment = {
   packageWidthCm: number | null;
   packageHeightCm: number | null;
   isFragile: boolean;
+  // Why it was cancelled, and why it wasn't delivered (a failed attempt or
+  // a return to the sender).
+  cancelledReason: string | null;
+  deliveryFailedReason: string | null;
   createdAt: string;
   updatedAt: string;
 };

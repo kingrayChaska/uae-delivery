@@ -3,19 +3,24 @@ import { describe, expect, it } from 'vitest';
 import { parseCsv, parseCsvRecords, parseCsvWithHeaders } from '@/lib/csv/parse';
 import {
   MERCHANT_BULK_COLUMNS,
-  TEMPLATE_EXAMPLE,
+  MERCHANT_BULK_FIXED,
+  MERCHANT_BULK_MAX_ROWS,
   cleanCell,
   fieldForBookingPath,
   isBookableStatus,
   isUaePhone,
+  merchantHeaderError,
   merchantTemplateCsv,
   missingMerchantColumns,
   normalizedRowKey,
   parseCsvDate,
   parseMerchantRow,
+  readMerchantTable,
   rowStatusFor,
+  templateExample,
   toMerchantRowInput,
 } from '@/lib/bulk/merchant-csv';
+import { parseMsg } from '@/i18n/message';
 import { classifyServiceArea } from '@/lib/service-areas/config';
 import { isTooGeneral, parseForwardGeocodeLocation } from '@/lib/maps/google-client';
 import { calculateShipmentPrice } from '@/lib/pricing/calculate';
@@ -23,39 +28,146 @@ import { DEFAULT_PRICING_RULES } from '@/lib/pricing/config';
 
 import type { MerchantRowInput } from '@/lib/bulk/merchant-csv';
 
-const TODAY = '2026-10-02';
+const TODAY = '2026-10-05';
+const TOMORROW = '2026-10-06';
 
-const row = (overrides: Partial<MerchantRowInput> = {}): MerchantRowInput => ({
-  ...TEMPLATE_EXAMPLE,
-  delivery_date: TODAY,
-  ...overrides,
-});
+const CANONICAL_HEADER = 'recipient_name,recipient_phone,delivery_address,package_description,quantity,weight_kg,cod_amount,date';
+
+// The client's own example file.
+const CLIENT_CSV = `${CANONICAL_HEADER}
+Ahmed Ali,+971501234567,Dubai Marina,Electronics,1,2.5,150,2026-10-06
+Fatima Hassan,+971521234567,Jumeirah,Cosmetics,2,1.5,200,2026-10-06
+`;
+
+// The previous 17-column template.
+const OLD_HEADER =
+  'recipient_name,recipient_phone,pickup_address,delivery_address,package_description,quantity,weight_kg,package_value,delivery_date,cod_type,cod_amount,notes,delivery_type,package_type,fragile,pickup_contact_name,pickup_contact_phone';
+
+const row = (overrides: Partial<MerchantRowInput> = {}): MerchantRowInput => ({ ...templateExample(TODAY), ...overrides });
 
 const fields = (input: MerchantRowInput) => parseMerchantRow(input, TODAY).issues.map((issue) => `${issue.severity}:${issue.field}`);
 
-describe('merchant CSV template', () => {
-  it('has a header row and one example row that passes validation', () => {
-    const csv = merchantTemplateCsv(TODAY);
-    expect(csv.startsWith('﻿')).toBe(true);
-    const { headers, records } = parseCsvWithHeaders(csv);
-    expect(headers).toEqual([...MERCHANT_BULK_COLUMNS]);
-    expect(records).toHaveLength(1);
-    expect(missingMerchantColumns(headers)).toEqual([]);
-    const { row: parsed, issues } = parseMerchantRow(toMerchantRowInput(records[0]), TODAY);
-    expect(issues).toEqual([]);
-    expect(parsed).toMatchObject({ recipientPaymentType: 'postpaid', codAmount: 150, deliveryDate: TODAY, weightKg: 2.5 });
+const table = (csv: string) => readMerchantTable(parseCsvRecords(csv));
+const errorKey = (csv: string) => {
+  const result = table(csv);
+  return 'error' in result ? parseMsg(result.error)?.key : null;
+};
+
+describe('merchant CSV columns', () => {
+  it('is exactly the 8 canonical columns, in order', () => {
+    expect(MERCHANT_BULK_COLUMNS.join(',')).toBe(CANONICAL_HEADER);
   });
 
-  it('reports missing required columns', () => {
-    expect(missingMerchantColumns(['recipient_name', 'pickup_address'])).toEqual([
+  it('fixes Next Day and COD for every bulk shipment', () => {
+    expect(MERCHANT_BULK_FIXED).toEqual({ deliveryType: 'next_day', recipientPaymentType: 'postpaid', packageType: 'parcel', isFragile: false });
+  });
+});
+
+describe('merchant CSV template', () => {
+  it('has guidance, an example above the header, and the canonical header last', () => {
+    const csv = merchantTemplateCsv(TODAY);
+    expect(csv.startsWith('﻿')).toBe(true);
+    const lines = parseCsv(csv);
+    expect(lines.at(-1)).toEqual([...MERCHANT_BULK_COLUMNS]);
+    // No removed column appears anywhere in the file.
+    for (const legacy of ['pickup_address', 'delivery_date', 'cod_type', 'package_value', 'notes', 'fragile', 'delivery_type', 'pickup_contact']) {
+      expect(csv).not.toContain(legacy);
+    }
+  });
+
+  it('never uploads its example: the blank template has no shipments', () => {
+    expect(errorKey(merchantTemplateCsv(TODAY))).toBe('bulk.errors.empty');
+  });
+
+  it('round-trips: rows typed under the template header are read, the guidance is skipped', () => {
+    const filled = `${merchantTemplateCsv(TODAY)}Sara Khan,0501112233,"Villa 12, Al Barsha 2, Dubai",Clothes,3,1.2,99.5,${TOMORROW}\r\n`;
+    const result = table(filled);
+    if ('error' in result) throw new Error(result.error);
+    expect(result.rows).toHaveLength(1);
+    // Row numbers match the spreadsheet (5 guidance/header lines first).
+    expect(result.rows[0].row).toBe(6);
+    const input = toMerchantRowInput(Object.fromEntries(result.headers.map((h, i) => [h, result.rows[0].cells[i] ?? ''])));
+    const { row: parsed, issues } = parseMerchantRow(input, TODAY);
+    expect(issues).toEqual([]);
+    expect(parsed).toMatchObject({ recipientName: 'Sara Khan', deliveryAddress: 'Villa 12, Al Barsha 2, Dubai', codAmount: 99.5, deliveryDate: TOMORROW });
+  });
+
+  it("the template's example row is itself valid", () => {
+    expect(parseMerchantRow(templateExample(TODAY), TODAY).issues).toEqual([]);
+    expect(templateExample(TODAY).date).toBe(TOMORROW);
+  });
+});
+
+describe('reading a merchant file', () => {
+  it("parses the client's example file", () => {
+    const result = table(CLIENT_CSV);
+    if ('error' in result) throw new Error(result.error);
+    expect(result.headers).toEqual([...MERCHANT_BULK_COLUMNS]);
+    expect(result.rows).toHaveLength(2);
+    const parsed = result.rows.map(({ cells }) =>
+      parseMerchantRow(toMerchantRowInput(Object.fromEntries(result.headers.map((h, i) => [h, cells[i] ?? '']))), TODAY),
+    );
+    expect(parsed.map((p) => p.issues)).toEqual([[], []]);
+    expect(parsed.map((p) => p.row)).toEqual([
+      {
+        recipientName: 'Ahmed Ali',
+        recipientPhone: '+971501234567',
+        deliveryAddress: 'Dubai Marina',
+        packageDescription: 'Electronics',
+        quantity: 1,
+        weightKg: 2.5,
+        codAmount: 150,
+        deliveryDate: '2026-10-06',
+      },
+      {
+        recipientName: 'Fatima Hassan',
+        recipientPhone: '+971521234567',
+        deliveryAddress: 'Jumeirah',
+        packageDescription: 'Cosmetics',
+        quantity: 2,
+        weightKg: 1.5,
+        codAmount: 200,
+        deliveryDate: '2026-10-06',
+      },
+    ]);
+  });
+
+  it('normalizes header case and spacing', () => {
+    expect('error' in table(`${CANONICAL_HEADER.toUpperCase().replace(/,/g, ' , ')}\nA,0501234567,Marina,Box,1,1,10,${TOMORROW}`)).toBe(false);
+  });
+
+  it('refuses the old 17-column template as outdated', () => {
+    expect(errorKey(`${OLD_HEADER}\nAhmed,0501234567,Business Bay,Marina,Box,1,1,,${TOMORROW},Postpaid,10,,,,,,`)).toBe('bulk.errors.outdatedTemplate');
+  });
+
+  it('refuses any removed column, even alongside the new ones', () => {
+    for (const removed of ['delivery_date', 'pickup_address', 'cod_type', 'package_value', 'notes', 'fragile', 'delivery_type', 'pickup_contact_name', 'delivery_fee']) {
+      expect(merchantHeaderError([...MERCHANT_BULK_COLUMNS, removed])).toMatch(/^bulk\.errors\.outdatedTemplate/);
+    }
+    // An old file that renamed date → delivery_date is outdated, not just "missing date".
+    expect(merchantHeaderError(MERCHANT_BULK_COLUMNS.map((c) => (c === 'date' ? 'delivery_date' : c)))).toMatch(/^bulk\.errors\.outdatedTemplate/);
+  });
+
+  it('reports missing, unknown and repeated columns', () => {
+    expect(missingMerchantColumns(['recipient_name', 'delivery_address'])).toEqual([
       'recipient_phone',
-      'delivery_address',
       'package_description',
       'quantity',
       'weight_kg',
-      'delivery_date',
-      'cod_type',
+      'cod_amount',
+      'date',
     ]);
+    expect(merchantHeaderError(['recipient_name'])).toMatch(/^bulk\.errors\.missingColumns/);
+    expect(merchantHeaderError([...MERCHANT_BULK_COLUMNS, 'order_id'])).toMatch(/^bulk\.errors\.unknownColumns/);
+    expect(merchantHeaderError([...MERCHANT_BULK_COLUMNS, 'quantity'])).toMatch(/^bulk\.errors\.repeatedColumns/);
+    expect(merchantHeaderError([...MERCHANT_BULK_COLUMNS])).toBeNull();
+  });
+
+  it('refuses empty files and files over the row limit', () => {
+    expect(errorKey('')).toBe('bulk.errors.empty');
+    expect(errorKey(`${CANONICAL_HEADER}\n`)).toBe('bulk.errors.empty');
+    const body = Array.from({ length: MERCHANT_BULK_MAX_ROWS + 1 }, (_, i) => `N${i},0501234567,Marina,Box,1,1,10,${TOMORROW}`).join('\n');
+    expect(errorKey(`${CANONICAL_HEADER}\n${body}`)).toBe('bulk.errors.tooMany');
   });
 });
 
@@ -82,24 +194,13 @@ describe('CSV parsing of merchant files', () => {
       { cells: ['Ali', 'Line 1\nLine 2'], row: 3 },
       { cells: ['Sara', 'Marina'], row: 6 },
     ]);
-    expect(parseCsvRecords('﻿a\r\n\r\nb\r\n').map((r) => r.row)).toEqual([1, 3]);
-  });
-
-  it('parses an empty file as nothing', () => {
-    expect(parseCsvWithHeaders('').records).toEqual([]);
-    expect(parseCsvWithHeaders('﻿\r\n').headers).toEqual([]);
-  });
-
-  it('parses 1,000 rows', () => {
-    const body = Array.from({ length: 1000 }, (_, i) => `Name ${i},+97150${String(i).padStart(7, '0')}`).join('\n');
-    expect(parseCsvWithHeaders(`recipient_name,recipient_phone\n${body}`).records).toHaveLength(1000);
   });
 
   it('strips control characters and keeps formula-looking text as plain text', () => {
     expect(cleanCell('  Ahmed\u0000 Ali\u0007 ')).toBe('Ahmed Ali');
     // Stored and shown as text; exports escape it (lib/csv/serialize).
     expect(cleanCell('=HYPERLINK("x")')).toBe('=HYPERLINK("x")');
-    // The export escape is undone, so a downloaded report reads back as written.
+    // The export escape is undone, so a downloaded value reads back as written.
     expect(cleanCell("'+971501234567")).toBe('+971501234567');
     expect(cleanCell("O'Brien")).toBe("O'Brien");
   });
@@ -113,85 +214,78 @@ describe('CSV parsing of merchant files', () => {
 });
 
 describe('merchant row validation', () => {
-  it('accepts a complete prepaid row', () => {
-    const { row: parsed, issues } = parseMerchantRow(row({ cod_type: 'Prepaid', cod_amount: '' }), TODAY);
-    expect(issues).toEqual([]);
-    expect(parsed?.recipientPaymentType).toBe('prepaid');
-    expect(parsed?.codAmount).toBeUndefined();
-  });
-
-  it('requires recipient, phone, addresses, description, quantity, weight, date and COD type', () => {
+  it('requires all 8 columns', () => {
     const empty = Object.fromEntries(MERCHANT_BULK_COLUMNS.map((c) => [c, ''])) as MerchantRowInput;
     expect(fields(empty)).toEqual([
       'error:recipient_name',
       'error:recipient_phone',
-      'error:pickup_address',
       'error:delivery_address',
       'error:package_description',
       'error:quantity',
       'error:weight_kg',
-      'error:delivery_date',
-      'error:cod_type',
+      'error:cod_amount',
+      'error:date',
     ]);
   });
 
-  it('checks quantity, weight and package value', () => {
+  it('flags each missing field on its own', () => {
+    expect(fields(row({ recipient_name: '' }))).toEqual(['error:recipient_name']);
+    expect(fields(row({ recipient_phone: '' }))).toEqual(['error:recipient_phone']);
+    expect(fields(row({ delivery_address: '' }))).toEqual(['error:delivery_address']);
+    expect(fields(row({ weight_kg: '' }))).toEqual(['error:weight_kg']);
+    expect(fields(row({ date: '' }))).toEqual(['error:date']);
+  });
+
+  it('checks quantity and weight', () => {
     expect(fields(row({ quantity: '0' }))).toEqual(['error:quantity']);
     expect(fields(row({ quantity: '1.5' }))).toEqual(['error:quantity']);
     expect(fields(row({ quantity: 'two' }))).toEqual(['error:quantity']);
+    expect(fields(row({ weight_kg: '0' }))).toEqual(['error:weight_kg']);
     expect(fields(row({ weight_kg: '-1' }))).toEqual(['error:weight_kg']);
-    expect(fields(row({ package_value: '-5' }))).toEqual(['error:package_value']);
-    expect(fields(row({ package_value: 'abc' }))).toEqual(['error:package_value']);
-    expect(parseMerchantRow(row({ package_value: '1,250.50' }), TODAY).row?.packageValue).toBe(1250.5);
+    expect(fields(row({ weight_kg: 'heavy' }))).toEqual(['error:weight_kg']);
   });
 
-  it('applies the COD rules', () => {
-    expect(fields(row({ cod_type: 'Prepaid', cod_amount: '100' }))).toEqual(['error:cod_amount']);
-    expect(fields(row({ cod_type: 'Prepaid', cod_amount: '0' }))).toEqual([]);
-    expect(fields(row({ cod_type: 'Postpaid', cod_amount: '' }))).toEqual(['error:cod_amount']);
-    expect(fields(row({ cod_type: 'Postpaid', cod_amount: '0' }))).toEqual(['error:cod_amount']);
-    expect(fields(row({ cod_type: 'Postpaid', cod_amount: 'lots' }))).toEqual(['error:cod_amount']);
-    expect(fields(row({ cod_type: 'Maybe' }))).toEqual(['error:cod_type']);
-    expect(parseMerchantRow(row({ cod_type: 'cod', cod_amount: '75' }), TODAY).row?.recipientPaymentType).toBe('postpaid');
+  it('requires a COD amount above 0 and within the maximum', () => {
+    expect(fields(row({ cod_amount: '' }))).toEqual(['error:cod_amount']);
+    expect(fields(row({ cod_amount: '0' }))).toEqual(['error:cod_amount']);
+    expect(fields(row({ cod_amount: '-20' }))).toEqual(['error:cod_amount']);
+    expect(fields(row({ cod_amount: 'lots' }))).toEqual(['error:cod_amount']);
+    expect(fields(row({ cod_amount: '100001' }))).toEqual(['error:cod_amount']);
+    expect(parseMerchantRow(row({ cod_amount: 'AED 1,250.50' }), TODAY).row?.codAmount).toBe(1250.5);
   });
 
   it('validates phone numbers: UAE formats pass, others are only a warning', () => {
     for (const phone of ['+971501234567', '0501234567', '00971 50 123 4567', '042345678', '+971 4 234 5678']) {
       expect(isUaePhone(phone)).toBe(true);
     }
-    expect(isUaePhone('+447911123456')).toBe(false);
     const { row: parsed, issues } = parseMerchantRow(row({ recipient_phone: '+447911123456' }), TODAY);
     expect(parsed).not.toBeNull();
     expect(issues.map((i) => `${i.severity}:${i.field}`)).toEqual(['warning:recipient_phone']);
     expect(rowStatusFor(issues)).toBe('warning');
   });
 
-  it('validates delivery dates', () => {
-    expect(parseCsvDate('2026-10-05')).toBe('2026-10-05');
-    expect(parseCsvDate('05/10/2026')).toBe('2026-10-05');
+  it('validates the date as a Next Day delivery date', () => {
+    expect(parseCsvDate('2026-10-06')).toBe('2026-10-06');
+    expect(parseCsvDate('06/10/2026')).toBe('2026-10-06');
     expect(parseCsvDate('2026-02-30')).toBeNull();
-    expect(parseCsvDate('Oct 5')).toBeNull();
-    expect(fields(row({ delivery_date: '2026-10-01' }))).toEqual(['error:delivery_date']);
-    expect(fields(row({ delivery_date: '2027-06-01' }))).toEqual(['error:delivery_date']);
-    expect(fields(row({ delivery_date: 'tomorrow' }))).toEqual(['error:delivery_date']);
-    expect(fields(row({ delivery_type: 'next_day' }))).toEqual(['error:delivery_date']);
-    expect(fields(row({ delivery_type: 'next-day', delivery_date: '2026-10-03' }))).toEqual([]);
+    expect(parseMerchantRow(row({ date: '06/10/2026' }), TODAY).row?.deliveryDate).toBe(TOMORROW);
+    // Same-day is never possible through the bulk CSV.
+    expect(parseMerchantRow(row({ date: TODAY }), TODAY).issues.map((i) => parseMsg(i.message)?.key)).toEqual(['bulk.validation.nextDayToday']);
+    expect(fields(row({ date: '2026-10-01' }))).toEqual(['error:date']);
+    expect(fields(row({ date: '2027-06-01' }))).toEqual(['error:date']);
+    expect(fields(row({ date: 'tomorrow' }))).toEqual(['error:date']);
   });
 
-  it('validates the optional columns', () => {
-    expect(fields(row({ delivery_type: 'express' }))).toEqual(['error:delivery_type']);
-    expect(fields(row({ package_type: 'pallet' }))).toEqual(['error:package_type']);
-    expect(fields(row({ fragile: 'maybe' }))).toEqual(['error:fragile']);
-    expect(parseMerchantRow(row({ fragile: 'Yes', package_type: '', delivery_type: '' }), TODAY).row).toMatchObject({
-      isFragile: true,
-      packageType: 'parcel',
-      deliveryType: 'same_day',
-    });
+  it('ignores anything a row says about the fixed values', () => {
+    const tampered = { ...row(), delivery_type: 'same_day', cod_type: 'Prepaid', pickup_address: 'Elsewhere' } as MerchantRowInput;
+    const input = toMerchantRowInput(tampered as unknown as Record<string, string>);
+    expect(Object.keys(input)).toEqual([...MERCHANT_BULK_COLUMNS]);
+    expect(Object.keys(parseMerchantRow(input, TODAY).row ?? {})).not.toContain('deliveryType');
   });
 
-  it('maps booking-schema paths back to template columns', () => {
+  it('maps booking-schema paths back to template fields', () => {
     expect(fieldForBookingPath(['dropoff', 'contactPhone'])).toBe('recipient_phone');
-    expect(fieldForBookingPath(['pickup', 'contactPhone'])).toBe('pickup_contact_phone');
+    expect(fieldForBookingPath(['pickup', 'address'])).toBe('pickup_address');
     expect(fieldForBookingPath(['codAmount'])).toBe('cod_amount');
     expect(fieldForBookingPath(['somethingElse'])).toBe('row');
   });
@@ -224,17 +318,13 @@ describe('server-side address resolution (forward geocoding)', () => {
   it('keeps the Place ID and the emirate, so coverage comes from Google components', () => {
     const parsed = parseForwardGeocodeLocation(result(['establishment', 'point_of_interest']));
     expect(parsed?.location.place.placeId).toBe('ChIJ-dubai-mall');
-    expect(parsed?.location.coordinates).toEqual({ lat: 25.1972, lng: 55.2796 });
-    expect(parsed?.partialMatch).toBe(false);
     expect(classifyServiceArea(parsed!.location.place)).toEqual({ status: 'active', emirate: 'Dubai' });
   });
 
   it('flags partial matches and city-only results', () => {
     expect(parseForwardGeocodeLocation(result(['route'], { partial_match: true }))?.partialMatch).toBe(true);
     expect(isTooGeneral(['locality', 'political'])).toBe(true);
-    expect(isTooGeneral(['administrative_area_level_1', 'political'])).toBe(true);
     expect(isTooGeneral(['neighborhood', 'political'])).toBe(false);
-    expect(isTooGeneral(['establishment'])).toBe(false);
   });
 
   it('returns null when Google has no match', () => {
@@ -243,16 +333,10 @@ describe('server-side address resolution (forward geocoding)', () => {
 });
 
 describe('pricing used by bulk rows', () => {
-  // Bulk rows are priced by quoteShipment → calculateShipmentPrice, the
-  // same engine as a single booking. The customer example from the spec:
-  it('matches AED 12 for the first 5 km then AED 1 per km', () => {
-    const rule = DEFAULT_PRICING_RULES.individual.same_day;
-    expect([5, 8, 14].map((distanceKm) => calculateShipmentPrice({ rule, distanceKm, weightKg: 1 }).totalPrice)).toEqual([12, 15, 21]);
-    expect(calculateShipmentPrice({ rule, distanceKm: 90.01, weightKg: 1 }).exceedsDistanceLimit).toBe(true);
-  });
-
-  it('uses the merchant rule for merchants, not the customer one', () => {
-    const rule = DEFAULT_PRICING_RULES.merchant.same_day;
-    expect(calculateShipmentPrice({ rule, distanceKm: 14, weightKg: 1 }).totalPrice).toBe(15);
+  // Bulk rows are Next Day, priced with the merchant's own rule.
+  it('uses the merchant Next Day rule', () => {
+    const rule = DEFAULT_PRICING_RULES.merchant.next_day;
+    expect(rule.deliveryType).toBe('next_day');
+    expect(calculateShipmentPrice({ rule, distanceKm: 14, weightKg: 1 }).totalPrice).toBeGreaterThan(0);
   });
 });

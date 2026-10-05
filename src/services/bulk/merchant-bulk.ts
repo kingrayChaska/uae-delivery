@@ -15,13 +15,17 @@ import { BOOKING_ERRORS, distanceLimitMessage, validateBookingLocations } from '
 import { EMIRATE_COVERAGE, classifyServiceArea, serviceAreaError } from '@/lib/service-areas/config';
 import { todayInUae } from '@/lib/bulk/schemas';
 import {
+  MERCHANT_BULK_FIXED,
   MERCHANT_BULK_MAX_FILE_BYTES,
-  MERCHANT_BULK_MAX_ROWS,
+  PICKUP_ADDRESS_MAX,
+  PICKUP_ADDRESS_MIN,
+  addDays,
+  cleanCell,
   fieldForBookingPath,
   isBookableStatus,
-  missingMerchantColumns,
   normalizedRowKey,
   parseMerchantRow,
+  readMerchantTable,
   rowStatusFor,
   toMerchantRowInput,
 } from '@/lib/bulk/merchant-csv';
@@ -39,13 +43,17 @@ import type { PaymentMethod, PriceBreakdown, PricingRuleSet, Profile } from '@/l
 import type { BookingCustomer, ShipmentQuote } from '@/services/shipments/create-shipment';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-// Merchant bulk shipments (migration 0026). A CSV becomes a DRAFT batch of
-// shipment_batch_rows; each row is validated, resolved, coverage-checked,
-// routed and priced here — by the same bookingSchema and quoteShipment() a
-// single booking uses — and the merchant reviews and fixes rows before
-// booking. Booking inserts every bookable row in ONE statement, so it is
-// all or nothing, and builds each shipment from the quote this server
-// stored, never from the browser.
+// Merchant bulk shipments (migrations 0026, 0029). A CSV becomes a DRAFT
+// batch of shipment_batch_rows; each row is validated, resolved,
+// coverage-checked, routed and priced here — by the same bookingSchema and
+// quoteShipment() a single booking uses — and the merchant reviews and
+// fixes rows before booking. Booking inserts every bookable row in ONE
+// statement, so it is all or nothing, and builds each shipment from the
+// quote this server stored, never from the browser.
+//
+// What is common to the batch never comes from a row: the pickup address
+// is the batch's own (shipment_batches.pickup_address, entered once at
+// upload), and every shipment is Next Day and COD (MERCHANT_BULK_FIXED).
 //
 // shipment_batch_rows has no client write policies: every write below uses
 // the service-role client, and only after the batch has been matched to the
@@ -55,7 +63,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type MerchantContext = BookingCustomer & {
   businessAccountId: string;
-  // Defaults for each shipment's pickup contact when the CSV leaves it out.
+  // Every shipment's pickup contact: the business's contact person.
   pickupContactName: string;
   pickupContactPhone: string;
 };
@@ -82,6 +90,25 @@ const loadMerchantContext = async (customerId: string, client: SupabaseClient): 
 };
 
 export const getMerchantContext = async (profile: Profile): Promise<MerchantContext> => loadMerchantContext(profile.id, await createClient());
+
+// What the upload screen's pickup field starts with: the pickup address of
+// the merchant's last bulk batch, else the one from their merchant
+// application. Read with their own session (RLS: their rows only).
+export const getDefaultPickupAddress = async (profileId: string): Promise<string> => {
+  const supabase = await createClient();
+  const [{ data: batch }, { data: application }] = await Promise.all([
+    supabase
+      .from('shipment_batches')
+      .select('pickup_address')
+      .eq('customer_id', profileId)
+      .not('pickup_address', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from('merchant_applications').select('pickup_address').eq('profile_id', profileId).maybeSingle(),
+  ]);
+  return batch?.pickup_address ?? application?.pickup_address ?? '';
+};
 
 // ── Rows ────────────────────────────────────────────────────────────────────
 
@@ -125,12 +152,11 @@ export type BulkReviewRow = {
   input: MerchantRowInput;
   status: RowStatus;
   issues: RowIssue[];
-  pickupAddress: string | null;
+  // The delivery address as Google resolved it.
   deliveryAddress: string | null;
-  distanceKm: number | null;
+  // The merchant's rate for the row; summed for the booking confirmation.
   deliveryFee: number | null;
   codAmount: number | null;
-  coverage: Coverage | null;
 };
 
 const toReviewRow = (row: RowRecord): BulkReviewRow => ({
@@ -139,12 +165,9 @@ const toReviewRow = (row: RowRecord): BulkReviewRow => ({
   input: row.input,
   status: row.status,
   issues: row.issues ?? [],
-  pickupAddress: row.quote?.pickupAddress ?? null,
   deliveryAddress: row.quote?.deliveryAddress ?? null,
-  distanceKm: row.distance_km === null ? null : Number(row.distance_km),
   deliveryFee: row.delivery_fee === null ? null : Number(row.delivery_fee),
   codAmount: row.cod_amount === null ? null : Number(row.cod_amount),
-  coverage: row.coverage,
 });
 
 const hashInput = (input: MerchantRowInput) => createHash('sha256').update(normalizedRowKey(input)).digest('hex');
@@ -205,24 +228,43 @@ const hasUnclosedQuote = (text: string) => (text.match(/"/g)?.length ?? 0) % 2 =
 
 export type CreatedDraft = { id: string; reference: string; rows: number };
 
+// The batch's pickup address must be one Google can place, in a served
+// emirate. Checked once, before any row, so a wrong pickup doesn't turn
+// every row red. Returns why it can't be used, or null.
+const checkPickupAddress = async (address: string): Promise<string | null> => {
+  let resolution: AddressResolution;
+  try {
+    resolution = await googleMapsProvider.resolveAddress(address);
+  } catch (error) {
+    console.error('Bulk upload: pickup lookup failed', error instanceof Error ? error.message : error);
+    return 'bulk.errors.pickupNotFound';
+  }
+  if (resolution.tooGeneral) return 'bulk.errors.pickupTooGeneral';
+  const area = classifyServiceArea(resolution.location.place);
+  return area.status === 'contact_support' || area.status === 'outside_uae' ? serviceAreaError(area, 'pickup') : null;
+};
+
+export const normalizePickupAddress = (value: string) => cleanCell(value).replace(/\s+/g, ' ');
+
 // Parses the CSV (again — the browser's parse is only a preview) and stores
-// every row as 'pending'. Nothing is resolved or priced yet.
+// every row as 'pending', in a batch holding the one pickup address.
+// Nothing else is resolved or priced yet.
 export const createMerchantDraft = async (
   merchant: MerchantContext,
-  { fileName, csvText }: { fileName: string; csvText: string },
+  { fileName, csvText, pickupAddress: rawPickup }: { fileName: string; csvText: string; pickupAddress: string },
 ): Promise<CreatedDraft> => {
+  const pickupAddress = normalizePickupAddress(rawPickup);
+  if (pickupAddress.length < PICKUP_ADDRESS_MIN || pickupAddress.length > PICKUP_ADDRESS_MAX) throw new Error('bulk.errors.pickupRequired');
   if (new TextEncoder().encode(csvText).length > MERCHANT_BULK_MAX_FILE_BYTES) throw new Error('bulk.errors.tooLarge');
   if (hasUnclosedQuote(csvText)) throw new Error('bulk.errors.unclosedQuote');
 
-  const [headerRecord, ...dataRows] = parseCsvRecords(csvText);
-  const headers = (headerRecord?.cells ?? []).map((header) => header.trim().toLowerCase());
-  if (headers.length === 0) throw new Error('bulk.errors.empty');
-  const missing = missingMerchantColumns(headers);
-  if (missing.length > 0) throw new Error(msg('bulk.errors.missingColumns', { columns: missing.join(', ') }));
-  if (dataRows.length === 0) throw new Error('bulk.errors.empty');
-  if (dataRows.length > MERCHANT_BULK_MAX_ROWS) {
-    throw new Error(msg('bulk.errors.tooMany', { max: MERCHANT_BULK_MAX_ROWS, count: dataRows.length }));
-  }
+  // Guidance lines above the column names (the template's) are skipped.
+  const table = readMerchantTable(parseCsvRecords(csvText));
+  if ('error' in table) throw new Error(table.error);
+  const { headers, rows: dataRows } = table;
+
+  const pickupProblem = await checkPickupAddress(pickupAddress);
+  if (pickupProblem) throw new Error(pickupProblem);
 
   // Inserted with the merchant's own session: shipment_batches_insert
   // (migration 0026) checks they own it and belong to the business.
@@ -237,6 +279,7 @@ export const createMerchantDraft = async (
       file_name: fileName.slice(0, 200),
       status: 'draft',
       notes: '',
+      pickup_address: pickupAddress,
     })
     .select('id, reference')
     .single();
@@ -293,6 +336,8 @@ type RowUpdate = {
 
 type ValidationContext = {
   merchant: MerchantContext;
+  // The batch's one pickup address, used for every row.
+  pickupAddress: string;
   rules: PricingRuleSet;
   today: string;
   // The first row number holding each input hash, for duplicate warnings.
@@ -363,7 +408,8 @@ const validateRow = async (context: ValidationContext, row: RowRecord): Promise<
   if (!parsed) return done(null, null);
 
   // ── Addresses (Google, server-side) ──
-  const [pickup, dropoff] = await Promise.all([resolve(context, parsed.pickupAddress), resolve(context, parsed.deliveryAddress)]);
+  // The pickup is the batch's: one (cached) lookup for every row.
+  const [pickup, dropoff] = await Promise.all([resolve(context, context.pickupAddress), resolve(context, parsed.deliveryAddress)]);
   const ends = [
     { field: 'pickup_address' as const, end: 'pickup' as const, resolution: pickup },
     { field: 'delivery_address' as const, end: 'dropoff' as const, resolution: dropoff },
@@ -403,28 +449,28 @@ const validateRow = async (context: ValidationContext, row: RowRecord): Promise<
     lng: resolution.location.coordinates.lng,
     place: { ...resolution.location.place, source: 'search' as const },
   });
+  // Next Day, COD, a parcel, not fragile: fixed for every bulk shipment
+  // (MERCHANT_BULK_FIXED). No package value or notes are asked for.
   const candidate = {
     pickup: {
       ...location(pickup),
-      contactName: parsed.pickupContactName || context.merchant.pickupContactName,
-      contactPhone: parsed.pickupContactPhone || context.merchant.pickupContactPhone,
+      contactName: context.merchant.pickupContactName,
+      contactPhone: context.merchant.pickupContactPhone,
     },
     dropoff: {
       ...location(dropoff),
-      instructions: parsed.notes || undefined,
       contactName: parsed.recipientName,
       contactPhone: parsed.recipientPhone,
     },
-    deliveryType: parsed.deliveryType,
-    packageType: parsed.packageType,
+    deliveryType: MERCHANT_BULK_FIXED.deliveryType,
+    packageType: MERCHANT_BULK_FIXED.packageType,
     packageDescription: parsed.packageDescription,
     packageQuantity: parsed.quantity,
     packageWeightKg: parsed.weightKg,
-    isFragile: parsed.isFragile,
+    isFragile: MERCHANT_BULK_FIXED.isFragile,
     packageImagePath: null,
-    recipientPaymentType: parsed.recipientPaymentType,
+    recipientPaymentType: MERCHANT_BULK_FIXED.recipientPaymentType,
     codAmount: parsed.codAmount,
-    productValue: parsed.packageValue,
     // How the delivery fee is paid doesn't change the price; the merchant
     // picks it when booking.
     paymentMethod: 'cod' as const,
@@ -487,6 +533,11 @@ const firstRowsByHash = async (batchId: string, hashes: string[]) => {
   return firstByHash;
 };
 
+const getBatchPickup = async (batchId: string) => {
+  const { data } = await createAdminClient().from('shipment_batches').select('pickup_address').eq('id', batchId).maybeSingle();
+  return (data?.pickup_address as string | null | undefined) ?? null;
+};
+
 const validateAndStore = async (
   merchant: MerchantContext,
   batchId: string,
@@ -494,14 +545,27 @@ const validateAndStore = async (
   rules: PricingRuleSet,
 ): Promise<RowRecord[]> => {
   if (rows.length === 0) return [];
+  const admin = createAdminClient();
+  // A draft from before migration 0029 has no batch pickup and can't be
+  // checked (that migration discards such drafts).
+  const pickupAddress = await getBatchPickup(batchId);
+  if (!pickupAddress) {
+    const update = {
+      status: 'invalid' as const,
+      issues: [{ field: 'row' as const, message: 'bulk.errors.outdatedDraft', severity: 'error' as const }],
+      processed_at: new Date().toISOString(),
+    };
+    await admin.from('shipment_batch_rows').update(update).in('id', rows.map((row) => row.id)).eq('batch_id', batchId);
+    return rows.map((row) => ({ ...row, ...update }));
+  }
   const context: ValidationContext = {
     merchant,
+    pickupAddress,
     rules,
     today: todayInUae(),
     firstByHash: await firstRowsByHash(batchId, rows.map((row) => row.input_hash)),
     resolutions: new Map(),
   };
-  const admin = createAdminClient();
   const updated: RowRecord[] = [];
   await runPool(rows, async (row) => {
     let update: RowUpdate;
@@ -761,10 +825,11 @@ const finishBooking = async (batchId: string, rows: RowRecord[]) => {
   const dates = bookable.map((row) => row.quote!.booking!.deliveryDate).sort();
   const admin = createAdminClient();
   // pickup_date before the status change: the "booked" notification
-  // (fired by that change) mentions it.
+  // (fired by that change) mentions it. Next Day: collected the day before
+  // the earliest delivery.
   await admin
     .from('shipment_batches')
-    .update({ booked_at: new Date().toISOString(), pickup_date: dates[0] ?? null, booking_error: null })
+    .update({ booked_at: new Date().toISOString(), pickup_date: dates[0] ? addDays(dates[0], -1) : null, booking_error: null })
     .eq('id', batchId);
   const bookableIds = new Set(bookable.map((row) => row.id));
   const results: BulkRowResult[] = rows.map((row) =>
@@ -781,7 +846,10 @@ const recheck = (row: RowRecord, rules: PricingRuleSet, accountType: BookingCust
   if (!booking) return { status: 'pending' };
   const fail = (issue: RowIssue): Partial<RowUpdate> => ({ status: 'invalid', issues: [...(row.issues ?? []), issue] });
 
-  if (booking.deliveryDate < today) return fail({ field: 'delivery_date', message: 'bulk.validation.datePast', severity: 'error' });
+  // Next Day: a date that has become today (or passed) can't be met.
+  if (booking.deliveryDate <= today) {
+    return fail({ field: 'date', message: booking.deliveryDate < today ? 'bulk.validation.datePast' : 'bulk.validation.nextDayToday', severity: 'error' });
+  }
   if (
     validateBookingLocations(
       { lat: booking.input.pickup.lat, lng: booking.input.pickup.lng },
@@ -965,6 +1033,8 @@ export type MerchantBatch = {
   reference: string;
   name: string;
   fileName: string | null;
+  // A merchant CSV batch's one pickup address.
+  pickupAddress: string | null;
   status: string;
   bookingError: string | null;
   createdAt: string;
@@ -980,7 +1050,7 @@ export const getMerchantBatch = async (batchId: string): Promise<MerchantBatch |
   const { data } = await supabase
     .from('shipment_batches')
     .select(
-      'id, customer_id, reference, name, file_name, status, booking_error, created_at, booked_at, rows_submitted, rows_failed, uploader:profiles!shipment_batches_customer_id_fkey(full_name)',
+      'id, customer_id, reference, name, file_name, pickup_address, status, booking_error, created_at, booked_at, rows_submitted, rows_failed, uploader:profiles!shipment_batches_customer_id_fkey(full_name)',
     )
     .eq('id', batchId)
     .maybeSingle();
@@ -993,6 +1063,7 @@ export const getMerchantBatch = async (batchId: string): Promise<MerchantBatch |
     reference: data.reference,
     name: data.name,
     fileName: data.file_name,
+    pickupAddress: data.pickup_address,
     status: data.status,
     bookingError: data.booking_error,
     createdAt: data.created_at,

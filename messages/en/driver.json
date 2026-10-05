@@ -58,11 +58,11 @@
     "fragile": "Marked fragile",
     "photoAlt": "Package",
     "collectTitle": "Collect on delivery",
-    "goods": "Goods (from recipient)",
-    "fee": "Delivery fee (cash)",
-    "total": "Total cash",
     "prepaid": "Prepaid — nothing to collect.",
-    "deliveryDate": "Delivery date"
+    "deliveryDate": "Delivery date",
+    "fromRecipient": "Collect from recipient",
+    "senderFee": "The {amount} delivery fee is paid in cash by the sender. Don’t collect it from the recipient.",
+    "reason": "Reason"
   },
   "workflow": {
     "failureReason": "Reason the delivery failed",
@@ -75,12 +75,12 @@
     "confirmPickup": "Confirm Pickup",
     "start": "Start Delivery",
     "navigateCustomer": "Navigate to Customer",
-    "arrived": "Arrived"
+    "arrived": "Arrived",
+    "problem": "Can’t complete this delivery?"
   },
   "pod": {
     "title": "Proof of Delivery",
-    "recipientName": "Recipient name",
-    "photo": "Package photo",
+    "photo": "Delivery photo",
     "photoAttached": "Photo attached",
     "signature": "Recipient signature",
     "signatureCaptured": "Signature captured",
@@ -93,7 +93,13 @@
     "qrCaptured": "QR captured",
     "notes": "Notes (optional)",
     "complete": "Complete Delivery",
-    "completing": "Completing…"
+    "completing": "Completing…",
+    "photoHint": "Take a photo of the parcel at the delivery address.",
+    "uploading": "Uploading photo…",
+    "replacePhoto": "Retake",
+    "codTitle": "Cash on delivery",
+    "codConfirm": "I confirm that I collected the required COD amount ({amount}) from the recipient.",
+    "moreProof": "More proof (optional): signature, code or QR"
   },
   "qr": {
     "verifyTitle": "Verify shipment QR (optional)",
@@ -108,8 +114,9 @@
   },
   "validation": {
     "reason": "Enter a reason",
-    "recipient": "Enter who received the package",
-    "proof": "Provide at least one proof: photo, signature, code or QR scan"
+    "photo": "Take a delivery photo before completing the delivery.",
+    "codCollected": "Confirm you collected the COD amount before completing the delivery.",
+    "reasonTooLong": "Keep the reason under 500 characters."
   },
   "errors": {
     "notFound": "Not found",
@@ -118,5 +125,23 @@
     "incorrectCode": "Incorrect code. Check with the recipient and try again.",
     "invalidAvailability": "Invalid availability",
     "generic": "Something went wrong"
+  },
+  "outcome": {
+    "cancel": {
+      "button": "Cancel shipment",
+      "title": "Cancel this shipment?",
+      "description": "Only cancel if the parcel won’t be collected — for example, the sender cancelled or it isn’t ready. The customer and the operations team are notified.",
+      "reason": "Reason for cancelling",
+      "reasonPlaceholder": "e.g. Sender cancelled the order",
+      "confirm": "Cancel Shipment"
+    },
+    "return": {
+      "button": "Return to sender",
+      "title": "Return this parcel to the sender?",
+      "description": "The shipment is marked Returned and won’t be delivered. Take the parcel back to the sender. The customer and the operations team are notified.",
+      "reason": "Why it couldn’t be delivered",
+      "reasonPlaceholder": "e.g. Recipient refused the parcel",
+      "confirm": "Mark as Returned"
+    }
   }
 }

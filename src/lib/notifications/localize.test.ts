@@ -30,6 +30,21 @@ describe('localizeNotification', () => {
     ).toBe('deliveryFailedStaff');
   });
 
+  it('reads driver cancellations and returns, for the customer and for staff', () => {
+    const read = (type: string, title: string, body: string) => localizeNotification({ type, title, body });
+    expect(read('shipment.cancelled_by_driver', 'Shipment cancelled', 'PL7K29X4 was cancelled by the driver.')).toEqual({
+      key: 'cancelledByDriver',
+      values: { code: 'PL7K29X4' },
+    });
+    expect(
+      read('shipment.cancelled_by_driver', 'Driver cancelled a shipment', 'PL7K29X4 was cancelled by the driver before pickup.')?.key,
+    ).toBe('cancelledByDriverStaff');
+    expect(read('shipment.returned', 'Shipment returned', 'PL7K29X4 is being returned to the sender.')?.key).toBe('returned');
+    expect(
+      read('shipment.returned', 'Driver returned a shipment', 'PL7K29X4 was not delivered and is being returned to the sender.')?.key,
+    ).toBe('returnedStaff');
+  });
+
   it('keeps the delivery code', () => {
     expect(
       localizeNotification({

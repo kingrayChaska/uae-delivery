@@ -1,6 +1,8 @@
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
 import { useFormat } from '@/i18n/hooks';
+import { BRAND } from '@/lib/brand';
 
 type ShipmentLabelProps = {
   trackingNumber: string;
@@ -79,6 +81,16 @@ const ShipmentLabel = ({
 
   return (
     <article data-print-content className="mx-auto flex w-full max-w-2xl flex-col gap-6 border-4 border-black bg-white p-6 text-black sm:p-8 print:min-h-[180mm] print:max-w-none print:gap-5 print:border-2 print:p-2">
+      <div className="flex justify-center border-b-4 border-black pb-4 print:border-b-2 print:pb-3">
+        <Image
+          src={BRAND.logoSrc}
+          alt={BRAND.name}
+          width={BRAND.logoWidth}
+          height={BRAND.logoHeight}
+          priority
+          className="h-auto w-48 print:w-[45mm]"
+        />
+      </div>
       <header className="flex items-start justify-between gap-4 border-b-4 border-black pb-4 print:border-b-2 print:pb-3">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide print:text-[10pt]">{t('trackingNumber')}</p>

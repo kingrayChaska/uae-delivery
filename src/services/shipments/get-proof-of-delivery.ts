@@ -10,6 +10,8 @@ export type ProofOfDelivery = {
   signatureUrl: string | null;
   otpVerified: boolean;
   qrVerified: boolean;
+  // The driver confirmed collecting the COD amount (migration 0028).
+  codCollected: boolean;
   notes: string | null;
   deliveredAt: string;
   // The delivery address the driver completed the job at.
@@ -28,7 +30,7 @@ export const getProofOfDelivery = async (shipmentId: string): Promise<ProofOfDel
   const [{ data: pod }, { data: shipment }] = await Promise.all([
     supabase
       .from('proof_of_delivery')
-      .select('recipient_name, photo_url, signature_url, recipient_otp_verified, qr_verified, notes, created_at')
+      .select('recipient_name, photo_url, signature_url, recipient_otp_verified, qr_verified, cod_collected, notes, created_at')
       .eq('shipment_id', shipmentId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -53,6 +55,7 @@ export const getProofOfDelivery = async (shipmentId: string): Promise<ProofOfDel
     signatureUrl: pod.signature_url ? (signedByPath.get(pod.signature_url) ?? null) : null,
     otpVerified: pod.recipient_otp_verified,
     qrVerified: pod.qr_verified,
+    codCollected: pod.cod_collected === true,
     notes: pod.notes,
     deliveredAt: pod.created_at,
     location: shipment

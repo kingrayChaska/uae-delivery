@@ -3,53 +3,66 @@
 // browser (instant file checks) and the server (the real validation —
 // services/bulk/merchant-bulk.ts — which never trusts the browser's).
 //
-// Columns map onto the normal booking input (lib/shipment/schemas.ts):
-// every row is ultimately validated by the same bookingSchema and priced by
-// the same quoteShipment() as a single booking.
+// The file holds only what differs per recipient. Everything common to the
+// whole batch is collected once or fixed by ParcelLink, never per row:
+// the pickup address is entered once on the upload screen, and every bulk
+// shipment is Next Day delivery and COD (MERCHANT_BULK_FIXED). Each row is
+// still validated by the same bookingSchema and priced by the same
+// quoteShipment() as a single booking.
 
 import { msg } from '@/i18n/message';
 import { toCsv } from '@/lib/csv/serialize';
-import { DELIVERY_TYPES, PACKAGE_TYPES } from '@/lib/types';
+import { MAX_COD_AMOUNT } from '@/lib/pricing/config';
 
 import type { DeliveryType, PackageType, RecipientPaymentType } from '@/lib/types';
 
+// The canonical columns, in template order. All are required.
 export const MERCHANT_BULK_COLUMNS = [
   'recipient_name',
   'recipient_phone',
-  'pickup_address',
   'delivery_address',
   'package_description',
   'quantity',
   'weight_kg',
-  'package_value',
-  'delivery_date',
-  'cod_type',
   'cod_amount',
-  'notes',
-  // Optional extras; defaults in parseMerchantRow.
-  'delivery_type',
-  'package_type',
-  'fragile',
-  'pickup_contact_name',
-  'pickup_contact_phone',
+  // The scheduled delivery date (stored as shipments.delivery_date).
+  'date',
 ] as const;
 
 export type MerchantBulkColumn = (typeof MERCHANT_BULK_COLUMNS)[number];
 
-// A file must have these headers. (Weight is required for every booking —
-// merchant prices depend on it, and the database refuses a merchant
-// shipment without one.)
-export const REQUIRED_MERCHANT_COLUMNS: MerchantBulkColumn[] = [
-  'recipient_name',
-  'recipient_phone',
+export const REQUIRED_MERCHANT_COLUMNS: readonly MerchantBulkColumn[] = MERCHANT_BULK_COLUMNS;
+
+// Set by ParcelLink for every row of a bulk upload; no row can override them.
+export const MERCHANT_BULK_FIXED: {
+  deliveryType: DeliveryType;
+  recipientPaymentType: RecipientPaymentType;
+  packageType: PackageType;
+  isFragile: boolean;
+} = { deliveryType: 'next_day', recipientPaymentType: 'postpaid', packageType: 'parcel', isFragile: false };
+
+// Columns of the previous (17-column) template, and the computed values
+// merchants sometimes add themselves. A file with any of them was made from
+// an old template: it is refused rather than half-read, so a stale
+// pickup_address or delivery_type can never slip into a booking.
+export const LEGACY_MERCHANT_COLUMNS = [
   'pickup_address',
-  'delivery_address',
-  'package_description',
-  'quantity',
-  'weight_kg',
+  'pickup_contact_name',
+  'pickup_contact_phone',
   'delivery_date',
+  'delivery_type',
   'cod_type',
-];
+  'package_value',
+  'package_type',
+  'notes',
+  'delivery_notes',
+  'fragile',
+  'distance',
+  'distance_km',
+  'coverage',
+  'delivery_fee',
+  'tracking_id',
+] as const;
 
 // No arbitrary low cap: a batch is booked in one database statement, and
 // PostgREST returns at most 1,000 rows per read, which sets the ceiling.
@@ -60,34 +73,93 @@ export const MERCHANT_BULK_MAX_FILE_BYTES = 900_000;
 export const MAX_CELL_LENGTH = 500;
 // How far ahead a delivery can be scheduled.
 export const MAX_DAYS_AHEAD = 60;
+// The batch's one pickup address (shipment_batches.pickup_address).
+export const PICKUP_ADDRESS_MIN = 5;
+export const PICKUP_ADDRESS_MAX = 300;
 
 export type MerchantRowInput = Record<MerchantBulkColumn, string>;
 
-export const TEMPLATE_EXAMPLE: MerchantRowInput = {
+export const addDays = (isoDate: string, days: number) => {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+
+// The template's example row, for a file downloaded `today` (its date is
+// the earliest Next Day delivery: tomorrow).
+export const templateExample = (today: string): MerchantRowInput => ({
   recipient_name: 'Ahmed Ali',
   recipient_phone: '+971501234567',
-  pickup_address: 'Business Bay, Dubai',
-  delivery_address: 'Dubai Marina, Dubai',
+  delivery_address: 'Marina Gate 1, Dubai Marina, Dubai',
   package_description: 'Electronics',
   quantity: '1',
   weight_kg: '2.5',
-  package_value: '500',
-  delivery_date: '',
-  cod_type: 'Postpaid',
   cod_amount: '150',
-  notes: 'Handle with care',
-  delivery_type: 'same_day',
-  package_type: 'parcel',
-  fragile: 'no',
-  pickup_contact_name: '',
-  pickup_contact_phone: '',
+  date: addDays(today, 1),
+});
+
+// Lines above the column names are guidance: the parser skips everything
+// before the header row (findHeaderRow), so they never become shipments.
+export const TEMPLATE_TITLE = 'ParcelLink UAE - Merchant Bulk Shipment Template';
+export const TEMPLATE_NOTE =
+  'One shipment per row, under the column names. Do not rename the column names. Pickup address: chosen once in ParcelLink. Delivery: always Next Day. Payment: always COD (cod_amount = cash the driver collects).';
+export const TEMPLATE_EXAMPLE_LABEL = 'EXAMPLE - NOT UPLOADED (the next line only shows the format):';
+
+// The plain-CSV template: a short guide, one example line (above the column
+// names, so it is never uploaded), then the column names for the data.
+export const merchantTemplateCsv = (today: string) => {
+  const example = templateExample(today);
+  return `﻿${toCsv(
+    [TEMPLATE_TITLE],
+    [[TEMPLATE_NOTE], [TEMPLATE_EXAMPLE_LABEL], MERCHANT_BULK_COLUMNS.map((column) => example[column]), [...MERCHANT_BULK_COLUMNS]],
+  )}`;
 };
 
-// The downloadable template: headers plus one example row dated `today`.
-export const merchantTemplateCsv = (today: string) =>
-  `﻿${toCsv([...MERCHANT_BULK_COLUMNS], [MERCHANT_BULK_COLUMNS.map((column) => (column === 'delivery_date' ? today : TEMPLATE_EXAMPLE[column]))])}`;
+// ── The file's header ───────────────────────────────────────────────────────
+
+export const normalizeHeader = (header: string) => header.replace(/^﻿/, '').trim().toLowerCase();
+
+// Guidance rows the template puts above the column names (see the .xlsx
+// template too); a file whose header isn't found in these is reported
+// against its first line.
+const HEADER_SEARCH_ROWS = 10;
+
+// The index of the header row: the first record with a recipient_name (or,
+// for an old file, pickup_address) column.
+export const findHeaderRow = (records: { cells: string[] }[]) => {
+  const index = records
+    .slice(0, HEADER_SEARCH_ROWS)
+    .findIndex(({ cells }) => cells.some((cell) => ['recipient_name', 'pickup_address'].includes(normalizeHeader(cell))));
+  return index === -1 ? 0 : index;
+};
 
 export const missingMerchantColumns = (headers: string[]) => REQUIRED_MERCHANT_COLUMNS.filter((column) => !headers.includes(column));
+
+// Why a header row can't be used, or null when it can.
+export const merchantHeaderError = (headers: string[]): string | null => {
+  const legacy = headers.filter((header) => (LEGACY_MERCHANT_COLUMNS as readonly string[]).includes(header));
+  if (legacy.length > 0) return msg('bulk.errors.outdatedTemplate', { columns: legacy.join(', ') });
+  const missing = missingMerchantColumns(headers);
+  if (missing.length > 0) return msg('bulk.errors.missingColumns', { columns: missing.join(', ') });
+  const unknown = headers.filter((header) => header !== '' && !(MERCHANT_BULK_COLUMNS as readonly string[]).includes(header));
+  if (unknown.length > 0) return msg('bulk.errors.unknownColumns', { columns: unknown.join(', ') });
+  const repeated = headers.filter((header, i) => header !== '' && headers.indexOf(header) !== i);
+  if (repeated.length > 0) return msg('bulk.errors.repeatedColumns', { columns: [...new Set(repeated)].join(', ') });
+  return null;
+};
+
+// The header row and the data rows under it, or why the file can't be read.
+export const readMerchantTable = <T extends { cells: string[] }>(records: T[]): { headers: string[]; rows: T[] } | { error: string } => {
+  if (records.length === 0) return { error: 'bulk.errors.empty' };
+  const index = findHeaderRow(records);
+  const headers = records[index].cells.map(normalizeHeader);
+  const error = merchantHeaderError(headers);
+  if (error) return { error };
+  const rows = records.slice(index + 1);
+  if (rows.length === 0) return { error: 'bulk.errors.empty' };
+  if (rows.length > MERCHANT_BULK_MAX_ROWS) return { error: msg('bulk.errors.tooMany', { max: MERCHANT_BULK_MAX_ROWS, count: rows.length }) };
+  return { headers, rows };
+};
 
 // Control characters (other than tab/newline) never belong in a shipment
 // field. Values are stored and shown as text, never evaluated; exports
@@ -100,38 +172,34 @@ const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 export const cleanCell = (value: string | undefined) =>
   (value ?? '').replace(CONTROL, '').trim().replace(/^'(?=[=+\-@])/, '').slice(0, MAX_CELL_LENGTH);
 
-// One CSV record (headers already lowercased) → the template's columns.
+// One CSV record (headers already normalized) → the template's columns.
 export const toMerchantRowInput = (record: Record<string, string>): MerchantRowInput =>
   Object.fromEntries(MERCHANT_BULK_COLUMNS.map((column) => [column, cleanCell(record[column])])) as MerchantRowInput;
 
 // Identical rows (ignoring case and spacing) are probably a copy-paste slip.
 export const normalizedRowKey = (input: MerchantRowInput) =>
-  MERCHANT_BULK_COLUMNS.map((column) => input[column].replace(/\s+/g, ' ').toLowerCase()).join('\u001F');
+  MERCHANT_BULK_COLUMNS.map((column) => (input[column] ?? '').replace(/\s+/g, ' ').toLowerCase()).join('\u001F');
 
 // ── Parsing one row ─────────────────────────────────────────────────────────
 
 export type IssueSeverity = 'error' | 'warning';
-// `field` is a template column, or 'distance' / 'coverage' / 'row'.
-export type RowIssue = { field: MerchantBulkColumn | 'distance' | 'coverage' | 'row'; message: string; severity: IssueSeverity };
+// `field` is a template column; 'pickup_address' (the batch's pickup),
+// 'distance' or 'coverage' (found by the server); or the whole 'row'.
+export type RowIssue = {
+  field: MerchantBulkColumn | 'pickup_address' | 'distance' | 'coverage' | 'row';
+  message: string;
+  severity: IssueSeverity;
+};
 
 export type ParsedMerchantRow = {
   recipientName: string;
   recipientPhone: string;
-  pickupAddress: string;
   deliveryAddress: string;
   packageDescription: string;
   quantity: number;
   weightKg: number;
-  packageValue: number | undefined;
+  codAmount: number;
   deliveryDate: string;
-  recipientPaymentType: RecipientPaymentType;
-  codAmount: number | undefined;
-  notes: string;
-  deliveryType: DeliveryType;
-  packageType: PackageType;
-  isFragile: boolean;
-  pickupContactName: string;
-  pickupContactPhone: string;
 };
 
 const required = (field: MerchantBulkColumn): RowIssue => ({ field, message: msg('bulk.validation.required', { column: field }), severity: 'error' });
@@ -146,19 +214,6 @@ const toNumber = (value: string) => {
   const text = value.replace(/,(?=\d{3}(\D|$))/g, '').replace(/^AED\s*/i, '');
   return text === '' || !/^-?\d+(\.\d+)?$/.test(text) ? NaN : Number(text);
 };
-
-const COD_TYPES: Record<string, RecipientPaymentType> = {
-  prepaid: 'prepaid',
-  'pre-paid': 'prepaid',
-  paid: 'prepaid',
-  postpaid: 'postpaid',
-  'post-paid': 'postpaid',
-  cod: 'postpaid',
-  'cash on delivery': 'postpaid',
-};
-
-const TRUTHY = ['yes', 'y', 'true', '1'];
-const FALSY = ['', 'no', 'n', 'false', '0'];
 
 // YYYY-MM-DD, or DD/MM/YYYY (what spreadsheets in the UAE often save).
 export const parseCsvDate = (value: string): string | null => {
@@ -175,12 +230,6 @@ export const parseCsvDate = (value: string): string | null => {
   return date.toISOString().slice(0, 10);
 };
 
-const addDays = (isoDate: string, days: number) => {
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-};
-
 // A UAE mobile or landline: +971 / 00971 / 971 / 0, then 8–9 digits.
 // Other countries' numbers are allowed (the booking flow accepts them) but
 // flagged, since a courier can't usually call them.
@@ -193,97 +242,66 @@ export const parseMerchantRow = (
   today: string,
 ): { row: ParsedMerchantRow | null; issues: RowIssue[] } => {
   const issues: RowIssue[] = [];
+  // A row stored by another version of the form may lack a column.
+  const value = (column: MerchantBulkColumn) => input[column] ?? '';
 
-  for (const field of ['recipient_name', 'recipient_phone', 'pickup_address', 'delivery_address', 'package_description'] as const) {
-    if (!input[field]) issues.push(required(field));
+  for (const field of ['recipient_name', 'recipient_phone', 'delivery_address', 'package_description'] as const) {
+    if (!value(field)) issues.push(required(field));
   }
-  if (input.recipient_phone && !isUaePhone(input.recipient_phone)) {
+  if (value('recipient_phone') && !isUaePhone(value('recipient_phone'))) {
     issues.push({ field: 'recipient_phone', message: 'bulk.issues.nonUaePhone', severity: 'warning' });
   }
 
-  const quantity = input.quantity === '' ? NaN : toNumber(input.quantity);
-  if (input.quantity === '') issues.push(required('quantity'));
+  const quantity = toNumber(value('quantity'));
+  if (value('quantity') === '') issues.push(required('quantity'));
   else if (!Number.isInteger(quantity) || quantity < 1) issues.push(invalid('quantity', 'bulk.validation.positiveWhole'));
 
-  const weightKg = toNumber(input.weight_kg);
-  if (input.weight_kg === '') issues.push(required('weight_kg'));
+  const weightKg = toNumber(value('weight_kg'));
+  if (value('weight_kg') === '') issues.push(required('weight_kg'));
   else if (!Number.isFinite(weightKg) || weightKg <= 0) issues.push(invalid('weight_kg', 'bulk.validation.positiveNumber'));
 
-  const packageValue = input.package_value === '' ? undefined : toNumber(input.package_value);
-  if (packageValue !== undefined && (!Number.isFinite(packageValue) || packageValue < 0)) {
-    issues.push(invalid('package_value', 'bulk.validation.nonNegative'));
-  }
+  // Every bulk shipment is COD: there is always an amount to collect.
+  const codAmount = toNumber(value('cod_amount'));
+  if (value('cod_amount') === '') issues.push(required('cod_amount'));
+  else if (!Number.isFinite(codAmount)) issues.push(invalid('cod_amount', 'bulk.validation.number'));
+  else if (codAmount <= 0) issues.push(invalid('cod_amount', 'bulk.validation.codPositive'));
+  else if (codAmount > MAX_COD_AMOUNT) issues.push(invalid('cod_amount', 'bulk.validation.codMax', { max: MAX_COD_AMOUNT }));
 
-  const deliveryDate = parseCsvDate(input.delivery_date);
-  if (input.delivery_date === '') issues.push(required('delivery_date'));
-  else if (!deliveryDate) issues.push(invalid('delivery_date', 'bulk.validation.date'));
-  else if (deliveryDate < today) issues.push(invalid('delivery_date', 'bulk.validation.datePast'));
-  else if (deliveryDate > addDays(today, MAX_DAYS_AHEAD)) issues.push(invalid('delivery_date', 'bulk.validation.dateTooFar', { days: MAX_DAYS_AHEAD }));
-
-  const recipientPaymentType = COD_TYPES[input.cod_type.toLowerCase()];
-  if (input.cod_type === '') issues.push(required('cod_type'));
-  else if (!recipientPaymentType) issues.push(invalid('cod_type', 'bulk.validation.codType'));
-
-  const codAmount = input.cod_amount === '' ? undefined : toNumber(input.cod_amount);
-  if (codAmount !== undefined && !Number.isFinite(codAmount)) issues.push(invalid('cod_amount', 'bulk.validation.number'));
-  else if (recipientPaymentType === 'prepaid' && codAmount) issues.push(invalid('cod_amount', 'bulk.validation.prepaidCod'));
-  else if (recipientPaymentType === 'postpaid' && !(codAmount && codAmount > 0)) issues.push(invalid('cod_amount', 'bulk.validation.postpaidCod'));
-
-  const deliveryType = (input.delivery_type || 'same_day').toLowerCase().replace(/[\s-]+/g, '_') as DeliveryType;
-  if (!DELIVERY_TYPES.includes(deliveryType)) issues.push(invalid('delivery_type', 'bulk.validation.oneOf', { values: DELIVERY_TYPES.join(', ') }));
-  else if (deliveryType === 'next_day' && deliveryDate && deliveryDate === today) {
-    issues.push(invalid('delivery_date', 'bulk.validation.nextDayToday'));
-  }
-
-  const packageType = (input.package_type || 'parcel').toLowerCase() as PackageType;
-  if (!PACKAGE_TYPES.includes(packageType)) issues.push(invalid('package_type', 'bulk.validation.oneOf', { values: PACKAGE_TYPES.join(', ') }));
-
-  const fragile = input.fragile.toLowerCase();
-  if (!TRUTHY.includes(fragile) && !FALSY.includes(fragile)) issues.push(invalid('fragile', 'bulk.validation.yesNo'));
+  // Every bulk shipment is Next Day: the earliest date is tomorrow.
+  const deliveryDate = parseCsvDate(value('date'));
+  if (value('date') === '') issues.push(required('date'));
+  else if (!deliveryDate) issues.push(invalid('date', 'bulk.validation.date'));
+  else if (deliveryDate < today) issues.push(invalid('date', 'bulk.validation.datePast'));
+  else if (deliveryDate === today) issues.push(invalid('date', 'bulk.validation.nextDayToday'));
+  else if (deliveryDate > addDays(today, MAX_DAYS_AHEAD)) issues.push(invalid('date', 'bulk.validation.dateTooFar', { days: MAX_DAYS_AHEAD }));
 
   if (issues.some((issue) => issue.severity === 'error')) return { row: null, issues };
 
   return {
     row: {
-      recipientName: input.recipient_name,
-      recipientPhone: input.recipient_phone,
-      pickupAddress: input.pickup_address,
-      deliveryAddress: input.delivery_address,
-      packageDescription: input.package_description,
+      recipientName: value('recipient_name'),
+      recipientPhone: value('recipient_phone'),
+      deliveryAddress: value('delivery_address'),
+      packageDescription: value('package_description'),
       quantity,
       weightKg,
-      packageValue,
+      codAmount,
       deliveryDate: deliveryDate!,
-      recipientPaymentType,
-      codAmount: recipientPaymentType === 'postpaid' ? codAmount : undefined,
-      notes: input.notes,
-      deliveryType,
-      packageType,
-      isFragile: TRUTHY.includes(fragile),
-      pickupContactName: input.pickup_contact_name,
-      pickupContactPhone: input.pickup_contact_phone,
     },
     issues,
   };
 };
 
-// bookingSchema paths → the template column the merchant should fix.
-const PATH_FIELDS: Record<string, MerchantBulkColumn> = {
+// bookingSchema paths → the field the merchant should fix.
+const PATH_FIELDS: Record<string, RowIssue['field']> = {
   'pickup.address': 'pickup_address',
-  'pickup.contactName': 'pickup_contact_name',
-  'pickup.contactPhone': 'pickup_contact_phone',
   'dropoff.address': 'delivery_address',
   'dropoff.contactName': 'recipient_name',
   'dropoff.contactPhone': 'recipient_phone',
-  'dropoff.instructions': 'notes',
   packageDescription: 'package_description',
   packageQuantity: 'quantity',
   packageWeightKg: 'weight_kg',
-  productValue: 'package_value',
   codAmount: 'cod_amount',
-  recipientPaymentType: 'cod_type',
-  deliveryType: 'delivery_type',
-  packageType: 'package_type',
 };
 
 export const fieldForBookingPath = (path: PropertyKey[]): RowIssue['field'] => PATH_FIELDS[path.map(String).join('.')] ?? 'row';

@@ -169,11 +169,17 @@ select complete_delivery(:'p9_id', 'Recipient');
 \echo 'ATTACK: complete_delivery citing a photo that was never uploaded'
 select complete_delivery(:'p9_id', 'Recipient', :'p9_id' || '/ghost.jpg');
 
+\echo 'LEGITIMATE: driver1 uploads the delivery photo'
+insert into storage.objects (bucket_id, name, owner) values ('proof-of-delivery', :'p9_id' || '/photo-pod.jpg', auth.uid());
+
 \echo 'LEGITIMATE: driver1 issues an OTP to the customer'
 select issue_delivery_otp(:'p9_id');
 
+\echo 'ATTACK: complete_delivery with a correct-looking OTP but no photo (a photo is required, 0028)'
+select complete_delivery(:'p9_id', null, null, null, '0000');
+
 \echo 'expect invalid_otp: wrong code'
-select complete_delivery(:'p9_id', 'Recipient', null, null, 'wrong');
+select complete_delivery(:'p9_id', null, :'p9_id' || '/photo-pod.jpg', null, 'wrong');
 
 reset role;
 -- OTPs are stored hashed (0018), so read the code the way a real customer
@@ -184,8 +190,8 @@ order by created_at desc limit 1 \gset
 set role authenticated;
 set request.jwt.uid = '00000000-0000-0000-0000-000000000003';
 
-\echo 'expect delivered: correct code'
-select complete_delivery(:'p9_id', 'Recipient', null, null, :'p9_otp');
+\echo 'expect delivered: correct code, photo, and no recipient name (0028)'
+select complete_delivery(:'p9_id', null, :'p9_id' || '/photo-pod.jpg', null, :'p9_otp');
 
 \echo 'ATTACK: operator1 inserts an audit log row directly'
 set request.jwt.uid = '00000000-0000-0000-0000-000000000005';
@@ -577,6 +583,106 @@ select delete_staff_account('00000000-0000-0000-0000-000000000008');
 \echo 'ATTACK: a shipment is assigned to the deleted driver'
 update shipments set driver_id = '00000000-0000-0000-0000-000000000008', status = 'assigned'
 where id = (select id from shipments where status = 'confirmed' and driver_id is null limit 1);
+
+-- ── Migration 0028: COD confirmation, driver cancel and return ───────────
+\echo 'LEGITIMATE: operator1 books three shipments for driver1, who walks them forward (0028 setup)'
+set role authenticated;
+set request.jwt.uid = '00000000-0000-0000-0000-000000000005'; -- operator1
+insert into shipments (
+  customer_id, status, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, price, currency, payment_method, package_type, recipient_payment_type, cod_amount
+) values (
+  '00000000-0000-0000-0000-000000000001', 'confirmed',
+  'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 5, 10, 15, 'AED', 'cod', 'parcel', 'postpaid', 150
+) returning id \gset p28_
+insert into shipments (
+  customer_id, status, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, price, currency, payment_method, package_type
+) values (
+  '00000000-0000-0000-0000-000000000001', 'confirmed',
+  'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 5, 10, 12, 'AED', 'card', 'parcel'
+) returning id \gset p28c_
+insert into shipments (
+  customer_id, status, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
+  dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
+  distance_km, duration_minutes, price, currency, payment_method, package_type, recipient_payment_type, cod_amount
+) values (
+  '00000000-0000-0000-0000-000000000001', 'confirmed',
+  'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 5, 10, 15, 'AED', 'cod', 'parcel', 'postpaid', 80
+) returning id \gset p28r_
+update shipments set driver_id = '00000000-0000-0000-0000-000000000003', status = 'assigned'
+where id in (:'p28_id', :'p28c_id', :'p28r_id');
+
+set request.jwt.uid = '00000000-0000-0000-0000-000000000003'; -- driver1
+update shipments set status = 'driver_accepted' where id in (:'p28_id', :'p28c_id', :'p28r_id');
+update shipments set status = 'arrived_pickup' where id in (:'p28_id', :'p28r_id');
+update shipments set status = 'picked_up' where id in (:'p28_id', :'p28r_id');
+update shipments set status = 'in_transit' where id in (:'p28_id', :'p28r_id');
+update shipments set status = 'arrived_destination' where id = :'p28_id';
+insert into storage.objects (bucket_id, name, owner) values ('proof-of-delivery', :'p28_id' || '/photo.jpg', auth.uid());
+
+\echo 'expect 150 / 15: the COD record keeps the goods amount and the cash fee apart'
+select product_amount, delivery_fee_amount from cod_transactions where shipment_id = :'p28_id';
+
+\echo 'ATTACK: driver1 completes a postpaid delivery without confirming the COD was collected'
+select complete_delivery(p_shipment_id => :'p28_id', p_photo_path => :'p28_id' || '/photo.jpg');
+
+\echo 'LEGITIMATE: driver1 completes it with a photo and the COD confirmation, no recipient name'
+select complete_delivery(p_shipment_id => :'p28_id', p_photo_path => :'p28_id' || '/photo.jpg', p_cod_collected => true);
+
+\echo 'expect t / collected: the confirmation is on the proof and the COD record is collected'
+select pod.cod_collected, c.status, c.collected_at is not null as stamped
+from proof_of_delivery pod join cod_transactions c on c.shipment_id = pod.shipment_id
+where pod.shipment_id = :'p28_id';
+
+\echo 'ATTACK: driver6 cancels a shipment assigned to driver1'
+set request.jwt.uid = '00000000-0000-0000-0000-000000000006';
+select driver_cancel_shipment(:'p28c_id', 'not mine');
+
+\echo 'ATTACK: driver1 sets cancelled with a plain update, bypassing the function'
+set request.jwt.uid = '00000000-0000-0000-0000-000000000003';
+update shipments set status = 'cancelled', cancelled_reason = 'x' where id = :'p28c_id';
+
+\echo 'ATTACK: driver1 cancels without a reason'
+select driver_cancel_shipment(:'p28c_id', '   ');
+
+\echo 'ATTACK: driver1 cancels a shipment that is already picked up (it must be returned)'
+select driver_cancel_shipment(:'p28r_id', 'changed mind');
+
+\echo 'ATTACK: driver1 returns a shipment that was never picked up'
+select driver_return_shipment(:'p28c_id', 'no');
+
+\echo 'LEGITIMATE: driver1 cancels before pickup with a reason'
+select driver_cancel_shipment(:'p28c_id', 'Sender cancelled the order');
+
+\echo 'expect cancelled / Sender cancelled the order'
+select status, cancelled_reason from shipments where id = :'p28c_id';
+
+\echo 'ATTACK: driver1 marks a picked-up shipment delivered with a plain update, skipping proof'
+update shipments set status = 'delivered' where id = :'p28r_id';
+
+\echo 'LEGITIMATE: driver1 returns a picked-up shipment with a reason'
+select driver_return_shipment(:'p28r_id', 'Recipient refused the parcel');
+
+\echo 'expect returned / Recipient refused the parcel / 0 expected COD left'
+select status, delivery_failed_reason,
+  (select count(*) from cod_transactions where shipment_id = :'p28r_id' and status = 'expected') as expected_cod
+from shipments where id = :'p28r_id';
+
+\echo 'ATTACK: driver1 returns the same shipment again (returned is terminal)'
+select driver_return_shipment(:'p28r_id', 'again');
+
+reset role;
+\echo 'expect 1 / 1 / 0: the customer heard about both; the driver was not told "cancelled by the customer"'
+select
+  (select count(*) from notifications n join shipments s on n.body like s.tracking_number || '%'
+   where s.id = :'p28c_id' and n.type = 'shipment.cancelled_by_driver' and n.profile_id = s.customer_id) as customer_cancelled,
+  (select count(*) from notifications n join shipments s on n.body like s.tracking_number || '%'
+   where s.id = :'p28r_id' and n.type = 'shipment.returned' and n.profile_id = s.customer_id) as customer_returned,
+  (select count(*) from notifications n join shipments s on n.body like s.tracking_number || '%'
+   where s.id = :'p28c_id' and n.type = 'shipment.cancelled') as driver_told_customer_cancelled;
 
 -- ── Migration 0024: deleting users from Supabase Auth (dashboard / admin API)
 reset role;

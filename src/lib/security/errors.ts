@@ -47,6 +47,14 @@ export const DATABASE_MESSAGES: Record<string, string> = {
   "Provide at least one proof: photo, signature, OTP, or QR scan":
     "errors.db.proofRequired",
   "Photo not found for this shipment": "errors.db.photoNotFound",
+  "A delivery photo is required": "errors.db.photoRequired",
+  "Confirm the cash on delivery amount was collected":
+    "errors.db.codConfirmRequired",
+  "Only a shipment that has not been picked up can be cancelled":
+    "errors.db.cancelBeforePickup",
+  "Only a picked-up shipment can be returned": "errors.db.returnAfterPickup",
+  "A reason is required": "errors.db.outcomeReasonRequired",
+  "Keep the reason under 500 characters": "errors.db.outcomeReasonTooLong",
   "Only operator and driver accounts can be deleted":
     "errors.db.onlyStaffDeletable",
   "Only a manager can delete staff accounts": "errors.db.managerDeletesStaff",

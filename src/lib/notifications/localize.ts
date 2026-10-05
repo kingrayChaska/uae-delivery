@@ -48,6 +48,21 @@ const RULES: Rule[] = [
     values: code,
   },
   { type: 'shipment.cancelled', key: 'cancelled', body: /^(\S+) was cancelled by the customer\.$/, values: code },
+  // Driver cancellations and returns (migration 0028).
+  { type: 'shipment.cancelled_by_driver', key: 'cancelledByDriver', body: /^(\S+) was cancelled by the driver\.$/, values: code },
+  {
+    type: 'shipment.cancelled_by_driver',
+    key: 'cancelledByDriverStaff',
+    body: /^(\S+) was cancelled by the driver before pickup\.$/,
+    values: code,
+  },
+  { type: 'shipment.returned', key: 'returned', body: /^(\S+) is being returned to the sender\.$/, values: code },
+  {
+    type: 'shipment.returned',
+    key: 'returnedStaff',
+    body: /^(\S+) was not delivered and is being returned to the sender\.$/,
+    values: code,
+  },
   { type: 'shipment.assigned', key: 'assigned', body: /^You've been assigned (\S+)\.$/, values: code },
   {
     type: 'delivery.otp',

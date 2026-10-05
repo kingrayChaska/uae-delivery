@@ -5,9 +5,9 @@ import { isUuid } from '@/lib/security/validate';
 import { createClient } from '@/lib/supabase/server';
 import { safeErrorMessage } from '@/lib/security/errors';
 import { RATE_LIMIT_MESSAGE, checkRateLimit } from '@/lib/security/rate-limit';
-import { proofOfDeliverySchema, reportDeliveryFailedSchema } from '@/lib/driver/schemas';
+import { driverOutcomeSchema, proofOfDeliverySchema, reportDeliveryFailedSchema } from '@/lib/driver/schemas';
 
-import type { ProofOfDeliveryInput, ReportDeliveryFailedInput } from '@/lib/driver/schemas';
+import type { DriverOutcomeInput, ProofOfDeliveryInput, ReportDeliveryFailedInput } from '@/lib/driver/schemas';
 import type { ShipmentStatus } from '@/lib/types';
 
 export type DriverActionResult = { success: true } | { success: false; error: string };
@@ -97,6 +97,31 @@ export const reportDeliveryFailedAction = async (
   return { success: true };
 };
 
+// Before pickup the driver can cancel; after pickup the parcel can only go
+// back to the sender. driver_cancel_shipment / driver_return_shipment
+// (migration 0028) are SECURITY DEFINER and check the caller is the
+// assigned driver, the status allows it, and a reason was given — the
+// general update policy stays as narrow as it was.
+const runDriverOutcome = async (
+  fn: 'driver_cancel_shipment' | 'driver_return_shipment',
+  input: DriverOutcomeInput,
+): Promise<DriverActionResult> => {
+  await requireRole('driver');
+  const parsed = driverOutcomeSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc(fn, { p_shipment_id: parsed.data.shipmentId, p_reason: parsed.data.reason });
+  if (error) return { success: false, error: safeErrorMessage(error) };
+  return { success: true };
+};
+
+export const cancelShipmentAsDriverAction = async (input: DriverOutcomeInput): Promise<DriverActionResult> =>
+  runDriverOutcome('driver_cancel_shipment', input);
+
+export const returnShipmentAction = async (input: DriverOutcomeInput): Promise<DriverActionResult> =>
+  runDriverOutcome('driver_return_shipment', input);
+
 // Generation, storage, and delivery to the customer's notification feed
 // all happen inside issue_delivery_otp() (migration 0015), so the code
 // never passes through the driver's session. No SMS provider is
@@ -132,17 +157,19 @@ export const submitProofOfDeliveryAction = async (
     return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
   }
 
-  const { shipmentId, recipientName, photoPath, signaturePath, otpCode, qrToken, notes } = parsed.data;
+  const { shipmentId, photoPath, signaturePath, otpCode, qrToken, notes, codCollected } = parsed.data;
   const supabase = await createClient();
 
+  // No recipient name: the database decides from the shipment itself
+  // whether a COD confirmation is needed, never from collectsCod.
   const { data, error } = await supabase.rpc('complete_delivery', {
     p_shipment_id: shipmentId,
-    p_recipient_name: recipientName,
     p_photo_path: photoPath ?? null,
     p_signature_path: signaturePath ?? null,
     p_otp: otpCode || null,
     p_qr_token: qrToken || null,
     p_notes: notes || null,
+    p_cod_collected: codCollected,
   });
 
   if (error) return { success: false, error: safeErrorMessage(error) };

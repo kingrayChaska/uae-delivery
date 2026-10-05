@@ -18,10 +18,10 @@ insert into expected_transitions values
   ('confirmed', 'assigned'), ('confirmed', 'cancelled'),
   ('assigned', 'driver_accepted'), ('assigned', 'cancelled'), ('assigned', 'confirmed'),
   ('driver_accepted', 'arrived_pickup'), ('driver_accepted', 'cancelled'),
-  ('arrived_pickup', 'picked_up'), ('arrived_pickup', 'delivery_failed'),
-  ('picked_up', 'in_transit'),
-  ('in_transit', 'arrived_destination'), ('in_transit', 'delivery_failed'),
-  ('arrived_destination', 'delivered'), ('arrived_destination', 'delivery_failed'),
+  ('arrived_pickup', 'picked_up'), ('arrived_pickup', 'delivery_failed'), ('arrived_pickup', 'cancelled'),
+  ('picked_up', 'in_transit'), ('picked_up', 'returned'),
+  ('in_transit', 'arrived_destination'), ('in_transit', 'delivery_failed'), ('in_transit', 'returned'),
+  ('arrived_destination', 'delivered'), ('arrived_destination', 'delivery_failed'), ('arrived_destination', 'returned'),
   ('delivery_failed', 'assigned'), ('delivery_failed', 'returned');
   -- delivered, cancelled, returned: terminal (no outgoing transitions).
 

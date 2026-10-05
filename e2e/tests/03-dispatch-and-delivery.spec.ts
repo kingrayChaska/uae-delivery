@@ -44,7 +44,21 @@ test.describe.serial('Operator dispatch -> driver delivery with OTP proof -> cus
   test('a wrong OTP is refused; the code from the customer\'s own inbox completes the delivery', async ({ page, browser }) => {
     await login(page, DRIVER.email);
     await page.goto('/dashboard/driver/current');
-    await page.locator('#recipientName').fill('Sara Recipient');
+
+    // A delivery photo is required (migration 0028); no recipient name is
+    // asked for. Storage isn't part of the e2e stack, so answer the upload
+    // here and record the object the way Storage would, for
+    // complete_delivery()'s existence check.
+    await page.route('**/storage/v1/object/proof-of-delivery/**', async (route) => {
+      const path = decodeURIComponent(new URL(route.request().url()).pathname.split('/object/proof-of-delivery/')[1]);
+      sql(`insert into storage.objects (bucket_id, name) values ('proof-of-delivery', '${path.replace(/'/g, "''")}')`);
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: `proof-of-delivery/${path}` }) });
+    });
+    await expect(page.locator('#recipientName')).toHaveCount(0);
+    await page.locator('#podPhoto').setInputFiles({ name: 'pod.jpg', mimeType: 'image/jpeg', buffer: Buffer.from([0xff, 0xd8, 0xff, 0xd9]) });
+    await expect(page.getByText('Photo attached')).toBeVisible();
+
+    await page.getByText('More proof (optional)').click();
     await page.getByRole('button', { name: 'Send code to customer' }).click();
     await expect(page.getByPlaceholder('4-digit code')).toBeVisible();
 

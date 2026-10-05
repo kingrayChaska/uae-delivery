@@ -27,7 +27,7 @@
     "assignTo": "إسناد سائق للشحنة {code}",
     "finding": "جارٍ البحث عن السائقين المتاحين…",
     "noDrivers": "لم يتم العثور على سائقين.",
-    "fromPickup": "على بُعد {distance} من موقع الاستلام",
+    "fromPickup": "على بُعد {distance} من موقع الاستلام (خط مستقيم)",
     "locationUnknown": "الموقع غير معروف",
     "active": "{count, plural, zero {لا توجد توصيلات نشطة} one {توصيلة نشطة واحدة} two {توصيلتان نشطتان} few {# توصيلات نشطة} many {# توصيلة نشطة} other {# توصيلة نشطة}}",
     "assign": "إسناد",
@@ -70,7 +70,8 @@
     "history": "سجل الحالات",
     "markReturned": "تحديد كمُعادة",
     "marking": "جارٍ التحديد…",
-    "batch": "دفعة الشحنات"
+    "batch": "دفعة الشحنات",
+    "outcomeReason": "السبب ({status})"
   },
   "customers": {
     "meta": "العملاء · ParcelLink",

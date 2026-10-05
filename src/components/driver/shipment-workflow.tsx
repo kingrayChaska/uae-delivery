@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import Button from '@/components/ui/button';
 import FieldError from '@/components/ui/field-error';
 import Input from '@/components/ui/input';
+import DriverOutcomeButton from '@/components/driver/driver-outcome-button';
 import ProofOfDeliveryForm from '@/components/driver/proof-of-delivery-form';
 import VerifyPickupQr from '@/components/driver/verify-pickup-qr';
 import { useShipmentWorkflowActions } from '@/lib/hooks/use-shipment-workflow-actions';
@@ -23,6 +24,12 @@ const TRACKING_STATUSES: ShipmentStatus[] = [
 
 const FAILURE_ELIGIBLE_STATUSES: ShipmentStatus[] = ['arrived_pickup', 'in_transit', 'arrived_destination'];
 
+// Mirrors driver_cancel_shipment / driver_return_shipment (migration 0028):
+// a parcel that hasn't been collected can be cancelled; once it's in the
+// driver's hands it can only go back to the sender.
+const CANCEL_ELIGIBLE_STATUSES: ShipmentStatus[] = ['driver_accepted', 'arrived_pickup'];
+const RETURN_ELIGIBLE_STATUSES: ShipmentStatus[] = ['picked_up', 'in_transit', 'arrived_destination'];
+
 const navigationUrl = (coordinates: Coordinates) =>
   `https://www.google.com/maps/dir/?api=1&destination=${coordinates.lat},${coordinates.lng}`;
 
@@ -31,9 +38,12 @@ type ShipmentWorkflowProps = {
   status: ShipmentStatus;
   pickup: Coordinates;
   dropoff: Coordinates;
+  // What the recipient pays at the door (lib/shipment/collection.ts).
+  codToCollect: number;
+  currency: string;
 };
 
-const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff }: ShipmentWorkflowProps) => {
+const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff, codToCollect, currency }: ShipmentWorkflowProps) => {
   const t = useTranslations('driver.workflow');
   const tCommon = useTranslations('common.actions');
   const { isPending, error, accept, decline, advance, reportFailed } = useShipmentWorkflowActions(shipmentId);
@@ -79,6 +89,22 @@ const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff }: ShipmentWorkf
     </div>
   ) : null;
 
+  const outcomeAction = CANCEL_ELIGIBLE_STATUSES.includes(status) ? (
+    <DriverOutcomeButton shipmentId={shipmentId} outcome="cancel" />
+  ) : RETURN_ELIGIBLE_STATUSES.includes(status) ? (
+    <DriverOutcomeButton shipmentId={shipmentId} outcome="return" />
+  ) : null;
+
+  // Secondary exits from the happy path, kept below the main action.
+  const exceptions =
+    outcomeAction || failureForm ? (
+      <div className="flex flex-col gap-3 border-t pt-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('problem')}</p>
+        {outcomeAction}
+        {failureForm}
+      </div>
+    ) : null;
+
   return (
     <div className="flex flex-col gap-4">
       {error ? <FieldError message={error} /> : null}
@@ -113,7 +139,6 @@ const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff }: ShipmentWorkf
           <Button type="button" disabled={isPending} onClick={() => advance('picked_up')}>
             {t('confirmPickup')}
           </Button>
-          {failureForm}
         </div>
       ) : null}
 
@@ -133,16 +158,14 @@ const ShipmentWorkflow = ({ shipmentId, status, pickup, dropoff }: ShipmentWorkf
           <Button type="button" disabled={isPending} onClick={() => advance('arrived_destination')}>
             {t('arrived')}
           </Button>
-          {failureForm}
         </div>
       ) : null}
 
       {status === 'arrived_destination' ? (
-        <div className="flex flex-col gap-3">
-          <ProofOfDeliveryForm shipmentId={shipmentId} />
-          {failureForm}
-        </div>
+        <ProofOfDeliveryForm shipmentId={shipmentId} codToCollect={codToCollect} currency={currency} />
       ) : null}
+
+      {exceptions}
     </div>
   );
 };

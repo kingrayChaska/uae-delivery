@@ -19,7 +19,7 @@ import type { PaymentMethod } from '@/lib/types';
 
 export const REVIEW_FILTERS = ['all', 'bookable', 'valid', 'warning', 'invalid'] as const;
 export type ReviewFilter = (typeof REVIEW_FILTERS)[number];
-export const REVIEW_SORTS = ['row', 'status', 'fee', 'distance', 'date'] as const;
+export const REVIEW_SORTS = ['row', 'status', 'cod', 'date'] as const;
 export type ReviewSort = (typeof REVIEW_SORTS)[number];
 
 export const REVIEW_PAGE_SIZE = 25;
@@ -33,7 +33,7 @@ const merge = (rows: BulkReviewRow[], updates: BulkReviewRow[]) => {
 };
 
 const searchable = (row: BulkReviewRow) =>
-  [row.rowNumber, ...Object.values(row.input), row.pickupAddress, row.deliveryAddress].join(' ').toLowerCase();
+  [row.rowNumber, ...Object.values(row.input), row.deliveryAddress].join(' ').toLowerCase();
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -142,9 +142,8 @@ export const useBulkReview = (batchId: string, initialRows: BulkReviewRow[], loa
     const by: Record<ReviewSort, (a: BulkReviewRow, b: BulkReviewRow) => number> = {
       row: (a, b) => a.rowNumber - b.rowNumber,
       status: (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || a.rowNumber - b.rowNumber,
-      fee: (a, b) => (b.deliveryFee ?? -1) - (a.deliveryFee ?? -1) || a.rowNumber - b.rowNumber,
-      distance: (a, b) => (b.distanceKm ?? -1) - (a.distanceKm ?? -1) || a.rowNumber - b.rowNumber,
-      date: (a, b) => a.input.delivery_date.localeCompare(b.input.delivery_date) || a.rowNumber - b.rowNumber,
+      cod: (a, b) => (b.codAmount ?? -1) - (a.codAmount ?? -1) || a.rowNumber - b.rowNumber,
+      date: (a, b) => (a.input.date ?? '').localeCompare(b.input.date ?? '') || a.rowNumber - b.rowNumber,
     };
     return filtered.sort(by[sort]);
   }, [rows, query, filter, sort]);

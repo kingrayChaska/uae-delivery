@@ -64,8 +64,17 @@ export const GET = async (request: NextRequest) => {
     case 'cod': {
       const codRows = await listAllCodTransactions();
       csv = toCsv(
-        ['Tracking', 'Driver', 'Amount', 'Status', 'Collected at', 'Reconciled at'],
-        codRows.map((r) => [r.trackingNumber, r.driverName, r.amount.toFixed(2), r.status, r.collectedAt ?? '', r.reconciledAt ?? '']),
+        ['Tracking', 'Driver', 'From recipient', 'Delivery fee (cash)', 'Total', 'Status', 'Collected at', 'Reconciled at'],
+        codRows.map((r) => [
+          r.trackingNumber,
+          r.driverName,
+          r.productAmount.toFixed(2),
+          r.deliveryFeeAmount.toFixed(2),
+          r.amount.toFixed(2),
+          r.status,
+          r.collectedAt ?? '',
+          r.reconciledAt ?? '',
+        ]),
       );
       break;
     }

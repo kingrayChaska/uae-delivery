@@ -53,6 +53,7 @@ const MerchantBatchPage = async ({
             id: batch.id,
             reference: batch.reference,
             name: batch.fileName ?? batch.name,
+            pickupAddress: batch.pickupAddress,
             bookingError: batch.bookingError,
             uploaderName: batch.uploaderName,
           }}

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Eye, LoaderCircle, Search, Trash2, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, Banknote, CalendarClock, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Eye, LoaderCircle, MapPin, Search, Trash2, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import Badge from '@/components/ui/badge';
@@ -23,7 +23,7 @@ import type { BulkReviewRow } from '@/services/bulk/merchant-bulk';
 import type { PaymentMethod } from '@/lib/types';
 
 type BulkReviewProps = {
-  batch: { id: string; reference: string; name: string; bookingError: string | null; uploaderName: string };
+  batch: { id: string; reference: string; name: string; pickupAddress: string | null; bookingError: string | null; uploaderName: string };
   initialRows: BulkReviewRow[];
   // When the server read initialRows (rows finished later are synced in).
   loadedAt: string;
@@ -40,14 +40,9 @@ const STATUS_BADGE = {
   pending: { variant: 'secondary', icon: LoaderCircle },
 } as const;
 
-const COVERAGE_CLASS = {
-  active: 'text-success',
-  unverified: 'text-warning-foreground',
-  contact_support: 'text-destructive',
-  outside_uae: 'text-destructive',
-} as const;
-
-const ALL_COLUMNS = ['row', 'recipient', 'pickup', 'delivery', 'distance', 'fee', 'cod', 'date', 'coverage', 'status', 'problems', 'actions'] as const;
+// What the merchant uploaded, per row. The pickup address, Next Day and
+// COD are the same for the whole batch, so they're shown once above.
+const ALL_COLUMNS = ['row', 'recipient', 'phone', 'delivery', 'package', 'quantity', 'weight', 'cod', 'date', 'status', 'problems', 'actions'] as const;
 
 // Stages 2–4: validating → review/fix → confirm & book. Everything shown
 // here was worked out by the server; the browser only displays it.
@@ -75,6 +70,29 @@ const BulkReview = ({ batch, initialRows, loadedAt, readOnly, paymentMethods }: 
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('review.title')}</h1>
         <p className="text-muted-foreground">{t('review.subtitle', { file: batch.name })}</p>
       </div>
+
+      {/* Shared by every shipment in the batch */}
+      <Card>
+        <CardContent className="grid gap-4 pt-6 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div className="flex items-start gap-3">
+            <MapPin className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+            <div>
+              <p className="text-sm text-muted-foreground">{t('review.pickup')}</p>
+              <p className="font-medium">{batch.pickupAddress ?? '—'}</p>
+            </div>
+          </div>
+          <ul className="flex flex-wrap gap-2 text-sm">
+            <li className="flex items-center gap-1.5 rounded-full border bg-secondary/40 px-3 py-1">
+              <CalendarClock className="size-4 text-primary" aria-hidden />
+              {t('upload.fixedNextDay')}
+            </li>
+            <li className="flex items-center gap-1.5 rounded-full border bg-secondary/40 px-3 py-1">
+              <Banknote className="size-4 text-primary" aria-hidden />
+              {t('upload.fixedCod')}
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
 
       {readOnly ? (
         <div role="status" className="flex items-start gap-3 rounded-2xl border bg-muted/40 p-4 text-sm">
@@ -183,25 +201,22 @@ const BulkReview = ({ batch, initialRows, loadedAt, readOnly, paymentMethods }: 
                   return (
                     <tr key={row.id} className="border-t align-top">
                       <td className="px-3 py-2 font-brand-mono text-xs text-muted-foreground">{row.rowNumber}</td>
-                      <td className="px-3 py-2">
-                        <p className="font-medium">{row.input.recipient_name || '—'}</p>
-                        <p dir="ltr" className="font-brand-mono text-xs text-muted-foreground rtl:text-right">
-                          {row.input.recipient_phone}
-                        </p>
+                      <td className="px-3 py-2 font-medium">{row.input.recipient_name || '—'}</td>
+                      <td dir="ltr" className="px-3 py-2 font-brand-mono text-xs whitespace-nowrap rtl:text-right">
+                        {row.input.recipient_phone || '—'}
                       </td>
-                      <td className="max-w-48 px-3 py-2">
-                        <p className="line-clamp-2">{row.pickupAddress ?? row.input.pickup_address}</p>
-                      </td>
-                      <td className="max-w-48 px-3 py-2">
+                      <td className="max-w-56 px-3 py-2">
                         <p className="line-clamp-2">{row.deliveryAddress ?? row.input.delivery_address}</p>
                       </td>
-                      <td className="px-3 py-2 font-brand-mono whitespace-nowrap">{row.distanceKm !== null ? format.km(row.distanceKm) : '—'}</td>
-                      <td className="px-3 py-2 font-brand-mono whitespace-nowrap">{row.deliveryFee !== null ? format.money(row.deliveryFee) : '—'}</td>
-                      <td className="px-3 py-2 font-brand-mono whitespace-nowrap">{row.codAmount ? format.money(row.codAmount) : '—'}</td>
-                      <td className="px-3 py-2 whitespace-nowrap">{row.input.delivery_date || '—'}</td>
-                      <td className={`px-3 py-2 whitespace-nowrap ${row.coverage ? COVERAGE_CLASS[row.coverage] : ''}`}>
-                        {row.coverage ? t(`coverage.${row.coverage}`) : '—'}
+                      <td className="max-w-40 px-3 py-2">
+                        <p className="line-clamp-2">{row.input.package_description || '—'}</p>
                       </td>
+                      <td className="px-3 py-2 font-brand-mono">{row.input.quantity || '—'}</td>
+                      <td className="px-3 py-2 font-brand-mono whitespace-nowrap">{row.input.weight_kg ? t('review.weight', { weight: row.input.weight_kg }) : '—'}</td>
+                      <td className="px-3 py-2 font-brand-mono whitespace-nowrap">
+                        {row.codAmount ? format.money(row.codAmount) : row.input.cod_amount || '—'}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">{row.input.date || '—'}</td>
                       <td className="px-3 py-2">
                         <Badge variant={badge.variant} className="gap-1">
                           <Icon className={`size-3 ${row.status === 'pending' ? 'animate-spin motion-reduce:animate-none' : ''}`} aria-hidden />

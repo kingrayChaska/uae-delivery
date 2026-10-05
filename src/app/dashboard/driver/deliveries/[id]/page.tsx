@@ -7,6 +7,7 @@ import ShipmentStatusBadge from '@/components/shipment/shipment-status-badge';
 import ShipmentWorkflow from '@/components/driver/shipment-workflow';
 import RouteMap from '@/components/maps/lazy-route-map';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
+import { cashCollection } from '@/lib/shipment/collection';
 import { getShipmentDetail } from '@/services/shipments/get-shipment';
 import { getFormat } from '@/i18n/server';
 
@@ -37,9 +38,10 @@ const DriverDeliveryDetailPage = async ({ params }: { params: Promise<{ id: stri
   ]);
   const { shipment, packageImageUrl } = detail;
   const terminal = shipment.status in TERMINAL_MESSAGES ? TERMINAL_MESSAGES[shipment.status as keyof typeof TERMINAL_MESSAGES] : null;
-  // Same split the COD record uses (sync_shipment_cod_transaction, 0022).
-  const collectGoods = shipment.recipientPaymentType === 'postpaid' ? shipment.codAmount : 0;
-  const collectFee = shipment.paymentMethod === 'cod' ? shipment.price : 0;
+  // The recipient pays the COD amount only — the delivery fee is the
+  // sender's and is never added on top (lib/shipment/collection.ts).
+  const { fromRecipient, senderCashFee } = cashCollection(shipment);
+  const terminalReason = shipment.status === 'cancelled' ? shipment.cancelledReason : shipment.deliveryFailedReason;
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -65,12 +67,21 @@ const DriverDeliveryDetailPage = async ({ params }: { params: Promise<{ id: stri
                   status={shipment.status}
                   pickup={shipment.pickup.coordinates}
                   dropoff={shipment.dropoff.coordinates}
+                  codToCollect={fromRecipient}
+                  currency={shipment.currency}
                 />
               </CardContent>
             </Card>
           ) : (
             <Card>
-              <CardContent className="pt-6 text-sm text-muted-foreground">{t(terminal)}</CardContent>
+              <CardContent className="flex flex-col gap-1 pt-6 text-sm text-muted-foreground">
+                <p>{t(terminal)}</p>
+                {terminal !== 'complete' && terminalReason ? (
+                  <p>
+                    {t('reason')}: <span className="text-foreground">{terminalReason}</span>
+                  </p>
+                ) : null}
+              </CardContent>
             </Card>
           )}
 
@@ -112,29 +123,22 @@ const DriverDeliveryDetailPage = async ({ params }: { params: Promise<{ id: stri
                 // eslint-disable-next-line @next/next/no-img-element -- signed Supabase Storage URL
                 <img src={packageImageUrl} alt={t('photoAlt')} className="mt-1 h-32 w-32 rounded-md object-cover" />
               ) : null}
-              {collectGoods + collectFee > 0 ? (
+              {fromRecipient > 0 ? (
                 <div className="flex flex-col gap-1 rounded-xl border-2 border-primary/30 bg-secondary/40 p-3 font-brand-mono">
                   <p className="font-sans text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('collectTitle')}</p>
-                  {collectGoods > 0 ? (
-                    <p className="flex justify-between gap-4">
-                      <span className="font-sans">{t('goods')}</span>
-                      <span>{format.money(collectGoods, shipment.currency)}</span>
-                    </p>
-                  ) : null}
-                  {collectFee > 0 ? (
-                    <p className="flex justify-between gap-4">
-                      <span className="font-sans">{t('fee')}</span>
-                      <span>{format.money(collectFee, shipment.currency)}</span>
-                    </p>
-                  ) : null}
-                  <p className="flex justify-between gap-4 border-t pt-1 text-base font-semibold">
-                    <span className="font-sans">{t('total')}</span>
-                    <span>{format.money(collectGoods + collectFee, shipment.currency)}</span>
+                  <p className="flex justify-between gap-4 text-base font-semibold">
+                    <span className="font-sans">{t('fromRecipient')}</span>
+                    <span>{format.money(fromRecipient, shipment.currency)}</span>
                   </p>
                 </div>
               ) : (
                 <p className="border-t pt-2 text-muted-foreground">{t('prepaid')}</p>
               )}
+              {senderCashFee > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {t('senderFee', { amount: format.money(senderCashFee, shipment.currency) })}
+                </p>
+              ) : null}
             </CardContent>
           </Card>
         </div>

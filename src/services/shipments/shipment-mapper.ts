@@ -56,6 +56,8 @@ export type ShipmentRow = {
   package_height_cm: number | string | null;
   is_fragile: boolean;
   package_image_url: string | null;
+  cancelled_reason: string | null;
+  delivery_failed_reason: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -118,9 +120,11 @@ export const mapRowToShipment = (row: ShipmentRow): Shipment => ({
   packageWidthCm: numOrNull(row.package_width_cm),
   packageHeightCm: numOrNull(row.package_height_cm),
   isFragile: row.is_fragile,
+  cancelledReason: row.cancelled_reason ?? null,
+  deliveryFailedReason: row.delivery_failed_reason ?? null,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
 
 export const SHIPMENT_SELECT_COLUMNS =
-  'id, tracking_number, customer_id, driver_id, status, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone, dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone, pickup_building, pickup_unit, pickup_floor, pickup_instructions, pickup_place, dropoff_building, dropoff_unit, dropoff_floor, dropoff_instructions, dropoff_place, distance_km, duration_minutes, price, currency, payment_method, payment_status, delivery_type, recipient_payment_type, cod_amount, product_value, base_charge, distance_charge, weight_charge, cod_charge, business_account_id, batch_id, delivery_date, batch:shipment_batches(reference), package_type, package_description, package_quantity, package_weight_kg, package_length_cm, package_width_cm, package_height_cm, is_fragile, package_image_url, created_at, updated_at';
+  'id, tracking_number, customer_id, driver_id, status, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone, dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone, pickup_building, pickup_unit, pickup_floor, pickup_instructions, pickup_place, dropoff_building, dropoff_unit, dropoff_floor, dropoff_instructions, dropoff_place, distance_km, duration_minutes, price, currency, payment_method, payment_status, delivery_type, recipient_payment_type, cod_amount, product_value, base_charge, distance_charge, weight_charge, cod_charge, business_account_id, batch_id, delivery_date, batch:shipment_batches(reference), package_type, package_description, package_quantity, package_weight_kg, package_length_cm, package_width_cm, package_height_cm, is_fragile, package_image_url, cancelled_reason, delivery_failed_reason, created_at, updated_at';

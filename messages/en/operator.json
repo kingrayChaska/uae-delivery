@@ -27,7 +27,7 @@
     "assignTo": "Assign a driver to {code}",
     "finding": "Finding available drivers…",
     "noDrivers": "No drivers found.",
-    "fromPickup": "{distance} from pickup",
+    "fromPickup": "{distance} from pickup (straight line)",
     "locationUnknown": "Location unknown",
     "active": "{count, plural, one {# active delivery} other {# active deliveries}}",
     "assign": "Assign",
@@ -70,7 +70,8 @@
     "history": "Status history",
     "markReturned": "Mark Returned",
     "marking": "Marking…",
-    "batch": "Bulk batch"
+    "batch": "Bulk batch",
+    "outcomeReason": "Reason ({status})"
   },
   "customers": {
     "meta": "Customers · ParcelLink",

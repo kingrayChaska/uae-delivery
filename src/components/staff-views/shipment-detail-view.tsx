@@ -34,6 +34,14 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
     getFormat(),
   ]);
 
+  // Why it ended without a delivery: cancelled (by the customer, staff or —
+  // before pickup — the driver), failed, or returned to the sender.
+  const outcomeReason =
+    shipment.status === 'cancelled'
+      ? shipment.cancelledReason
+      : shipment.status === 'delivery_failed' || shipment.status === 'returned'
+        ? shipment.deliveryFailedReason
+        : null;
   const canAssign = shipment.status === 'confirmed' && !shipment.driverId;
   const canReassign = shipment.status === 'assigned' || shipment.status === 'delivery_failed';
   const packageDetails = [
@@ -68,6 +76,12 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
                 <span className="text-muted-foreground">{t('driver')}</span>
                 <span>{driverName ?? t('unassigned')}</span>
               </div>
+              {outcomeReason ? (
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">{t('outcomeReason', { status: tShipments(`status.${shipment.status}`) })}</span>
+                  <span className="wrap-break-word text-end">{outcomeReason}</span>
+                </div>
+              ) : null}
               {batch ? (
                 <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground">{t('batch')}</span>

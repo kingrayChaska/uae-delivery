@@ -135,7 +135,8 @@
     "signatureAltNamed": "Recipient signature of {name}",
     "signatureCaption": "Recipient signature",
     "notes": "Driver’s note",
-    "missing": "This shipment is marked delivered, but no proof of delivery was recorded for it. If anything looks wrong, contact support and we’ll look into it."
+    "missing": "This shipment is marked delivered, but no proof of delivery was recorded for it. If anything looks wrong, contact support and we’ll look into it.",
+    "codCollected": "COD collected"
   },
   "label": {
     "trackingNumber": "Tracking Number",
@@ -155,5 +156,9 @@
     "amountToCollect": "Amount to collect from recipient",
     "nothingToCollect": "Prepaid — nothing to collect",
     "printOrDownload": "Print label / Save as PDF"
+  },
+  "codLines": {
+    "fromRecipient": "from recipient",
+    "senderFee": "+ {fee} delivery fee paid in cash by the sender · {total} in total"
   }
 }

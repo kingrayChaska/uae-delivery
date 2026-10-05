@@ -64,6 +64,12 @@
     "distanceLimit": "This delivery is {distance} km, beyond ParcelLink’s {limit} km delivery limit.",
     "invalidTransition": "A shipment can’t move from “{from}” to “{to}”.",
     "driverStatus": "Drivers can’t set the status to “{status}”.",
-    "applicationLocked": "This application can’t be edited while it’s “{status}”."
+    "applicationLocked": "This application can’t be edited while it’s “{status}”.",
+    "photoRequired": "A delivery photo is required.",
+    "codConfirmRequired": "Confirm you collected the cash-on-delivery amount.",
+    "cancelBeforePickup": "Only a shipment that hasn’t been picked up can be cancelled. Return it to the sender instead.",
+    "returnAfterPickup": "Only a picked-up shipment can be returned.",
+    "outcomeReasonRequired": "Enter a reason.",
+    "outcomeReasonTooLong": "Keep the reason under 500 characters."
   }
 }
