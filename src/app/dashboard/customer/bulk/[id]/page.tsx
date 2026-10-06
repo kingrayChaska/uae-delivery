@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import BatchDetail from '@/components/bulk/batch-detail';
 import BulkReview from '@/components/bulk/merchant/bulk-review';
 import RefreshWhile from '@/components/bulk/merchant/refresh-while';
+import InvoiceButton from '@/components/invoices/invoice-button';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { isUuid } from '@/lib/security/validate';
 import { parsePage } from '@/lib/pagination';
@@ -15,6 +16,7 @@ import { cardPaymentsLive } from '@/lib/payments';
 import { PAYMENT_METHODS } from '@/lib/types';
 import { getBatchDetail } from '@/services/bulk/list-batches';
 import { getMerchantBatch, listBatchRows, reconcileStaleBooking } from '@/services/bulk/merchant-bulk';
+import { getInvoiceNumberFor } from '@/services/invoices/get-invoice';
 
 import type { Metadata } from 'next';
 
@@ -100,7 +102,7 @@ const MerchantBatchPage = async ({
     );
   }
 
-  const detail = await getBatchDetail(id, parsePage(query.page));
+  const [detail, invoiceNumber] = await Promise.all([getBatchDetail(id, parsePage(query.page)), getInvoiceNumberFor({ batchId: id })]);
   if (!detail) notFound();
 
   return (
@@ -120,12 +122,18 @@ const MerchantBatchPage = async ({
         shipmentBasePath="/dashboard/customer/deliveries"
         pageHref={`/dashboard/customer/bulk/${id}`}
         actions={
-          <Button asChild variant="outline" size="sm">
-            <a href={`/api/merchant/bulk/${id}/report`} download>
-              <Download aria-hidden />
-              {t('state.report')}
-            </a>
-          </Button>
+          <>
+            {/* One invoice for the whole bulk shipment (migration 0031). */}
+            {invoiceNumber || detail.shipmentCount > 0 ? (
+              <InvoiceButton subject={{ batchId: id }} invoiceNumber={invoiceNumber} invoiceBasePath="/dashboard/customer/invoices" />
+            ) : null}
+            <Button asChild variant="outline" size="sm">
+              <a href={`/api/merchant/bulk/${id}/report`} download>
+                <Download aria-hidden />
+                {t('state.report')}
+              </a>
+            </Button>
+          </>
         }
       />
     </div>

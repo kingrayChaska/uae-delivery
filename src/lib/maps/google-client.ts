@@ -475,6 +475,14 @@ const routeWaypoint = ({ coordinates, placeId }: RouteWaypoint) =>
     ? { placeId }
     : { location: { latLng: latLng(coordinates) }, vehicleStopover: true };
 
+// Toll roads (Salik), highways and ferries are all allowed, stated
+// explicitly so the route Google returns is the ordinary driving route a
+// driver takes — never a toll-avoiding detour or shortcut. These are
+// Google's defaults; pinning them keeps a future default change from
+// silently changing every price. Tolls never change the distance either:
+// pricing uses Google's total distanceMeters exactly as returned.
+const ROUTE_MODIFIERS = { avoidTolls: false, avoidHighways: false, avoidFerries: false };
+
 export const buildRouteRequest = (origin: RouteWaypoint, destination: RouteWaypoint, key: string): ApiRequest => ({
   url: `${routesBase()}/directions/v2:computeRoutes`,
   method: 'POST',
@@ -484,6 +492,7 @@ export const buildRouteRequest = (origin: RouteWaypoint, destination: RouteWaypo
     destination: routeWaypoint(destination),
     travelMode: 'DRIVE',
     routingPreference: 'TRAFFIC_UNAWARE',
+    routeModifiers: ROUTE_MODIFIERS,
     computeAlternativeRoutes: false,
     units: 'METRIC',
     regionCode: 'ae',
@@ -525,8 +534,12 @@ export const parseRouteResponse = (json: RouteResponse): RouteResult => {
   if (!route) throw new MapsProviderError('Unable to calculate a route between these locations');
   const parsedSeconds = Number.parseFloat((route.duration ?? '0s').replace(/s$/, ''));
   const seconds = Number.isFinite(parsedSeconds) ? parsedSeconds : 0;
-  // distanceMeters is omitted when zero; validateRoute refuses that.
+  // distanceMeters is omitted when zero; validateRoute refuses that. It is
+  // the whole trip's driving distance and is used as-is — no adjustment.
   const meters = route.distanceMeters ?? 0;
+  if (typeof meters !== 'number' || !Number.isFinite(meters) || meters < 0) {
+    throw new MapsProviderError('Google returned an invalid route distance');
+  }
   return {
     distanceMeters: meters,
     distanceKm: meters / 1000,

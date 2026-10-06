@@ -54,7 +54,24 @@
     "empty": "لا توجد شحنات بعد",
     "newMeta": "شحنة جديدة · ParcelLink",
     "filteredBy": "عرض دفعة الشحنات",
-    "clearFilter": "عرض كل الشحنات"
+    "clearFilter": "عرض كل الشحنات",
+    "categoriesLabel": "فئات الشحنات",
+    "category": {
+      "all": "الكل",
+      "individual": "الأفراد",
+      "merchant": "التجار",
+      "bulk": "الشحنات المجمّعة"
+    },
+    "totalEntries": "{count, plural, zero {لا عناصر} one {عنصر واحد} two {عنصران} few {# عناصر} many {# عنصرًا} other {# عنصر}} · الشحنة المجمّعة عنصر واحد",
+    "totalBulk": "{count, plural, zero {لا شحنات مجمّعة} one {شحنة مجمّعة واحدة} two {شحنتان مجمّعتان} few {# شحنات مجمّعة} many {# شحنة مجمّعة} other {# شحنة مجمّعة}}",
+    "emptyCategory": {
+      "all": "لا توجد شحنات بعد.",
+      "individual": "لا توجد شحنات لعملاء أفراد.",
+      "merchant": "لا توجد شحنات للتجار.",
+      "bulk": "لا توجد شحنات مجمّعة."
+    },
+    "loadError": "تعذّر تحميل الشحنات. يرجى المحاولة مرة أخرى.",
+    "retry": "إعادة المحاولة"
   },
   "shipmentDetail": {
     "meta": "الشحنة · ParcelLink",
@@ -70,6 +87,11 @@
     "history": "سجل الحالات",
     "markReturned": "تحديد كمُعادة",
     "marking": "جارٍ التحديد…",
+    "markReturnedTitle": "تحديد هذه الشحنة كمُعادة؟",
+    "markReturnedDescription": "سيُحدَّد هذا الشحن على أنه مُعاد وسيُسجَّل السبب في سجل التدقيق.",
+    "markReturnedConfirm": "تحديد كمُعاد",
+    "reasonLabel": "سبب الإعادة",
+    "reasonPlaceholder": "مثل: رفض المستلم الطرد",
     "batch": "دفعة الشحنات",
     "outcomeReason": "السبب ({status})"
   },
@@ -84,7 +106,24 @@
       "paid": "إجمالي المدفوع"
     },
     "history": "سجل الشحنات",
-    "noShipments": "لا توجد شحنات بعد."
+    "noShipments": "لا توجد شحنات بعد.",
+    "searchLabel": "البحث عن العملاء",
+    "searchPlaceholder": "اسم العميل أو الشركة",
+    "searchHint": "ابحث باسم العميل الفرد أو باسم شركة التاجر.",
+    "search": "بحث",
+    "clear": "مسح البحث",
+    "results": "{count, plural, zero {لا عملاء} one {عميل واحد} two {عميلان} few {# عملاء} many {# عميلًا} other {# عميل}} مطابق لـ «{query}»",
+    "noResults": "لا يوجد عملاء مطابقون لـ «{query}».",
+    "noResultsHint": "تحقق من الإملاء، أو جرّب جزءًا من الاسم.",
+    "loadError": "تعذّر تحميل العملاء. يرجى المحاولة مرة أخرى.",
+    "activityError": "تعذّر تحميل نشاط الشحنات. يرجى المحاولة مرة أخرى.",
+    "retry": "إعادة المحاولة",
+    "accountType": {
+      "individual": "فرد",
+      "merchant": "تاجر"
+    },
+    "inactive": "غير نشط",
+    "companyOf": "تاجر · {company}"
   },
   "drivers": {
     "meta": "السائقون · ParcelLink",
@@ -162,10 +201,15 @@
     "draftRows": "{count, plural, zero {لا صفوف للمراجعة} one {صف واحد للمراجعة} two {صفان للمراجعة} few {# صفوف للمراجعة} many {# صفًا للمراجعة} other {# صف للمراجعة}}",
     "openInShipments": "فتح في قائمة الشحنات"
   },
+  "validation": {
+    "reason": "أدخل سببًا",
+    "reasonTooLong": "يجب ألا يتجاوز السبب 500 حرف."
+  },
   "errors": {
     "notFound": "غير موجود",
     "shipmentNotFound": "لم يتم العثور على الشحنة",
     "notAwaiting": "هذه الشحنة ليست بانتظار الإسناد",
-    "cannotReassign": "لم يعد بالإمكان إعادة إسناد هذه الشحنة"
+    "cannotReassign": "لم يعد بالإمكان إعادة إسناد هذه الشحنة",
+    "cannotMarkReturned": "لم يعد بالإمكان تحديد هذه الشحنة كمُعادة"
   }
 }

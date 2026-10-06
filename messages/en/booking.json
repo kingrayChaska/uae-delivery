@@ -67,6 +67,7 @@
     "serviceTitle": "Delivery service",
     "servicePrices": "Prices are for this route.",
     "servicePricesMerchant": "Prices are for this route at your merchant rate.",
+    "serviceChoose": "Choose how quickly it should arrive. Your delivery fee is shown on the next step, before you confirm.",
     "notAvailableBeyond": "Not available beyond {distance}",
     "detailsTitle": "Package details",
     "type": "Shipment type",
@@ -200,6 +201,7 @@
   },
   "routeSummary": {
     "calculating": "Calculating route and delivery price…",
+    "calculatingRoute": "Calculating the driving route…",
     "distance": "Driving distance",
     "duration": "Estimated drive time",
     "price": "Delivery price",

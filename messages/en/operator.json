@@ -54,7 +54,24 @@
     "empty": "No shipments yet",
     "newMeta": "New shipment · ParcelLink",
     "filteredBy": "Showing bulk batch",
-    "clearFilter": "Show all shipments"
+    "clearFilter": "Show all shipments",
+    "categoriesLabel": "Shipment categories",
+    "category": {
+      "all": "All",
+      "individual": "Individual",
+      "merchant": "Merchant",
+      "bulk": "Bulk Shipments"
+    },
+    "totalEntries": "{count, plural, one {# entry} other {# entries}} · a bulk shipment is one entry",
+    "totalBulk": "{count, plural, one {# bulk shipment} other {# bulk shipments}}",
+    "emptyCategory": {
+      "all": "No shipments yet.",
+      "individual": "No individual customer shipments found.",
+      "merchant": "No merchant shipments found.",
+      "bulk": "No bulk shipments found."
+    },
+    "loadError": "Unable to load shipments. Please try again.",
+    "retry": "Try again"
   },
   "shipmentDetail": {
     "meta": "Shipment · ParcelLink",
@@ -70,6 +87,11 @@
     "history": "Status history",
     "markReturned": "Mark Returned",
     "marking": "Marking…",
+    "markReturnedTitle": "Mark this delivery as returned?",
+    "markReturnedDescription": "This shipment will be moved to Returned and the reason will be recorded for audit purposes.",
+    "markReturnedConfirm": "Mark as Returned",
+    "reasonLabel": "Reason for return",
+    "reasonPlaceholder": "e.g. Recipient refused the parcel",
     "batch": "Bulk batch",
     "outcomeReason": "Reason ({status})"
   },
@@ -84,7 +106,24 @@
       "paid": "Total Paid"
     },
     "history": "Shipment history",
-    "noShipments": "No shipments yet."
+    "noShipments": "No shipments yet.",
+    "searchLabel": "Search customers",
+    "searchPlaceholder": "Customer or company name",
+    "searchHint": "Search by an individual customer’s name or a merchant’s company name.",
+    "search": "Search",
+    "clear": "Clear search",
+    "results": "{count, plural, one {# customer} other {# customers}} matching “{query}”",
+    "noResults": "No customers match “{query}”.",
+    "noResultsHint": "Check the spelling, or try part of the name.",
+    "loadError": "Unable to load customers. Please try again.",
+    "activityError": "Unable to load shipment activity. Please try again.",
+    "retry": "Try again",
+    "accountType": {
+      "individual": "Individual",
+      "merchant": "Merchant"
+    },
+    "inactive": "Inactive",
+    "companyOf": "Merchant · {company}"
   },
   "drivers": {
     "meta": "Drivers · ParcelLink",
@@ -162,10 +201,15 @@
     "draftRows": "{count, plural, one {# row} other {# rows}} to review",
     "openInShipments": "Open in shipments list"
   },
+  "validation": {
+    "reason": "Enter a reason",
+    "reasonTooLong": "Keep the reason under 500 characters."
+  },
   "errors": {
     "notFound": "Not found",
     "shipmentNotFound": "Shipment not found",
     "notAwaiting": "This shipment is not awaiting assignment",
-    "cannotReassign": "This shipment can no longer be reassigned"
+    "cannotReassign": "This shipment can no longer be reassigned",
+    "cannotMarkReturned": "This shipment can no longer be marked as returned"
   }
 }

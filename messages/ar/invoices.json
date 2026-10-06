@@ -1,0 +1,94 @@
+{
+  "meta": "الفاتورة {number} · ParcelLink",
+  "title": "فاتورة",
+  "types": {
+    "individual_shipment": "فاتورة شحنة",
+    "merchant_shipment": "فاتورة شحنة تاجر",
+    "bulk_shipment": "فاتورة شحنة مجمّعة"
+  },
+  "number": "رقم الفاتورة",
+  "issued": "تاريخ الفاتورة",
+  "voidBadge": "ملغاة",
+  "voidNotice": "أُلغيت هذه الفاتورة في {date}. تُحفظ لسجلاتك ولم تعد مستحقة الدفع.",
+  "from": "من",
+  "billedTo": "فاتورة إلى",
+  "companyTagline": "توصيل الطرود في جميع أنحاء الإمارات العربية المتحدة",
+  "contactPerson": "عناية: {name}",
+  "trn": "الرقم الضريبي: {trn}",
+  "registration": "رقم التسجيل: {number}",
+  "license": "الرخصة التجارية: {number}",
+  "accountHolder": "صاحب الحساب: {name}",
+  "shipment": {
+    "heading": "تفاصيل الشحنة",
+    "tracking": "رقم التتبع",
+    "booked": "تاريخ الحجز",
+    "pickup": "الاستلام",
+    "delivery": "التسليم",
+    "recipient": "المستلم",
+    "deliveryType": "نوع التوصيل",
+    "parcelType": "نوع الطرد",
+    "contents": "المحتويات",
+    "quantity": "الكمية",
+    "weight": "الوزن",
+    "distance": "المسافة على الطريق",
+    "payment": "طريقة الدفع"
+  },
+  "bulk": {
+    "heading": "شحنة مجمّعة",
+    "reference": "مرجع الشحنة المجمّعة",
+    "name": "الاسم",
+    "shipments": "الشحنات",
+    "shipmentsCount": "{count, plural, zero {لا شحنات} one {شحنة واحدة} two {شحنتان} few {# شحنات} many {# شحنة} other {# شحنة}}",
+    "pickup": "عنوان الاستلام",
+    "period": "تاريخ الحجز",
+    "summary": "الملخص",
+    "summaryLine": "{service} · {count, plural, zero {لا شحنات} one {شحنة واحدة} two {شحنتان} few {# شحنات} many {# شحنة} other {# شحنة}}",
+    "lines": "الشحنات في هذه الفاتورة",
+    "col": {
+      "line": "#",
+      "tracking": "رقم التتبع",
+      "booked": "تاريخ الحجز",
+      "deliverTo": "التسليم إلى",
+      "service": "الخدمة",
+      "weight": "الوزن",
+      "distance": "المسافة",
+      "amount": "المبلغ"
+    }
+  },
+  "charges": {
+    "heading": "الرسوم",
+    "description": "الوصف",
+    "amount": "المبلغ",
+    "base": "رسوم التوصيل الأساسية",
+    "distance": "رسوم المسافة",
+    "service": "رسوم خدمة التوصيل",
+    "weight": "رسوم الوزن",
+    "cod": "رسوم الدفع عند الاستلام",
+    "deliveryServices": "خدمات التوصيل"
+  },
+  "totals": {
+    "subtotal": "المجموع الفرعي",
+    "additional": "رسوم إضافية",
+    "discount": "خصم",
+    "total": "الإجمالي",
+    "currency": "جميع المبالغ بالدرهم الإماراتي ({currency})."
+  },
+  "footer": "أُنشئت من سجلات الحجز في ParcelLink. المبالغ هي المؤكدة عند حجز الشحنة، ولا تتغير إذا عُدّلت الشحنة لاحقًا.",
+  "questions": "لديك سؤال حول هذه الفاتورة؟ {email} · {phone}",
+  "actions": {
+    "generate": "إصدار فاتورة",
+    "view": "عرض الفاتورة",
+    "generateBulk": "إصدار فاتورة مجمّعة",
+    "viewBulk": "عرض الفاتورة المجمّعة",
+    "onBulk": "ضمن الفاتورة المجمّعة",
+    "print": "طباعة / تنزيل PDF",
+    "openShipment": "فتح الشحنة",
+    "openBulk": "فتح الشحنة المجمّعة"
+  },
+  "generated": "تم إصدار الفاتورة بنجاح.",
+  "printHint": "للتنزيل، اختر «حفظ كملف PDF» في نافذة الطباعة.",
+  "errors": {
+    "generateFailed": "تعذّر إصدار الفاتورة. يرجى المحاولة مرة أخرى.",
+    "loadFailed": "تعذّر تحميل هذه الفاتورة. يرجى المحاولة مرة أخرى."
+  }
+}

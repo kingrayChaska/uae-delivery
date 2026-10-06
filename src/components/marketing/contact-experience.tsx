@@ -12,9 +12,11 @@ import {
   Send,
 } from "lucide-react";
 
-const WHATSAPP_NUMBER = "971526123313";
-const DISPLAY_PHONE = "+971 52 612 3313";
-const EMAIL = "admin@parcellinkuae.com";
+import { COMPANY } from "@/lib/brand";
+
+const WHATSAPP_NUMBER = COMPANY.whatsapp;
+const DISPLAY_PHONE = COMPANY.phone;
+const EMAIL = COMPANY.email;
 
 const TOPICS = ["sameDay", "nextDay", "business", "cod", "agent", "other"] as const;
 

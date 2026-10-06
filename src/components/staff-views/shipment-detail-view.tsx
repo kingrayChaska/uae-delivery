@@ -16,6 +16,7 @@ import { getShipmentDetail } from '@/services/shipments/get-shipment';
 import { getProofOfDelivery } from '@/services/shipments/get-proof-of-delivery';
 import { getProfileName } from '@/services/profiles/get-profile-name';
 import { getBatchLabel } from '@/services/bulk/list-batches';
+import { getInvoiceNumberFor } from '@/services/invoices/get-invoice';
 import { getFormat } from '@/i18n/server';
 
 import type { StaffDetailViewProps } from '@/components/staff-views/types';
@@ -25,13 +26,16 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
   if (!detail) notFound();
 
   const { shipment, history } = detail;
-  const [driverName, batch, proof, t, tShipments, format] = await Promise.all([
+  const [driverName, batch, proof, t, tShipments, tInvoices, format, invoiceNumber] = await Promise.all([
     getProfileName(shipment.driverId),
     getBatchLabel(shipment.batchId),
     shipment.status === 'delivered' ? getProofOfDelivery(shipment.id) : Promise.resolve(null),
     getTranslations('operator.shipmentDetail'),
     getTranslations('shipments'),
+    getTranslations('invoices.actions'),
     getFormat(),
+    // Staff can read invoices but never issue them (migration 0031).
+    getInvoiceNumberFor({ shipmentId: shipment.id }),
   ]);
 
   // Why it ended without a delivery: cancelled (by the customer, staff or —
@@ -63,6 +67,11 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
           <Button asChild variant="outline" size="sm">
             <Link href={`${basePath}/shipments/${shipment.id}/label`}>{t('viewLabel')}</Link>
           </Button>
+          {invoiceNumber ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`${basePath}/invoices/${invoiceNumber}`}>{tInvoices('view')}</Link>
+            </Button>
+          ) : null}
           <ShipmentStatusBadge status={shipment.status} />
           {shipment.status === 'delivery_failed' ? <MarkReturnedButton shipmentId={shipment.id} /> : null}
         </div>

@@ -1,5 +1,7 @@
 'use server';
 
+import { z } from '@/lib/zod';
+
 import { requireRole } from '@/lib/auth/guards';
 import { isUuid } from '@/lib/security/validate';
 import { createClient } from '@/lib/supabase/server';
@@ -8,6 +10,11 @@ import { logAuditEvent } from '@/lib/audit/log';
 import { listAvailableDrivers } from '@/services/drivers/list-available-drivers';
 
 export type DispatchActionResult = { success: true } | { success: false; error: string };
+
+const markReturnedSchema = z.object({
+  shipmentId: z.string().uuid(),
+  reason: z.string().trim().min(1, 'operator.validation.reason').max(500, 'operator.validation.reasonTooLong'),
+});
 
 export const assignDriverAction = async (shipmentId: string, driverId: string): Promise<DispatchActionResult> => {
   if (!isUuid(shipmentId) || !isUuid(driverId)) return { success: false, error: 'operator.errors.notFound' };
@@ -88,19 +95,36 @@ export const reassignDriverAction = async (
   return { success: true };
 };
 
-export const markReturnedAction = async (shipmentId: string): Promise<DispatchActionResult> => {
-  if (!isUuid(shipmentId)) return { success: false, error: 'operator.errors.notFound' };
+export const markReturnedAction = async (input: { shipmentId: string; reason: string }): Promise<DispatchActionResult> => {
   const profile = await requireRole('operator', 'manager');
-  const supabase = await createClient();
+  const parsed = markReturnedSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
 
-  const { error } = await supabase.from('shipments').update({ status: 'returned' }).eq('id', shipmentId);
+  const supabase = await createClient();
+  const { data: shipment } = await supabase
+    .from('shipments')
+    .select('id, status, delivery_failed_reason')
+    .eq('id', parsed.data.shipmentId)
+    .maybeSingle();
+
+  if (!shipment) return { success: false, error: 'operator.errors.shipmentNotFound' };
+  if (shipment.status !== 'delivery_failed') {
+    return { success: false, error: 'operator.errors.cannotMarkReturned' };
+  }
+
+  const { error } = await supabase
+    .from('shipments')
+    .update({ status: 'returned', delivery_failed_reason: parsed.data.reason })
+    .eq('id', parsed.data.shipmentId);
   if (error) return { success: false, error: safeErrorMessage(error) };
 
   await logAuditEvent({
     actorId: profile.id,
     action: 'shipment.mark_returned',
     entityType: 'shipment',
-    entityId: shipmentId,
+    entityId: parsed.data.shipmentId,
+    oldValue: { deliveryFailedReason: shipment.delivery_failed_reason },
+    newValue: { deliveryFailedReason: parsed.data.reason, status: 'returned' },
   });
 
   return { success: true };

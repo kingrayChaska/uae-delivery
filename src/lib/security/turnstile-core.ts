@@ -6,10 +6,10 @@ export const TURNSTILE_VERIFY_URL =
 
 export type TurnstileMode = "enforced" | "disabled" | "misconfigured";
 
-// Enforced whenever a secret key is configured. Without one, it's only
-// allowed to be off outside production, or when TURNSTILE_DISABLED=true is
-// set explicitly — a production deploy that simply forgot the key fails
-// closed ('misconfigured') instead of silently dropping bot protection.
+// Explicit opt-out wins: if TURNSTILE_DISABLED=true is set, the app turns
+// off the challenge even when a secret key is configured. Otherwise the
+// previous secure defaults remain: configured secrets enforce protection,
+// non-production deploys stay off, and production without a secret fails closed.
 export const getTurnstileMode = (env: {
   secret?: string;
   disabled?: string;

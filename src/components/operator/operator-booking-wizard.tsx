@@ -57,6 +57,7 @@ const OperatorBookingWizard = ({
       rules={rules[accountType]}
       accountType={accountType}
       header={header}
+      showPrices
       validateBeforeSubmit={() => (customerId ? null : 'booking.errors.selectCustomerFirst')}
       onSubmit={(input) => createBookingForCustomerAction(customerId, input)}
       getSuccessPath={(result) =>

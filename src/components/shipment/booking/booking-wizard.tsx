@@ -59,6 +59,12 @@ type BookingWizardProps = {
   validateBeforeSubmit?: () => string | null;
   supportHref?: string;
   header?: ReactNode;
+  // Show delivery prices before a delivery type is chosen (the route
+  // summary's "from" price and a price on each Same Day / Next Day card).
+  // Staff quoting on a customer's behalf only: customers see their fee on
+  // the review step, once they've chosen. The quote itself is always
+  // computed — it drives the distance-limit checks and the review step.
+  showPrices?: boolean;
 };
 
 const sr = (chunks: ReactNode) => <span className="sr-only">{chunks}</span>;
@@ -72,6 +78,7 @@ const BookingWizard = ({
   validateBeforeSubmit,
   supportHref,
   header = null,
+  showPrices = false,
 }: BookingWizardProps) => {
   const t = useTranslations("booking.wizard");
   const translate = useMessage();
@@ -169,7 +176,7 @@ const BookingWizard = ({
       : null;
   const currentRoute =
     trip !== null && wizard.routeTrip === trip ? wizard.route : null;
-  const fromPrice = currentRoute
+  const fromPrice = currentRoute && showPrices
     ? (() => {
         const prices = DELIVERY_TYPES.map((type) => wizard.quoteFor(type))
           .filter((quote) => quote !== null && !quote.exceedsDistanceLimit)
@@ -358,6 +365,7 @@ const BookingWizard = ({
               isMerchant={wizard.isMerchant}
               quoteFor={wizard.quoteFor}
               rules={rules}
+              showPrices={showPrices}
             />
           ) : null}
 
@@ -429,6 +437,7 @@ const BookingWizard = ({
             calculating={wizard.isCalculatingRoute}
             fromPrice={fromPrice}
             currency={currency}
+            showPrice={showPrices}
           />
         ) : null}
 

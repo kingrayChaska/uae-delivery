@@ -1,0 +1,94 @@
+{
+  "meta": "Invoice {number} · ParcelLink",
+  "title": "Invoice",
+  "types": {
+    "individual_shipment": "Shipment invoice",
+    "merchant_shipment": "Merchant shipment invoice",
+    "bulk_shipment": "Bulk shipment invoice"
+  },
+  "number": "Invoice number",
+  "issued": "Invoice date",
+  "voidBadge": "Void",
+  "voidNotice": "This invoice was voided on {date}. It is kept for your records and is no longer payable.",
+  "from": "From",
+  "billedTo": "Billed to",
+  "companyTagline": "Parcel delivery across the United Arab Emirates",
+  "contactPerson": "Attn: {name}",
+  "trn": "TRN: {trn}",
+  "registration": "Registration no.: {number}",
+  "license": "Trade licence: {number}",
+  "accountHolder": "Account holder: {name}",
+  "shipment": {
+    "heading": "Shipment details",
+    "tracking": "Tracking ID",
+    "booked": "Booking date",
+    "pickup": "Pickup",
+    "delivery": "Delivery",
+    "recipient": "Recipient",
+    "deliveryType": "Delivery type",
+    "parcelType": "Parcel type",
+    "contents": "Contents",
+    "quantity": "Quantity",
+    "weight": "Weight",
+    "distance": "Road distance",
+    "payment": "Payment method"
+  },
+  "bulk": {
+    "heading": "Bulk shipment",
+    "reference": "Bulk reference",
+    "name": "Name",
+    "shipments": "Shipments",
+    "shipmentsCount": "{count, plural, one {# shipment} other {# shipments}}",
+    "pickup": "Pickup address",
+    "period": "Booked",
+    "summary": "Summary",
+    "summaryLine": "{service} · {count, plural, one {# shipment} other {# shipments}}",
+    "lines": "Shipments on this invoice",
+    "col": {
+      "line": "#",
+      "tracking": "Tracking ID",
+      "booked": "Booked",
+      "deliverTo": "Deliver to",
+      "service": "Service",
+      "weight": "Weight",
+      "distance": "Distance",
+      "amount": "Amount"
+    }
+  },
+  "charges": {
+    "heading": "Charges",
+    "description": "Description",
+    "amount": "Amount",
+    "base": "Base delivery charge",
+    "distance": "Distance charge",
+    "service": "Delivery service charge",
+    "weight": "Weight charge",
+    "cod": "Cash-on-delivery handling",
+    "deliveryServices": "Delivery services"
+  },
+  "totals": {
+    "subtotal": "Subtotal",
+    "additional": "Additional charges",
+    "discount": "Discount",
+    "total": "Total",
+    "currency": "All amounts are in UAE dirhams ({currency})."
+  },
+  "footer": "Generated from ParcelLink’s booking records. The amounts are those confirmed when the shipment was booked; they don’t change if the shipment is updated later.",
+  "questions": "Questions about this invoice? {email} · {phone}",
+  "actions": {
+    "generate": "Generate invoice",
+    "view": "View invoice",
+    "generateBulk": "Generate bulk invoice",
+    "viewBulk": "View bulk invoice",
+    "onBulk": "Billed on bulk invoice",
+    "print": "Print / Download PDF",
+    "openShipment": "Open shipment",
+    "openBulk": "Open bulk shipment"
+  },
+  "generated": "Invoice generated successfully.",
+  "printHint": "To download, choose “Save as PDF” in the print dialog.",
+  "errors": {
+    "generateFailed": "Unable to generate invoice. Please try again.",
+    "loadFailed": "Unable to load this invoice. Please try again."
+  }
+}

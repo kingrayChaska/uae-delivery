@@ -163,6 +163,50 @@
   }
 }
 
+/* Multi-page documents (invoices) print in normal flow, so a long bulk
+   invoice runs on across pages: everything that is neither the document,
+   inside it, nor one of its ancestors is taken out of the layout, and the
+   ancestors lose their padding and backgrounds. The paper size is the
+   printer's own (A4 in the UAE). No named page here: Chrome breaks to a new
+   page where the page name changes, which left the first page blank. The
+   label keeps its named A5 page (it is positioned absolutely). */
+@page {
+  margin: 12mm;
+}
+
+@media print {
+  body:has([data-print-document]) :not([data-print-document], [data-print-document] *, :has([data-print-document])) {
+    display: none !important;
+  }
+
+  body:has([data-print-document]) :has([data-print-document]) {
+    display: block !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  [data-print-document],
+  [data-print-document] * {
+    visibility: visible !important;
+  }
+
+  [data-print-document] {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  [data-print-document] tr,
+  [data-print-document] [data-print-keep] {
+    break-inside: avoid;
+  }
+}
+
 /* ── Arabic / right-to-left ────────────────────────────────────────────────
    Layout mirrors through logical utilities (ms-/me-/ps-/pe-/start-/end-,
    text-start) and dir="rtl" on <html>. Letter-spacing breaks the joins in

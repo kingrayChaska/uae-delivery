@@ -37,6 +37,13 @@ describe('calculateShipmentPrice — same-day (5 km / AED 12 / AED 1 per km)', (
     expect(result.distanceKm).toBe(12.73);
     expect(result.totalPrice).toBe(19.73);
   });
+
+  it('prices the full route distance of a toll-road trip: 52,400 m -> 52.4 km -> AED 59.40', () => {
+    const result = calculateShipmentPrice({ rule: SAME_DAY, distanceKm: 52400 / 1000 });
+    expect(result.distanceKm).toBe(52.4);
+    expect(result.additionalDistanceKm).toBe(47.4);
+    expect(result.totalPrice).toBe(59.4);
+  });
 });
 
 describe('calculateShipmentPrice — next-day (AED 8 first 5 km, AED 0.75 per extra km)', () => {

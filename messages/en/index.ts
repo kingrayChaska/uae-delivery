@@ -24,6 +24,7 @@ import maps from './maps.json';
 import serviceAreas from './serviceAreas.json';
 import legal from './legal.json';
 import bulk from './bulk.json';
+import invoices from './invoices.json';
 
 const messages = {
   common,
@@ -50,6 +51,7 @@ const messages = {
   serviceAreas,
   legal,
   bulk,
+  invoices,
 };
 
 export default messages;

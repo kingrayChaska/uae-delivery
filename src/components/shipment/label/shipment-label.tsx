@@ -22,8 +22,9 @@ type ShipmentLabelProps = {
   dropoffInstructions: string | null;
   deliveryType: 'same_day' | 'next_day';
   deliveryDate: string | null;
-  deliveryFee: number;
-  deliveryFeeCurrency: string;
+  // Null on merchant labels: the fee is never printed for the recipient.
+  deliveryFee: number | null;
+  currency: string;
   paymentMethod: 'card' | 'cod';
   recipientPaymentType: 'prepaid' | 'postpaid';
   codAmount: number;
@@ -57,7 +58,7 @@ const ShipmentLabel = ({
   deliveryType,
   deliveryDate,
   deliveryFee,
-  deliveryFeeCurrency,
+  currency,
   paymentMethod,
   recipientPaymentType,
   codAmount,
@@ -146,11 +147,14 @@ const ShipmentLabel = ({
           <p className="mb-1 text-sm font-bold uppercase tracking-wide">{t('delivery')}</p>
           <p className="text-base">{tShipment(`deliveryType.${deliveryType}.label`)}</p>
           {deliveryDate ? <p className="text-base">{t('deliverOn', { date: format.calendarDate(deliveryDate) })}</p> : null}
-          <p className="text-base">{t('deliveryFee')}: {format.money(deliveryFee, deliveryFeeCurrency)} · {tShipment(`paymentMethod.${paymentMethod}`)}</p>
+          <p className="text-base">
+            {deliveryFee !== null ? `${t('deliveryFee')}: ${format.money(deliveryFee, currency)} · ` : null}
+            {tShipment(`paymentMethod.${paymentMethod}`)}
+          </p>
           <div className="mt-3 border-2 border-black p-3 print:mt-2 print:p-2">
             <p className="text-sm font-bold uppercase tracking-wide">{t('amountToCollect')}</p>
             <p className="font-brand-mono text-2xl font-bold print:text-[18pt]">
-              {recipientPaymentType === 'postpaid' ? format.money(codAmount, deliveryFeeCurrency) : t('nothingToCollect')}
+              {recipientPaymentType === 'postpaid' ? format.money(codAmount, currency) : t('nothingToCollect')}
             </p>
           </div>
         </div>

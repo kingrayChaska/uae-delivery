@@ -70,6 +70,15 @@
     "cancelBeforePickup": "Only a shipment that hasn’t been picked up can be cancelled. Return it to the sender instead.",
     "returnAfterPickup": "Only a picked-up shipment can be returned.",
     "outcomeReasonRequired": "Enter a reason.",
-    "outcomeReasonTooLong": "Keep the reason under 500 characters."
+    "outcomeReasonTooLong": "Keep the reason under 500 characters.",
+    "bulkShipmentNotFound": "Bulk shipment not found.",
+    "invoiceCancelled": "A cancelled shipment can’t be invoiced.",
+    "invoiceOnBulk": "This shipment is billed on its bulk shipment invoice.",
+    "invoiceInconsistent": "This shipment’s charges couldn’t be verified, so no invoice was issued. Please contact support.",
+    "invoiceBulkMerchantOnly": "Bulk invoices are available to merchant accounts.",
+    "invoiceBulkNotBooked": "This bulk shipment hasn’t been booked yet.",
+    "invoiceBulkEmpty": "This bulk shipment has no shipments to invoice.",
+    "invoiceMixedCurrencies": "This bulk shipment mixes currencies and can’t be invoiced. Please contact support.",
+    "invoiceImmutable": "Issued invoices can’t be changed."
   }
 }

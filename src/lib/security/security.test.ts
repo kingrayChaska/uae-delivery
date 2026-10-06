@@ -48,9 +48,13 @@ describe('isUuid', () => {
 });
 
 describe('getTurnstileMode', () => {
-  it('is enforced whenever a secret is configured', () => {
+  it('can be explicitly turned off even when a secret is configured', () => {
+    expect(getTurnstileMode({ secret: 's', nodeEnv: 'production', disabled: 'true' })).toBe('disabled');
+  });
+
+  it('is enforced whenever a secret is configured and not explicitly disabled', () => {
     expect(getTurnstileMode({ secret: 's', nodeEnv: 'production' })).toBe('enforced');
-    expect(getTurnstileMode({ secret: 's', nodeEnv: 'development', disabled: 'true' })).toBe('enforced');
+    expect(getTurnstileMode({ secret: 's', nodeEnv: 'development' })).toBe('enforced');
   });
 
   it('is off in development without a secret', () => {
@@ -61,7 +65,7 @@ describe('getTurnstileMode', () => {
     expect(getTurnstileMode({ nodeEnv: 'production' })).toBe('misconfigured');
   });
 
-  it('can only be switched off in production explicitly', () => {
+  it('only treats explicit true as the disabled override', () => {
     expect(getTurnstileMode({ nodeEnv: 'production', disabled: 'true' })).toBe('disabled');
     expect(getTurnstileMode({ nodeEnv: 'production', disabled: 'yes' })).toBe('misconfigured');
   });

@@ -10,9 +10,11 @@ import type { Shipment } from '@/lib/types';
 type ShipmentListItemProps = {
   shipment: Shipment;
   basePath?: string;
+  // Staff lists show when each shipment was booked.
+  showBookedAt?: boolean;
 };
 
-const ShipmentListItem = ({ shipment, basePath = '/dashboard/customer/deliveries' }: ShipmentListItemProps) => {
+const ShipmentListItem = ({ shipment, basePath = '/dashboard/customer/deliveries', showBookedAt = false }: ShipmentListItemProps) => {
   const t = useTranslations('shipments');
   const format = useFormat();
   return (
@@ -24,6 +26,11 @@ const ShipmentListItem = ({ shipment, basePath = '/dashboard/customer/deliveries
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span dir="ltr" className="font-brand-mono text-sm font-semibold tracking-wider">{shipment.trackingNumber}</span>
           <span className="text-xs text-muted-foreground">{t(`deliveryType.${shipment.deliveryType}.label`)}</span>
+          {showBookedAt ? (
+            <time dateTime={shipment.createdAt} className="text-xs text-muted-foreground">
+              {t('list.bookedOn', { date: format.dateTime(shipment.createdAt) })}
+            </time>
+          ) : null}
           {shipment.deliveryDate ? (
             <span className="text-xs text-muted-foreground">{t('detail.deliverOn', { date: format.calendarDate(shipment.deliveryDate) })}</span>
           ) : null}

@@ -67,6 +67,7 @@
     "serviceTitle": "خدمة التوصيل",
     "servicePrices": "الأسعار خاصة بهذا المسار.",
     "servicePricesMerchant": "الأسعار خاصة بهذا المسار وفق سعر التاجر الخاص بك.",
+    "serviceChoose": "اختر سرعة التوصيل. تظهر رسوم التوصيل في الخطوة التالية قبل التأكيد.",
     "notAvailableBeyond": "غير متاح لأكثر من {distance}",
     "detailsTitle": "تفاصيل الطرد",
     "type": "نوع الشحنة",
@@ -200,6 +201,7 @@
   },
   "routeSummary": {
     "calculating": "جارٍ حساب المسار وسعر التوصيل…",
+    "calculatingRoute": "جارٍ حساب مسار القيادة…",
     "distance": "مسافة القيادة",
     "duration": "مدة القيادة المتوقعة",
     "price": "سعر التوصيل",

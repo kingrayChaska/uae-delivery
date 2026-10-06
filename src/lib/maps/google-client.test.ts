@@ -316,6 +316,28 @@ describe('Routes API', () => {
     });
   });
 
+  it('allows toll roads, highways and ferries (the ordinary driving route)', () => {
+    const request = buildRouteRequest({ coordinates: { lat: 25.08, lng: 55.14 } }, { coordinates: { lat: 25.19, lng: 55.27 } }, KEY);
+    expect(body(request).routeModifiers).toEqual({ avoidTolls: false, avoidHighways: false, avoidFerries: false });
+  });
+
+  it.each([
+    ['under 5 km', 4270, 4.27],
+    ['just over 5 km', 5010, 5.01],
+    ['a toll-road (Salik) route', 52400, 52.4],
+    ['a long cross-emirate route', 131876, 131.876],
+  ])('uses Google\'s total distance exactly as returned: %s', (_label, meters, km) => {
+    const route = parseRouteResponse({ routes: [{ distanceMeters: meters, duration: '600s' }] });
+    expect(route.distanceMeters).toBe(meters);
+    expect(route.distanceKm).toBe(km);
+  });
+
+  it('refuses a malformed distance instead of pricing it', () => {
+    expect(() => parseRouteResponse({ routes: [{ distanceMeters: -5 }] })).toThrow(MapsProviderError);
+    expect(() => parseRouteResponse({ routes: [{ distanceMeters: Number.NaN }] })).toThrow(MapsProviderError);
+    expect(() => parseRouteResponse({ routes: [{ distanceMeters: '5000' as unknown as number }] })).toThrow(MapsProviderError);
+  });
+
   it('routes a selected place by its Place ID, and a pin by its exact coordinates', () => {
     const request = buildRouteRequest(
       { coordinates: { lat: 25.1972, lng: 55.2744 }, placeId: 'ChIJ-dubai-mall_1' },

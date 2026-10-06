@@ -10,3 +10,13 @@ export const BRAND = {
   logoWidth: 960,
   logoHeight: 238,
 } as const;
+
+// ParcelLink's contact details: the marketing contact section and the
+// header of every invoice. One place, so the two never disagree.
+export const COMPANY = {
+  name: 'ParcelLink UAE',
+  phone: '+971 52 612 3313',
+  whatsapp: '971526123313',
+  email: 'admin@parcellinkuae.com',
+  website: 'parcellinkuae.com',
+} as const;

@@ -31,6 +31,8 @@ Nothing else needs enabling. Legacy Places, Directions and Distance Matrix are n
 
 **Session tokens.** One UUID per search: every Autocomplete keystroke request and the Place Details call that ends it share the token, which Google bills as one session. A new token starts after each selection.
 
+**Toll roads are allowed and never change the distance.** The request sets `routeModifiers` to `avoidTolls/avoidHighways/avoidFerries: false` (Google's defaults, pinned), so Google returns the ordinary driving route, Salik roads included. ParcelLink uses that route's total `distanceMeters` exactly as returned: nothing is deducted or adjusted for tolls, and no toll fee is charged.
+
 **Routes are traffic-unaware** (`TRAFFIC_UNAWARE`). The wizard's price and the server's price at booking time are computed minutes apart; a traffic-aware route could change in between and the booking would be priced differently from the quote. The duration shown is Google's typical drive time for that route.
 
 **Map language.** The Maps JavaScript API fixes its language when it loads. After switching language, map labels and Google's own controls stay in the first language until the next full page load; everything ParcelLink draws (search results, addresses, messages) switches immediately. The switcher doesn't force a reload because that would discard a half-completed booking.

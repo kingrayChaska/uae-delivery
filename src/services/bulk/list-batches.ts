@@ -146,6 +146,16 @@ export const listBatches = async (
   return toPaginated(await withStats((data ?? []) as unknown as BatchRow[]), count ?? 0, page);
 };
 
+// Specific batches (the staff shipments list's bulk entries), with their
+// totals: two queries however many batches are on the page.
+export const listBatchSummariesByIds = async (batchIds: string[]): Promise<BatchSummary[]> => {
+  if (batchIds.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('shipment_batches').select(BATCH_SELECT).in('id', batchIds);
+  if (error) throw new Error(error.message);
+  return withStats((data ?? []) as unknown as BatchRow[]);
+};
+
 // The batch, its totals and one page of its shipments, read in parallel.
 export const getBatchDetail = async (batchId: string, page = 1): Promise<BatchDetail | null> => {
   if (!isUuid(batchId)) return null;

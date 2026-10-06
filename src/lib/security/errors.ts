@@ -98,6 +98,21 @@ export const DATABASE_MESSAGES: Record<string, string> = {
     "errors.db.resubmitApplication",
   "Account type can only change through merchant approval":
     "errors.db.accountTypeLocked",
+  "Bulk shipment not found": "errors.db.bulkShipmentNotFound",
+  "A cancelled shipment cannot be invoiced": "errors.db.invoiceCancelled",
+  "This shipment is billed on its bulk shipment invoice":
+    "errors.db.invoiceOnBulk",
+  "This shipment's charges are inconsistent and cannot be invoiced":
+    "errors.db.invoiceInconsistent",
+  "Bulk invoices are for merchant accounts": "errors.db.invoiceBulkMerchantOnly",
+  "This bulk shipment has not been booked yet": "errors.db.invoiceBulkNotBooked",
+  "This bulk shipment has no shipments to invoice": "errors.db.invoiceBulkEmpty",
+  "This bulk shipment mixes currencies and cannot be invoiced":
+    "errors.db.invoiceMixedCurrencies",
+  "Invoice total does not match its lines": "errors.db.invoiceInconsistent",
+  "Issued invoices cannot be changed": "errors.db.invoiceImmutable",
+  "A void invoice cannot be changed": "errors.db.invoiceImmutable",
+  "Invoices cannot be deleted": "errors.db.invoiceImmutable",
 };
 
 // Messages that carry values (RAISE EXCEPTION '... %', value).

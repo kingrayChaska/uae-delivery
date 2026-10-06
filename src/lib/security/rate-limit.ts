@@ -22,6 +22,9 @@ export const RATE_LIMITS = {
   bulkProcessPerUser: { max: 600, windowSeconds: 60 * 60 },
   staffCreatePerUser: { max: 30, windowSeconds: 60 * 60 },
   merchantApplyPerUser: { max: 10, windowSeconds: 60 * 60 },
+  // Issuing is idempotent (a second request returns the same invoice), so
+  // this only stops a script hammering the issuing functions.
+  invoicePerUser: { max: 60, windowSeconds: 60 * 60 },
 } as const;
 
 export type RateLimitName = keyof typeof RATE_LIMITS;

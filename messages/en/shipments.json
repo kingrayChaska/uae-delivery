@@ -114,7 +114,8 @@
   },
   "list": {
     "cod": "· COD {amount}",
-    "to": "to"
+    "to": "to",
+    "bookedOn": "Booked {date}"
   },
   "pod": {
     "notYet": "Proof of delivery will be available here once your parcel is delivered.",

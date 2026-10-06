@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, CircleCheck, Printer } from 'lucide-react';
+import { ArrowLeft, CircleCheck, FileText, Printer } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,11 +12,13 @@ import TrackingCode from '@/components/shipment/tracking-code';
 import CancelShipmentButton from '@/components/shipment/cancel-shipment-button';
 import ProofOfDeliveryButton from '@/components/shipment/proof-of-delivery';
 import ShipmentChargesCard from '@/components/shipment/shipment-charges-card';
+import InvoiceButton from '@/components/invoices/invoice-button';
 import RouteMap from '@/components/maps/lazy-route-map';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { isUuid } from '@/lib/security/validate';
 import { getShipmentDetail } from '@/services/shipments/get-shipment';
 import { getProofOfDelivery } from '@/services/shipments/get-proof-of-delivery';
+import { getInvoiceNumberFor } from '@/services/invoices/get-invoice';
 import { getTrackingMilestones } from '@/lib/shipment/tracking-milestones';
 import { getFormat } from '@/i18n/server';
 
@@ -36,19 +38,24 @@ const ShipmentDetailPage = async ({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ booked?: string }>;
 }) => {
-  await requireRoleOrRedirect('customer');
+  const profile = await requireRoleOrRedirect('customer');
   const [{ id }, { booked }] = await Promise.all([params, searchParams]);
   if (!isUuid(id)) notFound();
 
   const detail = await getShipmentDetail(id);
   if (!detail) notFound();
 
-  const [t, tShipments, format] = await Promise.all([
+  const { shipment, history, packageImageUrl } = detail;
+  // A merchant's shipment that is part of a bulk shipment is billed on the
+  // bulk shipment's one invoice (migration 0031), not on its own.
+  const billedOnBulk = profile.accountType === 'merchant' && shipment.batchId !== null;
+  const [t, tShipments, tInvoices, format, invoiceNumber] = await Promise.all([
     getTranslations('customer.detail'),
     getTranslations('shipments'),
+    getTranslations('invoices.actions'),
     getFormat(),
+    billedOnBulk ? Promise.resolve(null) : getInvoiceNumberFor({ shipmentId: shipment.id }),
   ]);
-  const { shipment, history, packageImageUrl } = detail;
   const proof = shipment.status === 'delivered' ? await getProofOfDelivery(shipment.id) : null;
   const milestones = getTrackingMilestones(shipment.status, history);
   const dimensions = [shipment.packageLengthCm, shipment.packageWidthCm, shipment.packageHeightCm];
@@ -89,6 +96,16 @@ const ShipmentDetailPage = async ({
               {t('label')}
             </Link>
           </Button>
+          {billedOnBulk ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/dashboard/customer/bulk/${shipment.batchId}`}>
+                <FileText aria-hidden />
+                {tInvoices('onBulk')}
+              </Link>
+            </Button>
+          ) : invoiceNumber || shipment.status !== 'cancelled' ? (
+            <InvoiceButton subject={{ shipmentId: shipment.id }} invoiceNumber={invoiceNumber} invoiceBasePath="/dashboard/customer/invoices" />
+          ) : null}
           {CANCELLABLE_STATUSES.includes(shipment.status) ? <CancelShipmentButton shipmentId={shipment.id} /> : null}
         </div>
       </div>

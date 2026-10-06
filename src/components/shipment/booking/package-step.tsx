@@ -35,6 +35,8 @@ type PackageStepProps = {
     values: BookingShipmentInput,
   ) => PriceBreakdown | null;
   rules: Record<DeliveryType, PricingRule>;
+  // Price on each delivery-type card (staff only — see BookingWizard).
+  showPrices: boolean;
 };
 
 const PackageStep = ({
@@ -43,6 +45,7 @@ const PackageStep = ({
   isMerchant,
   quoteFor,
   rules,
+  showPrices,
 }: PackageStepProps) => {
   const t = useTranslations("booking.package");
   const tShipments = useTranslations("shipments");
@@ -63,7 +66,11 @@ const PackageStep = ({
             {t("serviceTitle")}
           </span>
           <span className="block text-sm text-muted-foreground">
-            {isMerchant ? t("servicePricesMerchant") : t("servicePrices")}
+            {!showPrices
+              ? t("serviceChoose")
+              : isMerchant
+                ? t("servicePricesMerchant")
+                : t("servicePrices")}
           </span>
         </legend>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -99,9 +106,11 @@ const PackageStep = ({
                 <span className="text-sm text-muted-foreground">
                   {tShipments(`deliveryType.${type}.description`)}
                 </span>
-                <span className="font-brand-mono text-xl font-semibold">
-                  {quote ? format.money(quote.totalPrice, quote.currency) : "—"}
-                </span>
+                {showPrices ? (
+                  <span className="font-brand-mono text-xl font-semibold">
+                    {quote ? format.money(quote.totalPrice, quote.currency) : "—"}
+                  </span>
+                ) : null}
                 {blocked && quote ? (
                   <span className="text-xs font-medium text-destructive">
                     {t("notAvailableBeyond", {

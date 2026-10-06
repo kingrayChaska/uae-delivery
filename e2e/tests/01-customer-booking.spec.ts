@@ -68,6 +68,9 @@ test.describe.serial('Customer journey: landing -> register -> book -> track', (
     await page.getByRole('button', { name: 'Continue' }).click();
 
     // Package step: same-day is preselected; the recipient has prepaid.
+    // No delivery fee is shown before the delivery type is chosen — only on review.
+    await expect(page.locator('label:has(input[name="deliveryType"])')).toHaveCount(2);
+    await expect(page.locator('label:has(input[name="deliveryType"])').filter({ hasText: 'AED' })).toHaveCount(0);
     await page.getByLabel('What are you sending?').fill('Documents');
     await page.getByRole('button', { name: 'Add to booking' }).click();
     // Review: pay the delivery fee in cash.
