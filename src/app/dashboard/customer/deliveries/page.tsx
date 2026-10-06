@@ -1,16 +1,19 @@
 import Link from 'next/link';
-import { CircleAlert, CircleCheck, PackagePlus, PackageSearch } from 'lucide-react';
+import { CircleAlert, CircleCheck, PackagePlus, PackageSearch, X } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 import Button from '@/components/ui/button';
 import ShipmentListItem from '@/components/shipment/shipment-list-item';
 import Pagination from '@/components/dashboard/pagination';
+import ShipmentFilters from '@/components/shipment/shipment-filters';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { parsePage } from '@/lib/pagination';
 import { isUuid } from '@/lib/security/validate';
 import { sumPrices } from '@/lib/pricing/calculate';
+import { hasFilters, parseShipmentFilters, shipmentListHref } from '@/lib/shipment/filters';
 import { getCustomerBooking, listCustomerShipments } from '@/services/shipments/list-shipments';
 import { getFormat } from '@/i18n/server';
+import { getOwnMerchantApplication } from '@/services/merchant/applications';
 
 import type { Metadata } from 'next';
 
@@ -18,16 +21,38 @@ export const generateMetadata = async (): Promise<Metadata> => ({
   title: (await getTranslations('customer.deliveries'))('meta'),
 });
 
+const BASE_PATH = '/dashboard/customer/deliveries';
+
 const DeliveriesPage = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string | string[]; booking?: string; booked?: string; failed?: string }>;
+  searchParams: Promise<{
+    page?: string | string[];
+    booking?: string;
+    booked?: string;
+    failed?: string;
+    scope?: string | string[];
+    q?: string | string[];
+    status?: string | string[];
+    from?: string | string[];
+    to?: string | string[];
+  }>;
 }) => {
   const profile = await requireRoleOrRedirect('customer');
   const params = await searchParams;
   const bookingId = params.booking && isUuid(params.booking) ? params.booking : null;
+  // Search, status and booking date, from the URL (the dashboard cards
+  // link here with ?status=…); matched and paged in the database.
+  // A merchant's business account — the one the merchant page's Shipments
+  // card counts — unlocks the business-wide list (?scope=business). Anyone
+  // else asking for it gets their own list (the database checks too).
+  const application = profile.accountType === 'merchant' ? await getOwnMerchantApplication(profile.id) : null;
+  const business = application?.businessAccountId ? { id: application.businessAccountId, name: application.companyName } : null;
+  const parsed = parseShipmentFilters(params);
+  const filters = parsed.scope === 'business' && !business ? { ...parsed, scope: 'mine' as const } : parsed;
+  const filtered = hasFilters(filters);
   const [shipments, booking, t, format] = await Promise.all([
-    listCustomerShipments(profile.id, parsePage(params.page)),
+    listCustomerShipments(profile.id, parsePage(params.page), filters, filters.scope === 'business' ? business!.id : null),
     bookingId ? getCustomerBooking(profile.id, bookingId) : Promise.resolve(null),
     getTranslations('customer.deliveries'),
     getFormat(),
@@ -87,7 +112,41 @@ const DeliveriesPage = async ({
         </section>
       ) : null}
 
-      {shipments.items.length === 0 ? (
+      {business ? (
+        <nav aria-label={t('scope.label')} className="flex flex-wrap gap-2">
+          {(['mine', 'business'] as const).map((scope) => (
+            <Link
+              key={scope}
+              href={shipmentListHref(BASE_PATH, { ...filters, scope })}
+              aria-current={filters.scope === scope ? 'page' : undefined}
+              className="inline-flex min-h-10 items-center rounded-full border px-4 text-sm font-medium transition-colors hover:bg-secondary/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-[current=page]:border-primary aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground"
+            >
+              {scope === 'mine' ? t('scope.mine') : t('scope.business', { company: business.name })}
+            </Link>
+          ))}
+        </nav>
+      ) : null}
+
+      <ShipmentFilters basePath={BASE_PATH} filters={filters} />
+
+      {filtered ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          {t('filters.results', { count: shipments.total })}
+        </p>
+      ) : null}
+
+      {shipments.items.length === 0 && filtered ? (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed p-10 text-center">
+          <PackageSearch className="size-8 text-muted-foreground" aria-hidden />
+          <p className="font-medium">{t('filters.empty')}</p>
+          <Button asChild variant="outline">
+            <Link href={shipmentListHref(BASE_PATH, { scope: filters.scope })}>
+              <X aria-hidden />
+              {t('filters.clear')}
+            </Link>
+          </Button>
+        </div>
+      ) : shipments.items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed p-10 text-center">
           <PackageSearch className="size-8 text-muted-foreground" aria-hidden />
           <div>
@@ -107,7 +166,7 @@ const DeliveriesPage = async ({
         </section>
       )}
 
-      <Pagination page={shipments.page} totalPages={shipments.totalPages} href="/dashboard/customer/deliveries" />
+      <Pagination page={shipments.page} totalPages={shipments.totalPages} href={shipmentListHref(BASE_PATH, filters)} />
     </main>
   );
 };

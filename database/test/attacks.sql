@@ -202,8 +202,9 @@ reset role;
 select id as p10_old_rule from pricing_rules where is_active and delivery_type = 'same_day' and account_type = 'individual' \gset
 set role authenticated;
 set request.jwt.uid = '00000000-0000-0000-0000-000000000004'; -- manager1
-insert into pricing_rules (name, base_distance_km, base_price, additional_price_per_km, currency, is_active)
-values ('Premium', 5, 20, 2, 'AED', true);
+-- With the individual limit, as the Pricing page sets it (null = no limit).
+insert into pricing_rules (name, base_distance_km, base_price, additional_price_per_km, max_distance_km, currency, is_active)
+values ('Premium', 5, 20, 2, 90, 'AED', true);
 insert into business_accounts (company_name, contact_person, contact_email, contact_phone)
 values ('Acme', 'A', 'a@acme.test', '050') returning id as p10_biz \gset
 insert into business_account_members (business_account_id, profile_id)
@@ -463,7 +464,7 @@ set request.jwt.uid = '00000000-0000-0000-0000-000000000007'; -- customer3 (indi
 insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
   dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
   distance_km, duration_minutes, pricing_rule_id, delivery_type, base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type)
-values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 100, 110, :'v2_sd', 'same_day', 12, 95, 0, 0, 107, 'AED', 'card', 'parcel');
+values (auth.uid(), 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 100, 110, :'v2_sd', 'same_day', 20, 190, 0, 0, 210, 'AED', 'card', 'parcel');
 
 \echo 'ATTACK: customer3 prices a same-day delivery with the cheaper next-day rule'
 insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
@@ -512,12 +513,14 @@ set role authenticated;
 \echo 'ATTACK: customer3 rewrites the tracking code'
 update shipments set tracking_number = 'ABCDEFGH' where id = :'v2_cod_id';
 
-\echo 'ATTACK: operator books a 70 km delivery on a customer''s behalf (distance limit applies to staff too)'
+-- 95 km: over the individual limit (90 km since migration 0027; this
+-- used to be 70 km, which is now a legal trip).
+\echo 'ATTACK: operator books a 95 km delivery on a customer''s behalf (distance limit applies to staff too)'
 set request.jwt.uid = '00000000-0000-0000-0000-000000000005';
 insert into shipments (customer_id, status, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
   dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
   distance_km, duration_minutes, pricing_rule_id, delivery_type, price, currency, payment_method, package_type)
-values ('00000000-0000-0000-0000-000000000007', 'confirmed', 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 70, 80, :'v2_sd', 'same_day', 77, 'AED', 'cod', 'parcel');
+values ('00000000-0000-0000-0000-000000000007', 'confirmed', 'A', 25, 55, 'x', 'x', 'B', 25, 55, 'y', 'y', 95, 110, :'v2_sd', 'same_day', 200, 'AED', 'cod', 'parcel');
 
 \echo 'LEGITIMATE: assigning a driver creates the expected COD record, split into goods and fee'
 reset role;

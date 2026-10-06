@@ -3,20 +3,13 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { pageRange, toPaginated } from '@/lib/pagination';
 import { mapRowToShipment, SHIPMENT_SELECT_COLUMNS } from '@/services/shipments/shipment-mapper';
+import { ACTIVE_STATUSES, hasFilters, NO_FILTERS, statusesFor } from '@/lib/shipment/filters';
 
 import type { Paginated } from '@/lib/pagination';
+import type { ShipmentFilters } from '@/lib/shipment/filters';
 import type { Shipment } from '@/lib/types';
 import type { ShipmentRow } from '@/services/shipments/shipment-mapper';
 
-const ACTIVE_STATUSES = [
-  'confirmed',
-  'assigned',
-  'driver_accepted',
-  'arrived_pickup',
-  'picked_up',
-  'in_transit',
-  'arrived_destination',
-];
 
 export type CustomerDashboardSummary = {
   active: number;
@@ -30,9 +23,38 @@ export type CustomerDashboardSummary = {
 // RLS (shipments_select) already scopes this to the caller's own
 // shipments — no explicit customer_id filter needed here, but adding one
 // anyway is harmless and makes the query's intent obvious to read.
-export const listCustomerShipments = async (customerId: string, page: number): Promise<Paginated<Shipment>> => {
+export const listCustomerShipments = async (
+  customerId: string,
+  page: number,
+  filters: ShipmentFilters = NO_FILTERS,
+  // Set for the business-wide list (scope=business): every shipment of this
+  // business account, which the database only returns to its members.
+  businessAccountId: string | null = null,
+): Promise<Paginated<Shipment>> => {
   const supabase = await createClient();
   const { from, to } = pageRange(page);
+
+  // Filtered or business-wide: matched and paged in the database
+  // (migration 0032), which limits it to the caller's own shipments or to
+  // a business account they belong to.
+  if (hasFilters(filters) || businessAccountId) {
+    const { data, count, error } = await supabase
+      .rpc(
+        'search_customer_shipments',
+        {
+          p_query: filters.q || null,
+          p_statuses: statusesFor(filters.status),
+          p_from: filters.from,
+          p_to: filters.to,
+          p_business_account_id: businessAccountId,
+        },
+        { count: 'exact' },
+      )
+      .select(SHIPMENT_SELECT_COLUMNS)
+      .range(from, to);
+    if (error) throw new Error(error.message);
+    return toPaginated(((data ?? []) as unknown as ShipmentRow[]).map(mapRowToShipment), count ?? 0, page);
+  }
 
   const { data, count } = await supabase
     .from('shipments')

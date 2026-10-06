@@ -200,5 +200,25 @@
     "bookedTitle": "{count, plural, one {# shipment booked.} other {# shipments booked.}}",
     "bookedBody": "Each has its own tracking ID and is now with our dispatch team. Download the shipment report to match tracking IDs to your orders.",
     "report": "Download Shipment Report"
+  },
+  "labels": {
+    "meta": "Bulk shipment labels · ParcelLink",
+    "download": "{count, plural, one {Download label} other {Download all # labels}}",
+    "title": "All labels",
+    "back": "Back to bulk shipment",
+    "preparing": "Preparing labels…",
+    "ready": "{count, plural, one {One PDF page, ready to print on A5 or A4.} other {One PDF file, one label per A5 page, ready to print on A5 or A4.}}",
+    "empty": "This bulk shipment has no shipments, so there are no labels to print.",
+    "failed": "Unable to generate all labels. Please try again.",
+    "failedList": "{count, plural, one {This shipment’s label couldn’t be made:} other {These # shipments’ labels couldn’t be made:}}",
+    "retry": "Try again",
+    "partsLabel": "Label parts",
+    "partOf": "Labels {first}–{last} of {total} (part {part} of {parts}). Large bulk shipments print in parts so the browser stays responsive.",
+    "part": "Part {part}",
+    "downloadPdf": "{count, plural, one {Download label (PDF)} other {Download all # labels (PDF)}}",
+    "downloadAgain": "Download again",
+    "downloaded": "Labels downloaded successfully.",
+    "printInstead": "Print instead",
+    "included": "{count, plural, one {# label in this file} other {# labels in this file}}"
   }
 }

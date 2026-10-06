@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { CircleCheck, Download, LoaderCircle } from 'lucide-react';
+import { CircleCheck, Download, LoaderCircle, Tags } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 import Button from '@/components/ui/button';
@@ -126,6 +126,16 @@ const MerchantBatchPage = async ({
             {/* One invoice for the whole bulk shipment (migration 0031). */}
             {invoiceNumber || detail.shipmentCount > 0 ? (
               <InvoiceButton subject={{ batchId: id }} invoiceNumber={invoiceNumber} invoiceBasePath="/dashboard/customer/invoices" />
+            ) : null}
+            {/* Every label in one PDF file. Only the merchant who booked
+                it: QR codes are the booking customer's alone. */}
+            {batch.customerId === profile.id && detail.shipmentCount > 0 ? (
+              <Button asChild size="sm">
+                <Link href={`/dashboard/customer/bulk/${id}/labels?download=1`}>
+                  <Tags aria-hidden />
+                  {t('labels.download', { count: detail.shipmentCount })}
+                </Link>
+              </Button>
             ) : null}
             <Button asChild variant="outline" size="sm">
               <a href={`/api/merchant/bulk/${id}/report`} download>

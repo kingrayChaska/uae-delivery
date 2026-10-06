@@ -21,6 +21,11 @@ create table storage.objects (
   owner uuid
 );
 
+-- Supabase Storage always has RLS on for objects; without this the
+-- bucket policies (migrations 0012, 0013, 0022) were never enforced here
+-- and the upload ATTACK checks passed for the wrong reason.
+alter table storage.objects enable row level security;
+
 create or replace function storage.foldername(name text)
 returns text[]
 language sql

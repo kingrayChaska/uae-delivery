@@ -36,7 +36,28 @@
     "emptyTitle": "No deliveries yet",
     "emptyBody": "Your booked shipments will appear here.",
     "emptyCta": "Book your first delivery",
-    "all": "All deliveries"
+    "all": "All deliveries",
+    "filters": {
+      "label": "Search and filter shipments",
+      "search": "Search shipments",
+      "searchPlaceholder": "Name or phone number",
+      "searchHint": "Sender or recipient name, or phone number. Any phone format works: +971 50…, 050…",
+      "from": "Booked from",
+      "to": "Booked to",
+      "dateHint": "Dates are the booking date (UAE time). Leave either one empty for an open range.",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "active": "Active (on the way)",
+      "apply": "Apply filters",
+      "clear": "Clear filters",
+      "results": "{count, plural, =0 {No shipments match} one {# shipment matches} other {# shipments match}}",
+      "empty": "No shipments found matching your filters."
+    },
+    "scope": {
+      "label": "Whose shipments",
+      "mine": "My bookings",
+      "business": "All of {company}"
+    }
   },
   "detail": {
     "meta": "Shipment details · ParcelLink",
@@ -44,7 +65,8 @@
     "confirmedTitle": "Booking confirmed.",
     "confirmedBody": "Share the tracking ID with your recipient so they can follow the delivery.",
     "label": "Label",
-    "now": "Now: {status}"
+    "now": "Now: {status}",
+    "colleague": "Booked by a colleague in your business account. Only they can print its label or cancel it."
   },
   "track": {
     "meta": "Track shipments · ParcelLink",

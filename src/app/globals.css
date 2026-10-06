@@ -207,6 +207,49 @@
   }
 }
 
+/* A sheet of labels (a bulk shipment's labels, "Print instead"): the same
+   labels, one per A5 page, in normal flow instead of each positioned over
+   the first page. Like documents, everything around the sheet is taken out
+   of the layout. The whole printout uses the label's named page — set on
+   the root, so the page name never changes between the page and the first
+   label (which would leave the first sheet blank). */
+@media print {
+  :root:has([data-print-labels]),
+  body:has([data-print-labels]) {
+    page: shipment-label;
+  }
+
+  body:has([data-print-labels]) :not([data-print-labels], [data-print-labels] *, :has([data-print-labels])) {
+    display: none !important;
+  }
+
+  body:has([data-print-labels]) :has([data-print-labels]) {
+    display: block !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  /* On screen the sheet waits off-screen for the PDF; on paper it is the page. */
+  [data-print-labels] {
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+  }
+
+  [data-print-labels] [data-print-content] {
+    position: static !important;
+    break-inside: avoid;
+    break-after: page;
+  }
+
+  [data-print-labels] [data-print-content]:last-child {
+    break-after: auto;
+  }
+}
+
 /* ── Arabic / right-to-left ────────────────────────────────────────────────
    Layout mirrors through logical utilities (ms-/me-/ps-/pe-/start-/end-,
    text-start) and dir="rtl" on <html>. Letter-spacing breaks the joins in

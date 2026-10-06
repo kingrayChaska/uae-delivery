@@ -81,7 +81,10 @@ const ShipmentLabel = ({
   const hasDimensions = dimensions.some((dimension) => dimension !== null);
 
   return (
-    <article data-print-content className="mx-auto flex w-full max-w-2xl flex-col gap-6 border-4 border-black bg-white p-6 text-black sm:p-8 print:min-h-[180mm] print:max-w-none print:gap-5 print:border-2 print:p-2">
+    // @container: the two-column layout follows the label's own width, not
+    // the window's, so the label looks the same on a phone, on a desktop and
+    // in a bulk shipment's PDF (rendered at a fixed width).
+    <article data-print-content className="@container mx-auto flex w-full max-w-2xl flex-col gap-6 border-4 border-black bg-white p-6 text-black sm:p-8 print:min-h-[180mm] print:max-w-none print:gap-5 print:border-2 print:p-2">
       <div className="flex justify-center border-b-4 border-black pb-4 print:border-b-2 print:pb-3">
         <Image
           src={BRAND.logoSrc}
@@ -105,11 +108,11 @@ const ShipmentLabel = ({
           alt={t('qrAlt', { code: trackingNumber })}
           width={144}
           height={144}
-          className="size-28 shrink-0 sm:size-36 print:size-[38mm]"
+          className="size-28 shrink-0 @lg:size-36 print:size-[38mm]"
         />
       </header>
 
-      <section className="grid gap-5 sm:grid-cols-2 print:grid-cols-2 print:gap-4">
+      <section className="grid gap-5 @lg:grid-cols-2 print:grid-cols-2 print:gap-4">
         <div className="min-w-0">
           <p className="mb-1 text-sm font-bold uppercase tracking-wide">{t('from')}</p>
           <p className="text-lg font-semibold">{pickupContactName}</p>
@@ -119,7 +122,7 @@ const ShipmentLabel = ({
           {pickupInstructions ? <p className="mt-1 text-sm"><span className="font-semibold">{t('instructions')}: </span>{pickupInstructions}</p> : null}
         </div>
 
-        <div className="min-w-0 border-t-2 border-black pt-4 sm:border-s-2 sm:border-t-0 sm:pt-0 sm:ps-5 print:border-s-2 print:border-t-0 print:pt-0 print:ps-4">
+        <div className="min-w-0 border-t-2 border-black pt-4 @lg:border-s-2 @lg:border-t-0 @lg:pt-0 @lg:ps-5 print:border-s-2 print:border-t-0 print:pt-0 print:ps-4">
           <p className="mb-1 text-sm font-bold uppercase tracking-wide">{t('to')}</p>
           <p className="text-lg font-semibold">{dropoffContactName}</p>
           <p dir="ltr" className="text-base rtl:text-right">{dropoffContactPhone}</p>
@@ -129,7 +132,7 @@ const ShipmentLabel = ({
         </div>
       </section>
 
-      <section className="grid gap-5 border-t-2 border-black pt-4 sm:grid-cols-2 print:grid-cols-2 print:gap-4 print:pt-3">
+      <section className="grid gap-5 border-t-2 border-black pt-4 @lg:grid-cols-2 print:grid-cols-2 print:gap-4 print:pt-3">
         <div>
           <p className="mb-1 text-sm font-bold uppercase tracking-wide">{t('package')}</p>
           <p className="text-lg font-semibold">{tShipment(`packageType.${packageType}`)}</p>
@@ -143,7 +146,7 @@ const ShipmentLabel = ({
           ) : null}
         </div>
 
-        <div className="border-t-2 border-black pt-4 sm:border-s-2 sm:border-t-0 sm:pt-0 sm:ps-5 print:border-s-2 print:border-t-0 print:pt-0 print:ps-4">
+        <div className="border-t-2 border-black pt-4 @lg:border-s-2 @lg:border-t-0 @lg:pt-0 @lg:ps-5 print:border-s-2 print:border-t-0 print:pt-0 print:ps-4">
           <p className="mb-1 text-sm font-bold uppercase tracking-wide">{t('delivery')}</p>
           <p className="text-base">{tShipment(`deliveryType.${deliveryType}.label`)}</p>
           {deliveryDate ? <p className="text-base">{t('deliverOn', { date: format.calendarDate(deliveryDate) })}</p> : null}

@@ -11,7 +11,7 @@ supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
-Then run `seed/0001_default_pricing_rule.sql` once, to create the initial same-day 5km / AED 12 / AED 1-per-km pricing rule the booking flow depends on. Migration 0022 adds the next-day rule (5 km / AED 8 / AED 0.75 per km) and starting merchant flat rates.
+Then run `seed/0001_default_pricing_rule.sql` once, to create the initial same-day 5km / AED 12 / AED 1-per-km pricing rule the booking flow depends on, with the 90 km individual distance limit (migration 0027 only sets the limit on rules that already exist). Migration 0022 adds the next-day rule (5 km / AED 8 / AED 0.75 per km) and starting merchant flat rates.
 
 You do **not** need to add any `GRANT` statements yourselves — Supabase's managed Postgres already grants `anon`/`authenticated` baseline table and sequence access by default; RLS (enabled on every table here) is the actual restriction layer. The two `GRANT EXECUTE` statements at the end of `0011_public_tracking.sql` are the one exception, needed so the anonymous `/tracking` page can call those two functions.
 
@@ -84,8 +84,11 @@ Two more suites run against the same scratch database:
 
 ```bash
 sudo -u postgres psql -d uae_delivery_test -f database/test/transitions.sql   # every status transition
+sudo -u postgres psql -d uae_delivery_test -f database/test/customer-search.sql  # shipment search + bulk label tokens
 bash database/test/price-consistency.sh    # needs the e2e database: bash e2e/stack/setup-db.sh
 ```
+
+`customer-search.sql` checks migration 0032 on its own fresh scratch database (it adds its own users): every name, phone, status, UAE-date and combined search, the business-wide list matching the Shipments card's count, bulk label QR tokens, operator edits reaching the merchant, and that no other merchant (or anonymous caller) gets any of it. Each check raises `FAIL …` when wrong.
 
 `transitions.sql` tries every from→to status pair (self-transitions are no-ops and skipped) and compares the database's verdict with a state machine written out independently in the test. `price-consistency.sh` prices 5,000 random bookings with the app's `calculatePrice()` and asks the database's own `shipment_price_is_valid()` to accept each one.
 

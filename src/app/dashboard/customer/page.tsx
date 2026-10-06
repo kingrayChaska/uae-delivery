@@ -13,6 +13,9 @@ import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { getCustomerDashboardSummary } from '@/services/shipments/list-shipments';
 import { getOwnMerchantApplication } from '@/services/merchant/applications';
 import { getFormat } from '@/i18n/server';
+import { shipmentListHref } from '@/lib/shipment/filters';
+
+const DELIVERIES = '/dashboard/customer/deliveries';
 
 const CustomerDashboardPage = async () => {
   const profile = await requireRoleOrRedirect('customer');
@@ -64,10 +67,11 @@ const CustomerDashboardPage = async () => {
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label={t('stats.active')} value={format.number(summary.active)} icon={Truck} />
-        <StatCard label={t('stats.pending')} value={format.number(summary.pending)} icon={Clock} />
-        <StatCard label={t('stats.completed')} value={format.number(summary.completed)} icon={CircleCheckBig} />
-        <StatCard label={t('stats.spent')} value={format.money(summary.totalSpent, summary.currency)} icon={Wallet} />
+        {/* Each count opens the shipments it counts (same status groups, lib/shipment/filters). */}
+        <StatCard label={t('stats.active')} value={format.number(summary.active)} icon={Truck} href={shipmentListHref(DELIVERIES, { status: 'active' })} />
+        <StatCard label={t('stats.pending')} value={format.number(summary.pending)} icon={Clock} href={shipmentListHref(DELIVERIES, { status: 'pending_payment' })} />
+        <StatCard label={t('stats.completed')} value={format.number(summary.completed)} icon={CircleCheckBig} href={shipmentListHref(DELIVERIES, { status: 'delivered' })} />
+        <StatCard label={t('stats.spent')} value={format.money(summary.totalSpent, summary.currency)} icon={Wallet} href="/dashboard/customer/payments" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

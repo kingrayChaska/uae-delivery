@@ -191,7 +191,7 @@ const MerchantHub = async ({ application }: { application: MerchantApplication |
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label={t('stats.shipments')} value={format.number(stats?.shipment_count ?? 0)} />
+        <StatCard label={t('stats.shipments')} value={format.number(stats?.shipment_count ?? 0)} href="/dashboard/customer/deliveries?scope=business" />
         <StatCard label={t('stats.billed')} value={format.money(Number(stats?.billed ?? 0))} />
         <StatCard label={t('stats.outstanding')} value={format.money(Number(stats?.outstanding ?? 0))} />
         <StatCard label={t('stats.cashFees')} value={format.money(Number(stats?.cod ?? 0))} />

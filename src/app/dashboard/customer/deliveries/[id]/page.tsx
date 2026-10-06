@@ -46,6 +46,10 @@ const ShipmentDetailPage = async ({
   if (!detail) notFound();
 
   const { shipment, history, packageImageUrl } = detail;
+  // A business colleague's shipment (the business-wide list) is visible,
+  // but only the customer who booked it can print its label or cancel it
+  // (get_shipment_qr_token, enforce_shipment_update_permissions).
+  const ownShipment = shipment.customerId === profile.id;
   // A merchant's shipment that is part of a bulk shipment is billed on the
   // bulk shipment's one invoice (migration 0031), not on its own.
   const billedOnBulk = profile.accountType === 'merchant' && shipment.batchId !== null;
@@ -90,12 +94,14 @@ const ShipmentDetailPage = async ({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ShipmentStatusBadge status={shipment.status} />
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/dashboard/customer/deliveries/${shipment.id}/label`}>
-              <Printer aria-hidden />
-              {t('label')}
-            </Link>
-          </Button>
+          {ownShipment ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/dashboard/customer/deliveries/${shipment.id}/label`}>
+                <Printer aria-hidden />
+                {t('label')}
+              </Link>
+            </Button>
+          ) : null}
           {billedOnBulk ? (
             <Button asChild variant="outline" size="sm">
               <Link href={`/dashboard/customer/bulk/${shipment.batchId}`}>
@@ -106,9 +112,10 @@ const ShipmentDetailPage = async ({
           ) : invoiceNumber || shipment.status !== 'cancelled' ? (
             <InvoiceButton subject={{ shipmentId: shipment.id }} invoiceNumber={invoiceNumber} invoiceBasePath="/dashboard/customer/invoices" />
           ) : null}
-          {CANCELLABLE_STATUSES.includes(shipment.status) ? <CancelShipmentButton shipmentId={shipment.id} /> : null}
+          {ownShipment && CANCELLABLE_STATUSES.includes(shipment.status) ? <CancelShipmentButton shipmentId={shipment.id} /> : null}
         </div>
       </div>
+      {!ownShipment ? <p className="text-sm text-muted-foreground">{t('colleague')}</p> : null}
 
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="flex flex-col gap-6 lg:col-span-3">
