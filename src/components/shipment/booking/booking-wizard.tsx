@@ -110,6 +110,13 @@ const BookingWizard = ({
   const dropoffPoint = hasDropoff
     ? { lat: dropoff.lat, lng: dropoff.lng }
     : undefined;
+  // The trip's ends as routed: the point plus the selected place.
+  const pickupEnd = pickupPoint
+    ? { ...pickupPoint, place: pickup.place }
+    : undefined;
+  const dropoffEnd = dropoffPoint
+    ? { ...dropoffPoint, place: dropoff.place }
+    : undefined;
   // Only one map at a time: the route preview hides while a pin is being dropped.
   const [pinning, setPinning] = useState(false);
   const shipmentNumber = wizard.isEditingExisting
@@ -162,17 +169,17 @@ const BookingWizard = ({
   // instant one right on an emirate border).
   const serverBlock =
     wizard.serviceAreaBlock &&
-    pickupPoint &&
-    dropoffPoint &&
-    wizard.serviceAreaBlock.trip === wizard.tripKey(pickupPoint, dropoffPoint)
+    pickupEnd &&
+    dropoffEnd &&
+    wizard.serviceAreaBlock.trip === wizard.tripKey(pickupEnd, dropoffEnd)
       ? wizard.serviceAreaBlock
       : null;
   const total = format.money(wizard.total, currency);
 
   // The route on screen belongs to exactly these two points, or isn't shown.
   const trip =
-    pickupPoint && dropoffPoint
-      ? wizard.tripKey(pickupPoint, dropoffPoint)
+    pickupEnd && dropoffEnd
+      ? wizard.tripKey(pickupEnd, dropoffEnd)
       : null;
   const currentRoute =
     trip !== null && wizard.routeTrip === trip ? wizard.route : null;

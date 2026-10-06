@@ -17,6 +17,8 @@ export type DeliveryEndpoint = {
   // The Google place the customer selected, when they searched for one.
   placeId?: string | null;
   source?: LocationSource | null;
+  // TEMPORARY (route-distance investigation): logged in development only.
+  address?: string | null;
 };
 
 // A searched place's coordinates are copied from its Place Details, so the
@@ -32,8 +34,14 @@ const toWaypoint = async ({ lat, lng, placeId, source }: DeliveryEndpoint): Prom
   if (source !== 'search' || !placeId) return { coordinates };
   try {
     const place = await googleMapsProvider.retrieve(placeId, null, 'en');
-    if (haversineDistanceKm(place.coordinates, coordinates) <= PLACE_ROUTE_MATCH_KM) return { coordinates, placeId };
-    console.warn('Delivery route: the selected place is not at the booking coordinates; routing the coordinates');
+    const offsetKm = haversineDistanceKm(place.coordinates, coordinates);
+    if (offsetKm <= PLACE_ROUTE_MATCH_KM) return { coordinates, placeId };
+    console.warn('Delivery route: the selected place is not at the booking coordinates; routing the coordinates', {
+      placeId,
+      placeCoordinates: place.coordinates,
+      bookingCoordinates: coordinates,
+      offsetKm,
+    });
   } catch (error) {
     console.error('Delivery route: Place Details failed; routing the coordinates', error instanceof Error ? error.message : error);
   }
@@ -58,13 +66,17 @@ export const getDeliveryRoute = async ({
     // Google occasionally can't route to a place's access point; the exact
     // coordinates are still a real driving route. Any other failure throws.
     if (!from.placeId && !to.placeId) throw error;
+    console.warn('Delivery route: Google could not route the selected places; routing their exact coordinates instead', error instanceof Error ? error.message : error);
     route = await googleMapsProvider.getRoute({ coordinates: from.coordinates }, { coordinates: to.coordinates });
   }
 
   if (process.env.NODE_ENV !== 'production') {
-    console.info('Delivery route', {
-      pickup: describe(from),
-      dropoff: describe(to),
+    // TEMPORARY (route-distance investigation).
+    console.info('[route-debug] Delivery route', {
+      pickupAddress: origin.address ?? null,
+      deliveryAddress: destination.address ?? null,
+      pickup: { ...describe(from), placeId: from.placeId ?? null, requestedPlaceId: origin.placeId ?? null, source: origin.source ?? null },
+      dropoff: { ...describe(to), placeId: to.placeId ?? null, requestedPlaceId: destination.placeId ?? null, source: destination.source ?? null },
       distanceMeters: route.distanceMeters,
       distanceKm: route.distanceKm,
       durationSeconds: route.durationSeconds,

@@ -26,6 +26,7 @@ import {
   distanceLimitMessage,
   validateBookingLocations,
 } from "@/lib/shipment/booking-guards";
+import { tripKey } from "@/lib/shipment/trip-key";
 import { DELIVERY_TYPES } from "@/lib/types";
 
 import type {
@@ -60,16 +61,13 @@ export type LocationCoverage =
 type WizardLocation = {
   lat?: number;
   lng?: number;
-  place?: { placeId?: string | null } | null;
+  place?: { placeId?: string | null; source?: string | null } | null;
 };
 
 const pointKey = (location: WizardLocation) =>
   `${location.lat},${location.lng}|${location.place?.placeId ?? ""}`;
 
-const tripKey = (
-  pickup: { lat: number; lng: number },
-  dropoff: { lat: number; lng: number },
-) => `${pickup.lat},${pickup.lng}|${dropoff.lat},${dropoff.lng}`;
+
 
 // Steps for the shipment being edited; 'review' is the booking basket.
 export const BOOKING_STEPS = [
@@ -303,8 +301,17 @@ export const useBookingWizard = ({
     // The selected places go with the route request so the quote is routed
     // exactly as the booking will be (lib/maps/delivery-route.ts).
     const routeInput = {
-      origin: { ...coverageRequest.pickup, source: pickup.place?.source },
-      destination: { ...coverageRequest.dropoff, source: dropoff.place?.source },
+      origin: {
+        ...coverageRequest.pickup,
+        source: pickup.place?.source,
+        // TEMPORARY (route-distance investigation): for the dev log only.
+        address: pickup.address?.slice(0, 500),
+      },
+      destination: {
+        ...coverageRequest.dropoff,
+        source: dropoff.place?.source,
+        address: dropoff.address?.slice(0, 500),
+      },
     };
     const promise = (async () => {
       // The server's own emirate check — the one the booking will get — runs
@@ -344,6 +351,35 @@ export const useBookingWizard = ({
         setRouteError(result.error);
         setRouted(null);
         return false;
+      }
+
+      if (process.env.NODE_ENV !== "production") {
+        // TEMPORARY (route-distance investigation): what the wizard will
+        // show and charge for this route, per delivery type.
+        console.info("[route-debug] Booking quote", {
+          pickupAddress: pickup.address,
+          deliveryAddress: dropoff.address,
+          pickup: routeInput.origin,
+          dropoff: routeInput.destination,
+          distanceMeters: result.route.distanceMeters,
+          distanceKm: result.route.distanceKm,
+          fees: Object.fromEntries(
+            DELIVERY_TYPES.map((type) => {
+              const quote = calculateShipmentPrice({
+                rule: rules[type],
+                distanceKm: result.route.distanceKm,
+              });
+              return [
+                type,
+                {
+                  deliveryFee: quote.totalPrice,
+                  maxDistanceKm: quote.maxDistanceKm,
+                  exceedsDistanceLimit: quote.exceedsDistanceLimit,
+                },
+              ];
+            }),
+          ),
+        });
       }
 
       setRouted({ trip, route: result.route });

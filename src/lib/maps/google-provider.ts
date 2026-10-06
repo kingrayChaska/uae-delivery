@@ -84,10 +84,28 @@ export { MapsProviderError };
 const ROUTE_CACHE_TTL_MS = 60 * 60 * 1000;
 const ROUTE_CACHE_MAX_ENTRIES = 500;
 const routeCache = new Map<string, { route: RouteResult; expires: number }>();
+// Bump whenever buildRouteRequest changes what it asks Google for (travel
+// mode, routing preference, modifiers, waypoint shape): routes cached
+// under the old request are then never reused.
+const ROUTE_CACHE_VERSION = 'v2';
 // The cache key only: requests always carry the full-precision coordinates.
 const waypointKey = ({ coordinates: { lat, lng }, placeId }: RouteWaypoint) =>
   `${lat.toFixed(7)},${lng.toFixed(7)},${placeId ?? ''}`;
-const routeKey = (a: RouteWaypoint, b: RouteWaypoint) => `${waypointKey(a)}|${waypointKey(b)}`;
+const routeKey = (a: RouteWaypoint, b: RouteWaypoint) => `${ROUTE_CACHE_VERSION}|${waypointKey(a)}|${waypointKey(b)}`;
+
+// TEMPORARY (route-distance investigation): where each route came from and
+// exactly what Google was asked and answered. Development only; the API
+// key is never logged.
+const logRoute = (from: 'memory cache' | 'shared cache' | 'google', route: RouteResult, request?: ApiRequest) => {
+  if (process.env.NODE_ENV === 'production') return;
+  console.info('[route-debug] Routes API', {
+    from,
+    ...(request ? { url: request.url, fieldMask: request.headers['X-Goog-FieldMask'], body: request.body ? JSON.parse(request.body) : null } : {}),
+    distanceMeters: route.distanceMeters,
+    distanceKm: route.distanceKm,
+    durationSeconds: route.durationSeconds,
+  });
+};
 
 // The server's own look-ups of a place the customer already chose (the
 // coverage check and the route's place check) ask for the same place
@@ -196,7 +214,10 @@ export const googleMapsProvider: MapsProvider = {
   getRoute: async (origin: RouteWaypoint, destination: RouteWaypoint): Promise<RouteResult> => {
     const key = routeKey(origin, destination);
     const cached = routeCache.get(key);
-    if (cached && cached.expires > Date.now()) return cached.route;
+    if (cached && cached.expires > Date.now()) {
+      logRoute('memory cache', cached.route);
+      return cached.route;
+    }
 
     const remember = (route: RouteResult) => {
       if (routeCache.size >= ROUTE_CACHE_MAX_ENTRIES) routeCache.delete(routeCache.keys().next().value!);
@@ -207,9 +228,14 @@ export const googleMapsProvider: MapsProvider = {
     // Another instance may already have priced this exact trip (the
     // wizard's quote and the booking often land on different instances).
     const shared = await readSharedCache<RouteResult>(`route:${key}`);
-    if (shared) return remember(shared);
+    if (shared) {
+      logRoute('shared cache', shared);
+      return remember(shared);
+    }
 
-    const route = parseRouteResponse(await send(buildRouteRequest(origin, destination, getKey())));
+    const request = buildRouteRequest(origin, destination, getKey());
+    const route = parseRouteResponse(await send(request));
+    logRoute('google', route, request);
     await writeSharedCache(`route:${key}`, route, ROUTE_CACHE_TTL_MS);
     return remember(route);
   },

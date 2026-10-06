@@ -33,6 +33,9 @@ export const reverseGeocodeSchema = coordinatesSchema.extend({ language: languag
 const routeEndpointSchema = coordinatesSchema.extend({
   placeId: z.string().regex(/^[A-Za-z0-9_-]{1,512}$/).nullable().optional(),
   source: z.enum(LOCATION_SOURCES).nullable().optional(),
+  // TEMPORARY (route-distance investigation): the address text, for the
+  // development route log only. Never routed, priced or stored.
+  address: z.string().max(500).optional(),
 });
 
 export const routeRequestSchema = z.object({
