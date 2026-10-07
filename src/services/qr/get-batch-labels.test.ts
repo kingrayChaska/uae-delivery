@@ -86,6 +86,7 @@ const shipment = (n: number, overrides: Row = {}): Row => ({
   currency: 'AED',
   business_account_id: 'business-a',
   customer: { account_type: 'merchant' },
+  rule: { account_type: 'merchant' },
   payment_method: 'card',
   recipient_payment_type: 'postpaid',
   cod_amount: 120,
@@ -144,6 +145,26 @@ describe('getBatchLabels', () => {
     expect(result?.status === 'ready' && result.labels.every((label) => label.deliveryFee === null)).toBe(true);
     // What the recipient pays is still there.
     expect(result?.status === 'ready' && result.labels[0].codAmount).toBe(120);
+  });
+
+  it.each([
+    ['a business account', { customer: null, rule: null }],
+    ['a merchant booking customer', { business_account_id: null, rule: null }],
+    ['a merchant pricing rule', { business_account_id: null, customer: null }],
+  ])('leaves the fee off when only %s marks it a merchant shipment', async (_label, overrides) => {
+    db.shipments = [shipment(1, overrides)];
+    db.tokens = new Map([['s1', 'token-s1']]);
+    const result = await getBatchLabels(BATCH, MERCHANT, 1);
+    expect(result?.status === 'ready' && result.labels[0].deliveryFee).toBeNull();
+  });
+
+  it("still prints an individual customer's fee", async () => {
+    db.shipments = [
+      shipment(1, { business_account_id: null, customer: { account_type: 'individual' }, rule: { account_type: 'individual' }, price: '21.60' }),
+    ];
+    db.tokens = new Map([['s1', 'token-s1']]);
+    const result = await getBatchLabels(BATCH, MERCHANT, 1);
+    expect(result?.status === 'ready' && result.labels[0].deliveryFee).toBe(21.6);
   });
 
   it('prints a large batch in parts, every shipment exactly once', async () => {

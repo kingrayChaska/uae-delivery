@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { calculateShipmentPrice, sumPrices } from '@/lib/pricing/calculate';
-import { DEFAULT_PRICING_RULES } from '@/lib/pricing/config';
+import { DEFAULT_PRICING_RULES, MERCHANT_FLAT_FEE } from '@/lib/pricing/config';
 
 const SAME_DAY = DEFAULT_PRICING_RULES.individual.same_day;
 const NEXT_DAY = DEFAULT_PRICING_RULES.individual.next_day;
@@ -129,6 +129,27 @@ describe('calculateShipmentPrice — merchant flat rate', () => {
     expect(calculateShipmentPrice({ rule: MERCHANT_SAME_DAY, distanceKm: 3, weightKg: 10 }).totalPrice).toBe(15);
     expect(calculateShipmentPrice({ rule: MERCHANT_SAME_DAY, distanceKm: 48, weightKg: 10 }).totalPrice).toBe(15);
     expect(calculateShipmentPrice({ rule: MERCHANT_SAME_DAY, distanceKm: 48, weightKg: 25 }).totalPrice).toBe(20);
+  });
+
+  // Migration 0033: AED 15 for both services (Next-Day was seeded at AED 10).
+  it.each(['same_day', 'next_day'] as const)('merchant %s is a flat AED 15 at any distance', (type) => {
+    const rule = DEFAULT_PRICING_RULES.merchant[type];
+    expect(rule.basePrice).toBe(MERCHANT_FLAT_FEE);
+    for (const distanceKm of [1, 5, 14.6, 36.44, 52, 150]) {
+      expect(calculateShipmentPrice({ rule, distanceKm, weightKg: 2 }).totalPrice).toBe(15);
+    }
+  });
+
+  it('keeps the COD amount out of the merchant fee', () => {
+    const rule = DEFAULT_PRICING_RULES.merchant.next_day;
+    const quote = calculateShipmentPrice({ rule, distanceKm: 30, weightKg: 2, recipientPaymentType: 'postpaid', codAmount: 233 });
+    expect(quote.totalPrice).toBe(15);
+  });
+
+  it('leaves individual pricing as it was', () => {
+    expect(calculateShipmentPrice({ rule: DEFAULT_PRICING_RULES.individual.same_day, distanceKm: 52 }).totalPrice).toBe(59);
+    expect(calculateShipmentPrice({ rule: DEFAULT_PRICING_RULES.individual.next_day, distanceKm: 52 }).totalPrice).toBe(43.25);
+    expect(calculateShipmentPrice({ rule: DEFAULT_PRICING_RULES.individual.same_day, distanceKm: 3 }).totalPrice).toBe(12);
   });
 });
 

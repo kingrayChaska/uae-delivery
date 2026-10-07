@@ -85,6 +85,8 @@ Two more suites run against the same scratch database:
 ```bash
 sudo -u postgres psql -d uae_delivery_test -f database/test/transitions.sql   # every status transition
 sudo -u postgres psql -d uae_delivery_test -f database/test/customer-search.sql  # shipment search + bulk label tokens
+sudo -u postgres psql -d uae_delivery_test -f database/test/merchant-pricing.sql # merchant flat rate AED 15 (0033)
+sudo -u postgres psql -d uae_delivery_test -f database/test/merchant-repricing.sql # existing merchant shipments to AED 15 (0034)
 bash database/test/price-consistency.sh    # needs the e2e database: bash e2e/stack/setup-db.sh
 ```
 

@@ -4,7 +4,7 @@ import type { AccountType, DeliveryType, PricingRule, PricingRuleSet } from '@/l
 // (no Supabase env in a preview build, or an unseeded database). Real
 // prices come from the active pricing_rules rows (migration 0022), which a
 // manager edits on the Pricing page — nothing else should hard-code these
-// numbers. They mirror what migrations 0022 and 0027 seed.
+// numbers. They mirror what migrations 0022, 0027 and 0033 set.
 const rule = (
   id: string,
   name: string,
@@ -26,6 +26,11 @@ const rule = (
   isActive: true,
 });
 
+// A merchant pays one flat fee per shipment for either service (plus the
+// weight charge over the included weight). The live rate is the active
+// merchant pricing_rules row (migration 0033 set it); this mirrors it.
+export const MERCHANT_FLAT_FEE = 15;
+
 export const DEFAULT_PRICING_RULES: PricingRuleSet = {
   individual: {
     same_day: rule('default-individual-same_day', 'Same-Day Standard', 'same_day', 'individual', {
@@ -42,12 +47,12 @@ export const DEFAULT_PRICING_RULES: PricingRuleSet = {
   merchant: {
     same_day: rule('default-merchant-same_day', 'Merchant Same-Day Flat', 'same_day', 'merchant', {
       baseDistanceKm: 50,
-      basePrice: 15,
+      basePrice: MERCHANT_FLAT_FEE,
       additionalPricePerKm: 0,
     }),
     next_day: rule('default-merchant-next_day', 'Merchant Next-Day Flat', 'next_day', 'merchant', {
       baseDistanceKm: 50,
-      basePrice: 10,
+      basePrice: MERCHANT_FLAT_FEE,
       additionalPricePerKm: 0,
     }),
   },

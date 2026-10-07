@@ -45,20 +45,23 @@ export type ShipmentLabelData = {
 // customer, assigned driver, or staff. Everything else here is ordinary
 // shipment data already covered by the standard shipments_select policy.
 //
-// A merchant shipment is one booked by a merchant account or under a
-// business account. The account type is embedded from the booking
-// customer's profile (readable by that customer and by staff);
-// business_account_id covers callers who can't read the profile.
-type LabelCustomer = { account_type: string } | { account_type: string }[] | null;
+// A merchant shipment never prints its delivery fee: the label goes to the
+// merchant's own customer. It is one priced under a merchant pricing rule,
+// booked by a merchant account, or booked under a business account — any
+// one is enough, so a reader who can't see one of them (the rule or the
+// booking customer's profile) still gets a label without the fee.
+type AccountTypeEmbed = { account_type: string } | { account_type: string }[] | null;
 
-const isMerchantShipment = (businessAccountId: string | null, customer: LabelCustomer) => {
-  const profile = Array.isArray(customer) ? customer[0] : customer;
-  return businessAccountId !== null || profile?.account_type === 'merchant';
-};
+const accountTypeOf = (embed: AccountTypeEmbed) => (Array.isArray(embed) ? embed[0] : embed)?.account_type;
+
+const isMerchantShipment = (shipment: Pick<LabelRow, 'business_account_id' | 'customer' | 'rule'>) =>
+  shipment.business_account_id !== null ||
+  accountTypeOf(shipment.customer) === 'merchant' ||
+  accountTypeOf(shipment.rule) === 'merchant';
 
 // Everything a label prints — the same for one label or a whole batch.
 const LABEL_COLUMNS =
-  'id, tracking_number, pickup_address, pickup_contact_name, pickup_contact_phone, pickup_building, pickup_unit, pickup_floor, pickup_instructions, dropoff_address, dropoff_contact_name, dropoff_contact_phone, dropoff_building, dropoff_unit, dropoff_floor, dropoff_instructions, delivery_type, delivery_date, price, currency, business_account_id, customer:profiles!shipments_customer_id_fkey(account_type), payment_method, recipient_payment_type, cod_amount, package_type, package_description, package_quantity, package_weight_kg, package_length_cm, package_width_cm, package_height_cm, is_fragile';
+  'id, tracking_number, pickup_address, pickup_contact_name, pickup_contact_phone, pickup_building, pickup_unit, pickup_floor, pickup_instructions, dropoff_address, dropoff_contact_name, dropoff_contact_phone, dropoff_building, dropoff_unit, dropoff_floor, dropoff_instructions, delivery_type, delivery_date, price, currency, business_account_id, customer:profiles!shipments_customer_id_fkey(account_type), rule:pricing_rules(account_type), payment_method, recipient_payment_type, cod_amount, package_type, package_description, package_quantity, package_weight_kg, package_length_cm, package_width_cm, package_height_cm, is_fragile';
 
 type LabelRow = {
   id: string;
@@ -82,7 +85,8 @@ type LabelRow = {
   price: number | string;
   currency: string;
   business_account_id: string | null;
-  customer: LabelCustomer;
+  customer: AccountTypeEmbed;
+  rule: AccountTypeEmbed;
   payment_method: ShipmentLabelData['paymentMethod'];
   recipient_payment_type: ShipmentLabelData['recipientPaymentType'];
   cod_amount: number | string;
@@ -116,7 +120,7 @@ const toLabelData = async (shipment: LabelRow, token: string): Promise<ShipmentL
   dropoffInstructions: shipment.dropoff_instructions,
   deliveryType: shipment.delivery_type,
   deliveryDate: shipment.delivery_date,
-  deliveryFee: isMerchantShipment(shipment.business_account_id, shipment.customer) ? null : Number(shipment.price),
+  deliveryFee: isMerchantShipment(shipment) ? null : Number(shipment.price),
   currency: shipment.currency,
   paymentMethod: shipment.payment_method,
   recipientPaymentType: shipment.recipient_payment_type,
