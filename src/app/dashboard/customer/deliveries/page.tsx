@@ -51,13 +51,17 @@ const DeliveriesPage = async ({
   const parsed = parseShipmentFilters(params);
   const filters = parsed.scope === 'business' && !business ? { ...parsed, scope: 'mine' as const } : parsed;
   const filtered = hasFilters(filters);
-  const [shipments, booking, t, format] = await Promise.all([
+  const [shipments, booking, t, tStatus, format] = await Promise.all([
     listCustomerShipments(profile.id, parsePage(params.page), filters, filters.scope === 'business' ? business!.id : null),
     bookingId ? getCustomerBooking(profile.id, bookingId) : Promise.resolve(null),
     getTranslations('customer.deliveries'),
+    getTranslations('shipments.status'),
     getFormat(),
   ]);
   const failed = Number(params.failed ?? 0);
+  const statusLabel =
+    filters.status === 'all' ? null : filters.status === 'active' ? t('filters.active') : tStatus(filters.status);
+  const narrowedFurther = filters.q !== '' || filters.from !== null || filters.to !== null;
 
   return (
     <main className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
@@ -106,7 +110,7 @@ const DeliveriesPage = async ({
           ) : null}
           <div className="flex flex-col gap-2">
             {booking.shipments.map((shipment) => (
-              <ShipmentListItem key={shipment.id} shipment={shipment} />
+              <ShipmentListItem key={shipment.id} shipment={shipment} showRecipientName={business !== null} />
             ))}
           </div>
         </section>
@@ -138,13 +142,29 @@ const DeliveriesPage = async ({
       {shipments.items.length === 0 && filtered ? (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed p-10 text-center">
           <PackageSearch className="size-8 text-muted-foreground" aria-hidden />
-          <p className="font-medium">{t('filters.empty')}</p>
-          <Button asChild variant="outline">
-            <Link href={shipmentListHref(BASE_PATH, { scope: filters.scope })}>
-              <X aria-hidden />
-              {t('filters.clear')}
-            </Link>
-          </Button>
+          {/* Name the status (e.g. from a dashboard card) so it's clear why the list is empty. */}
+          <p className="font-medium">
+            {statusLabel === null
+              ? t('filters.empty')
+              : narrowedFurther
+                ? t('filters.emptyStatusFiltered', { status: statusLabel })
+                : t('filters.emptyStatus', { status: statusLabel })}
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {statusLabel !== null && narrowedFurther ? (
+              <Button asChild variant="outline">
+                <Link href={shipmentListHref(BASE_PATH, { scope: filters.scope, status: filters.status })}>
+                  {t('filters.showStatus', { status: statusLabel })}
+                </Link>
+              </Button>
+            ) : null}
+            <Button asChild variant="outline">
+              <Link href={shipmentListHref(BASE_PATH, { scope: filters.scope })}>
+                <X aria-hidden />
+                {t('filters.clear')}
+              </Link>
+            </Button>
+          </div>
         </div>
       ) : shipments.items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed p-10 text-center">
@@ -161,7 +181,11 @@ const DeliveriesPage = async ({
         <section aria-label={t('all')} className="flex flex-col gap-2">
           {booking ? <h2 className="mt-2 text-lg font-medium">{t('all')}</h2> : null}
           {shipments.items.map((shipment) => (
-            <ShipmentListItem key={shipment.id} shipment={shipment} />
+            <ShipmentListItem
+              key={shipment.id}
+              shipment={shipment}
+              showRecipientName={filters.scope === 'business' && business !== null}
+            />
           ))}
         </section>
       )}

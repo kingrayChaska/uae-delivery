@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ACTIVE_STATUSES, DRIVER_STATUS_FILTERS, NO_FILTERS, hasFilters, parseShipmentFilters, shipmentListHref, statusesFor } from '@/lib/shipment/filters';
+import { ACTIVE_STATUSES, DRIVER_STATUS_FILTERS, NO_FILTERS, countFor, hasFilters, parseShipmentFilters, shipmentListHref, statusesFor } from '@/lib/shipment/filters';
 import { SHIPMENT_STATUSES } from '@/lib/types';
 
 // The matching itself happens in Postgres (search_customer_shipments,
@@ -151,5 +151,31 @@ describe('driver list', () => {
     const params = Object.fromEntries(new URL(href, 'https://example.com').searchParams);
     expect(parseShipmentFilters(params, DRIVER_STATUS_FILTERS)).toEqual(filters);
     expect(shipmentListHref(DRIVER, { ...filters, q: 'Dubai Marina' })).not.toContain('page=');
+  });
+});
+
+describe('countFor', () => {
+  // Per-status counts as customer_shipment_status_counts() returns them.
+  const counts = { pending_payment: 1, confirmed: 2, picked_up: 3, in_transit: 18, delivered: 42, returned: 3, cancelled: 2 };
+
+  it('counts one status for its card', () => {
+    expect(countFor(counts, 'in_transit')).toBe(18);
+    expect(countFor(counts, 'delivered')).toBe(42);
+    expect(countFor(counts, 'returned')).toBe(3);
+    expect(countFor(counts, 'cancelled')).toBe(2);
+  });
+
+  it('counts a status with no shipments as 0', () => {
+    expect(countFor(counts, 'delivery_failed')).toBe(0);
+    expect(countFor({}, 'in_transit')).toBe(0);
+  });
+
+  it('counts the Active group as the statuses its list filters to', () => {
+    expect(countFor(counts, 'active')).toBe(2 + 3 + 18);
+    expect(countFor(counts, 'active')).toBe(ACTIVE_STATUSES.reduce((sum, s) => sum + (counts[s as keyof typeof counts] ?? 0), 0));
+  });
+
+  it('counts every status for All', () => {
+    expect(countFor(counts, 'all')).toBe(71);
   });
 });

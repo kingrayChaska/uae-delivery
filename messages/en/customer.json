@@ -13,6 +13,7 @@
       "completed": "Completed",
       "spent": "Total spent"
     },
+    "statusTitle": "Shipment status",
     "recent": "Recent deliveries",
     "viewAll": "View all",
     "emptyTitle": "No deliveries yet",
@@ -40,8 +41,8 @@
     "filters": {
       "label": "Search and filter shipments",
       "search": "Search shipments",
-      "searchPlaceholder": "Name or phone number",
-      "searchHint": "Sender or recipient name, or phone number. Any phone format works: +971 50…, 050…",
+      "searchPlaceholder": "Name, phone, shipment ID or address",
+      "searchHint": "Sender or recipient name, phone (any format: +971 50…, 050…), shipment ID, or pickup or drop-off address.",
       "from": "Booked from",
       "to": "Booked to",
       "dateHint": "Dates are the booking date (UAE time). Leave either one empty for an open range.",
@@ -53,6 +54,9 @@
       "apply": "Apply filters",
       "clear": "Clear filters",
       "results": "{count, plural, =0 {No shipments match} one {# shipment matches} other {# shipments match}}",
+      "emptyStatus": "No “{status}” shipments yet.",
+      "emptyStatusFiltered": "No “{status}” shipments match your current filters.",
+      "showStatus": "All “{status}” shipments",
       "empty": "No shipments found matching your filters."
     },
     "scope": {

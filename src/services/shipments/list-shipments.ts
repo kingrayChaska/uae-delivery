@@ -3,11 +3,11 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { pageRange, toPaginated } from '@/lib/pagination';
 import { mapRowToShipment, SHIPMENT_SELECT_COLUMNS } from '@/services/shipments/shipment-mapper';
-import { ACTIVE_STATUSES, hasFilters, NO_FILTERS, statusesFor } from '@/lib/shipment/filters';
+import { ACTIVE_STATUSES, countFor, hasFilters, NO_FILTERS, statusesFor } from '@/lib/shipment/filters';
 
 import type { Paginated } from '@/lib/pagination';
-import type { ShipmentFilters } from '@/lib/shipment/filters';
-import type { Shipment } from '@/lib/types';
+import type { ShipmentFilters, StatusCounts } from '@/lib/shipment/filters';
+import type { Shipment, ShipmentStatus } from '@/lib/types';
 import type { ShipmentRow } from '@/services/shipments/shipment-mapper';
 
 
@@ -15,6 +15,8 @@ export type CustomerDashboardSummary = {
   active: number;
   pending: number;
   completed: number;
+  // Shipments per status, for the merchant's status cards.
+  byStatus: StatusCounts;
   totalSpent: number;
   currency: string;
   recent: Shipment[];
@@ -69,22 +71,10 @@ export const listCustomerShipments = async (
 export const getCustomerDashboardSummary = async (customerId: string): Promise<CustomerDashboardSummary> => {
   const supabase = await createClient();
 
-  const [activeRes, pendingRes, completedRes, spentRes, recentRes] = await Promise.all([
-    supabase
-      .from('shipments')
-      .select('id', { count: 'exact', head: true })
-      .eq('customer_id', customerId)
-      .in('status', ACTIVE_STATUSES),
-    supabase
-      .from('shipments')
-      .select('id', { count: 'exact', head: true })
-      .eq('customer_id', customerId)
-      .eq('status', 'pending_payment'),
-    supabase
-      .from('shipments')
-      .select('id', { count: 'exact', head: true })
-      .eq('customer_id', customerId)
-      .eq('status', 'delivered'),
+  const [countsRes, spentRes, recentRes] = await Promise.all([
+    // Every status's count in one grouped query (migration 0036), limited
+    // to the caller's own shipments in the database.
+    supabase.rpc('customer_shipment_status_counts'),
     supabase.from('customer_shipment_stats').select('total_spent, currency').eq('customer_id', customerId).maybeSingle(),
     supabase
       .from('shipments')
@@ -93,11 +83,20 @@ export const getCustomerDashboardSummary = async (customerId: string): Promise<C
       .order('created_at', { ascending: false })
       .limit(5),
   ]);
+  if (countsRes.error) throw new Error(countsRes.error.message);
+  const byStatus: StatusCounts = Object.fromEntries(
+    ((countsRes.data ?? []) as { status: ShipmentStatus; shipment_count: number | string }[]).map((row) => [
+      row.status,
+      Number(row.shipment_count),
+    ]),
+  );
 
   return {
-    active: activeRes.count ?? 0,
-    pending: pendingRes.count ?? 0,
-    completed: completedRes.count ?? 0,
+    // Each card counts the same statuses as the list it opens.
+    active: countFor(byStatus, 'active'),
+    pending: countFor(byStatus, 'pending_payment'),
+    completed: countFor(byStatus, 'delivered'),
+    byStatus,
     // Summed in the database (customer_shipment_stats, migration 0021)
     // rather than by downloading every paid shipment.
     totalSpent: Number(spentRes.data?.total_spent ?? 0),

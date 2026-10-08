@@ -67,6 +67,7 @@ You do **not** need to add any `GRANT` statements yourselves — Supabase's mana
   - Helpers (`next_invoice_number`, `invoice_caller_may_issue`, `invoice_billed_to`) have EXECUTE revoked explicitly. Note: 0018's `alter default privileges in schema public revoke execute on functions` cannot remove Postgres's *global* EXECUTE-to-PUBLIC default, so every new function needs an explicit `revoke … from public` (as 0024 does for `anonymize_profile`).
 
 - **Driver shipment search** (migration 0035). `search_driver_shipments(query, statuses, from, to)` is the driver's counterpart of `search_customer_shipments()` (0032): same parameters, matching rules and paging, so the driver's My Deliveries page reuses the customer list's filters. Its scope is `driver_id = auth.uid()` inside the query — there is no driver id parameter to swap — and it is `SECURITY INVOKER`, so `shipments_select` RLS still applies. One search box matches sender/recipient name, tracking number (current or legacy), pickup/drop-off address and building, or phone; status and UAE booking date combine with it by AND. Anyone not assigned a shipment (customer, staff, anonymous) gets nothing; `anon` can't call it.
+- **Merchant status cards and fuller search** (migration 0036). `customer_shipment_status_counts()` returns the caller's own shipments per status in one grouped query (`customer_id = auth.uid()`, `SECURITY INVOKER`, no id parameter); the dashboard's cards, including the merchant's In transit / Delivered / Returned / Cancelled, read from it. Bulk shipments count shipment by shipment. `search_customer_shipments()` now also matches the shipment ID (current or legacy) and the pickup/drop-off address and building, like the driver search; its signature and scope are unchanged.
 - **Realtime** (migration 0014) publishes `shipments` and `driver_locations` for the live dispatch map. Supabase Realtime applies each subscriber's RLS, so no extra policies are needed — but Realtime itself can't run in the local harness, so the live-update behaviour is only verifiable against a real Supabase project.
 
 ## Local verification (`test/`)
@@ -85,14 +86,14 @@ Two more suites run against the same scratch database:
 
 ```bash
 sudo -u postgres psql -d uae_delivery_test -f database/test/transitions.sql   # every status transition
-sudo -u postgres psql -d uae_delivery_test -f database/test/customer-search.sql  # shipment search + bulk label tokens
+sudo -u postgres psql -d uae_delivery_test -f database/test/customer-search.sql  # shipment search, status counts + bulk label tokens
 sudo -u postgres psql -d uae_delivery_test -f database/test/merchant-pricing.sql # merchant flat rate AED 15 (0033)
 sudo -u postgres psql -d uae_delivery_test -f database/test/merchant-repricing.sql # existing merchant shipments to AED 15 (0034)
 sudo -u postgres psql -d uae_delivery_test -f database/test/driver-search.sql   # driver shipment search (0035)
 bash database/test/price-consistency.sh    # needs the e2e database: bash e2e/stack/setup-db.sh
 ```
 
-`customer-search.sql` checks migration 0032 on its own fresh scratch database (it adds its own users): every name, phone, status, UAE-date and combined search, the business-wide list matching the Shipments card's count, bulk label QR tokens, operator edits reaching the merchant, and that no other merchant (or anonymous caller) gets any of it. Each check raises `FAIL …` when wrong.
+`customer-search.sql` checks migrations 0032 and 0036 on its own fresh scratch database (it adds its own users): every name, phone, shipment ID, address, status, UAE-date and combined search, the status-card counts (bulk shipments counted individually) following status changes, the business-wide list matching the Shipments card's count, bulk label QR tokens, operator edits reaching the merchant, and that no other merchant (or anonymous caller) gets any of it. Each check raises `FAIL …` when wrong.
 
 `driver-search.sql` checks migration 0035 on its own fresh scratch database: name, shipment ID (current and legacy), pickup/drop-off address, phone, status, UAE-date and combined searches, operator edits and reassignment reaching the driver's results, and that no other driver, customer, staff member or anonymous caller can find a driver's shipments through it.
 

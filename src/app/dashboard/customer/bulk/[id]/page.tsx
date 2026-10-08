@@ -120,6 +120,7 @@ const MerchantBatchPage = async ({
         backHref="/dashboard/customer/bulk"
         backLabel={t('review.back')}
         shipmentBasePath="/dashboard/customer/deliveries"
+        showRecipientName
         pageHref={`/dashboard/customer/bulk/${id}`}
         actions={
           <>

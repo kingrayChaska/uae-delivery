@@ -12,9 +12,16 @@ type ShipmentListItemProps = {
   basePath?: string;
   // Staff lists show when each shipment was booked.
   showBookedAt?: boolean;
+  // Merchants use the recipient to identify individual business shipments.
+  showRecipientName?: boolean;
 };
 
-const ShipmentListItem = ({ shipment, basePath = '/dashboard/customer/deliveries', showBookedAt = false }: ShipmentListItemProps) => {
+const ShipmentListItem = ({
+  shipment,
+  basePath = '/dashboard/customer/deliveries',
+  showBookedAt = false,
+  showRecipientName = false,
+}: ShipmentListItemProps) => {
   const t = useTranslations('shipments');
   const format = useFormat();
   return (
@@ -25,6 +32,11 @@ const ShipmentListItem = ({ shipment, basePath = '/dashboard/customer/deliveries
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span dir="ltr" className="font-brand-mono text-sm font-semibold tracking-wider">{shipment.trackingNumber}</span>
+          {showRecipientName ? (
+            <span className="max-w-full break-words text-sm font-semibold text-foreground">
+              {shipment.dropoff.contactName.trim() || t('list.recipientNotProvided')}
+            </span>
+          ) : null}
           <span className="text-xs text-muted-foreground">{t(`deliveryType.${shipment.deliveryType}.label`)}</span>
           {showBookedAt ? (
             <time dateTime={shipment.createdAt} className="text-xs text-muted-foreground">

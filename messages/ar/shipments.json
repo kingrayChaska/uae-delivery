@@ -115,7 +115,8 @@
   "list": {
     "cod": "· دفع عند الاستلام {amount}",
     "to": "إلى",
-    "bookedOn": "حُجزت {date}"
+    "bookedOn": "حُجزت {date}",
+    "recipientNotProvided": "لم يتم تحديد المستلم"
   },
   "pod": {
     "notYet": "سيتوفر إثبات التسليم هنا فور تسليم طردك.",

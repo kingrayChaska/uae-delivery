@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ArrowRight, Building2, CircleCheckBig, Clock, Hourglass, PackagePlus, Truck, Wallet } from 'lucide-react';
+import { ArrowRight, Ban, Building2, CircleCheckBig, Clock, Hourglass, PackageCheck, PackagePlus, Route, Truck, Undo2, Wallet } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 import Button from '@/components/ui/button';
@@ -13,19 +13,29 @@ import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { getCustomerDashboardSummary } from '@/services/shipments/list-shipments';
 import { getOwnMerchantApplication } from '@/services/merchant/applications';
 import { getFormat } from '@/i18n/server';
-import { shipmentListHref } from '@/lib/shipment/filters';
+import { countFor, shipmentListHref } from '@/lib/shipment/filters';
 
 const DELIVERIES = '/dashboard/customer/deliveries';
+
+// The merchant's status cards: each opens the Deliveries list filtered to
+// that one status.
+const STATUS_CARDS = [
+  { status: 'in_transit', icon: Route },
+  { status: 'delivered', icon: PackageCheck },
+  { status: 'returned', icon: Undo2 },
+  { status: 'cancelled', icon: Ban },
+] as const;
 
 const CustomerDashboardPage = async () => {
   const profile = await requireRoleOrRedirect('customer');
   // New accounts first answer "How will you use ParcelLink?".
   if (!profile.accountTypeSelectedAt) redirect('/dashboard/customer/onboarding');
 
-  const [summary, application, t, format] = await Promise.all([
+  const [summary, application, t, tStatus, format] = await Promise.all([
     getCustomerDashboardSummary(profile.id),
     profile.accountType === 'individual' ? getOwnMerchantApplication(profile.id) : Promise.resolve(null),
     getTranslations('customer.home'),
+    getTranslations('shipments.status'),
     getFormat(),
   ]);
   const firstName = profile.fullName.split(' ')[0] || profile.fullName;
@@ -73,6 +83,25 @@ const CustomerDashboardPage = async () => {
         <StatCard label={t('stats.completed')} value={format.number(summary.completed)} icon={CircleCheckBig} href={shipmentListHref(DELIVERIES, { status: 'delivered' })} />
         <StatCard label={t('stats.spent')} value={format.money(summary.totalSpent, summary.currency)} icon={Wallet} href="/dashboard/customer/payments" />
       </div>
+
+      {profile.accountType === 'merchant' ? (
+        <section aria-labelledby="status-heading" className="flex flex-col gap-3">
+          <h2 id="status-heading" className="text-lg font-medium">
+            {t('statusTitle')}
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+            {STATUS_CARDS.map(({ status, icon }) => (
+              <StatCard
+                key={status}
+                label={tStatus(status)}
+                value={format.number(countFor(summary.byStatus, status))}
+                icon={icon}
+                href={shipmentListHref(DELIVERIES, { status })}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section aria-labelledby="recent-heading" className="flex flex-col gap-3 lg:col-span-2">

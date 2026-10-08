@@ -2,8 +2,10 @@
 -- applied). Checks migration 0032: search_customer_shipments() (name,
 -- phone, status, UAE booking date, combined, ownership) and
 -- get_batch_qr_tokens() (bulk labels), plus operator edits reaching the
--- merchant's search. Each check raises "FAIL ..." on a wrong answer; the
--- two ATTACK blocks at the end must end in "permission denied".
+-- merchant's search; and migration 0036: shipment ID and address search,
+-- and customer_shipment_status_counts() behind the dashboard's status
+-- cards, following status changes. Each check raises "FAIL ..." on a wrong
+-- answer; the three ATTACK blocks at the end must end in "permission denied".
 --
 -- Usage: su postgres -c "psql -d uae_delivery_test -f database/test/customer-search.sql"
 
@@ -60,6 +62,17 @@ begin
   end loop;
 end $$;
 
+-- Fixed shipment IDs (the search matches them, so random ones could
+-- collide with a searched name or phone), and a few distinct addresses.
+alter table shipments disable trigger user;
+update shipments set tracking_number = 'WXY8822' || translate(right(package_description, 1), '123456', 'ABCDEF')
+  where package_description in ('n1', 'n2', 'n3', 'n4', 'n5', 'n6');
+update shipments set legacy_tracking_number = 'DLV-20261003-xyz789' where package_description = 'n2';
+update shipments set dropoff_address = 'Burj Khalifa, Downtown Dubai' where package_description in ('n1', 'n6');
+update shipments set pickup_address = 'Clock Tower, Deira' where package_description = 'n3';
+update shipments set dropoff_building = 'Marina Gate 2' where package_description = 'n5';
+alter table shipments enable trigger user;
+
 insert into shipment_batches (id, name, customer_id, created_by, status) values
   ('10000000-0000-0000-0000-00000000000a', 'A bulk', '00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a', 'submitted'),
   ('10000000-0000-0000-0000-0000000000e0', 'A empty', '00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a', 'submitted');
@@ -105,6 +118,28 @@ select t_check('phone + status',                 t_got('0501234567', '{returned}
 select t_check('date + status',                  t_got(null, '{cancelled}', '2026-10-01', '2026-10-06'), 'n3');
 select t_check('name+phone(box)+date+status',    t_got('Ahmed', '{delivered}', '2026-10-01', '2026-10-06'), 'n1');
 select t_check('combined, no match',             t_got('Ahmed', '{returned}', '2026-10-01', '2026-10-06'), '-');
+-- Shipment ID and address (migration 0036).
+select t_check('ID exact',                       t_got('WXY8822A', null, null, null), 'n1');
+select t_check('ID partial, any case',           t_got('wxy88', null, null, null), 'n1,n2,n3,n4,n5');
+select t_check('ID legacy',                      t_got('DLV-20261003', null, null, null), 'n2');
+select t_check('ID nonexistent',                 t_got('QQQQ2222', null, null, null), '-');
+select t_check('drop-off address',               t_got('Burj Khalifa', null, null, null), 'n1');
+select t_check('pickup address, other case',     t_got('clock tower', null, null, null), 'n3');
+select t_check('address partial',                t_got('downtown', null, null, null), 'n1');
+select t_check('building typed at booking',      t_got('marina gate', null, null, null), 'n5');
+select t_check('ID + status',                    t_got('WXY8822B', '{in_transit}', null, null), 'n2');
+select t_check('ID + other status',              t_got('WXY8822B', '{delivered}', null, null), '-');
+select t_check('address + date',                 t_got('Burj Khalifa', null, '2026-10-01', '2026-10-01'), 'n1');
+select t_check('address + date, no match',       t_got('Burj Khalifa', null, '2026-10-02', '2026-10-06'), '-');
+-- A status card's list, searched: In transit AND name AND date.
+select t_check('In transit + name',              t_got('ahmed', '{in_transit}', null, null), 'n2');
+select t_check('In transit + name + date',       t_got('ahmed', '{in_transit}', '2026-10-03', '2026-10-03'), 'n2');
+select t_check('In transit + phone',             t_got('0507654321', '{in_transit}', null, null), 'n2');
+select t_check('In transit + name, no match',    t_got('fatima', '{in_transit}', null, null), '-');
+select t_check('Returned + phone',               t_got('0501234567', '{returned}', null, null), 'n5');
+select t_check('Cancelled + name',               t_got('sara', '{cancelled}', null, null), 'n3');
+select t_check('Delivered + ID',                 t_got('WXY8822A', '{delivered}', null, null), 'n1');
+select t_check('A never sees B by ID',           t_got('WXY8822F', null, null, null), '-');
 -- Ownership: B's matching shipment never appears for A, nor A's for B.
 select t_check('A never sees B (Ahmed Other)',   t_got('Other', null, null, null), '-');
 set request.jwt.uid = '00000000-0000-0000-0000-00000000000b';
@@ -113,6 +148,29 @@ set request.jwt.uid = '00000000-0000-0000-0000-00000000000c';
 select t_check('staff get nothing (own scope)',  t_got(null, null, null, null), '-');
 reset request.jwt.uid;
 select t_check('anonymous session gets nothing', t_got(null, null, null, null), '-');
+reset role;
+
+\echo '── customer_shipment_status_counts (dashboard status cards) ──'
+create function t_counts() returns text language sql as $$
+  select coalesce(string_agg(status || ':' || shipment_count, ',' order by status::text), '-')
+  from customer_shipment_status_counts()
+$$;
+grant execute on function t_counts() to authenticated, anon;
+set role authenticated;
+set request.jwt.uid = '00000000-0000-0000-0000-00000000000a';
+select t_check('A: one count per status',        t_counts(), 'cancelled:1,delivered:1,in_transit:1,pending_payment:1,returned:1');
+-- n1-n3 are one bulk shipment: each of its shipments counts on its own.
+select t_check('A: bulk shipments counted individually',
+  (select sum(shipment_count)::text from customer_shipment_status_counts()), '5');
+select t_check('A: card count = its list''s length',
+  (select shipment_count::text from customer_shipment_status_counts() where status = 'in_transit'),
+  (select count(*)::text from search_customer_shipments(null, '{in_transit}', null, null)));
+set request.jwt.uid = '00000000-0000-0000-0000-00000000000b';
+select t_check('B: only own counts',             t_counts(), 'delivered:1');
+set request.jwt.uid = '00000000-0000-0000-0000-00000000000c';
+select t_check('staff: no counts (own scope)',   t_counts(), '-');
+reset request.jwt.uid;
+select t_check('no session: no counts',          t_counts(), '-');
 reset role;
 
 \echo '── get_batch_qr_tokens ──'
@@ -201,10 +259,71 @@ select t_check('staff: not a member, nothing',           t_gotb(null, null, '200
 reset request.jwt.uid;
 reset role;
 
+\echo '── status changes move shipments between cards and lists ──'
+-- Statuses set directly (superuser): what's checked is that the cards and
+-- lists read the persisted status, however it was changed.
+create function t_move(label text, status_to shipment_status) returns void language plpgsql as $$
+begin
+  execute 'alter table shipments disable trigger user';
+  update shipments set status = status_to where package_description = label;
+  execute 'alter table shipments enable trigger user';
+end $$;
+create function t_card(st shipment_status) returns text language sql as $$
+  select coalesce((select shipment_count::text from customer_shipment_status_counts() where status = st), '0')
+$$;
+grant execute on function t_card(shipment_status) to authenticated;
+
+select t_move('n2', 'in_transit');
+set role authenticated;
+set request.jwt.uid = '00000000-0000-0000-0000-00000000000a';
+select t_check('start: In transit card',         t_card('in_transit'), '1');
+select t_check('start: Delivered card',          t_card('delivered'), '1');
+reset role;
+
+select t_move('n2', 'delivered');
+set role authenticated;
+set request.jwt.uid = '00000000-0000-0000-0000-00000000000a';
+select t_check('in_transit->delivered: In transit card', t_card('in_transit'), '0');
+select t_check('in_transit->delivered: Delivered card',  t_card('delivered'), '2');
+select t_check('in_transit->delivered: In transit list', t_got(null, '{in_transit}', null, null), '-');
+select t_check('in_transit->delivered: Delivered list',  t_got(null, '{delivered}', null, null), 'n1,n2');
+reset role;
+
+select t_move('n2', 'in_transit');
+select t_move('n2', 'returned');
+set role authenticated;
+set request.jwt.uid = '00000000-0000-0000-0000-00000000000a';
+select t_check('in_transit->returned: Returned card',  t_card('returned'), '2');
+select t_check('in_transit->returned: Returned list',  t_got(null, '{returned}', null, null), 'n2,n5');
+select t_check('in_transit->returned: Delivered card', t_card('delivered'), '1');
+reset role;
+
+select t_move('n2', 'in_transit');
+select t_move('n2', 'cancelled');
+set role authenticated;
+set request.jwt.uid = '00000000-0000-0000-0000-00000000000a';
+select t_check('in_transit->cancelled: Cancelled card',  t_card('cancelled'), '2');
+select t_check('in_transit->cancelled: Cancelled list',  t_got(null, '{cancelled}', null, null), 'n2,n3');
+select t_check('in_transit->cancelled: In transit card', t_card('in_transit'), '0');
+reset role;
+
+select t_move('n4', 'in_transit');
+set role authenticated;
+set request.jwt.uid = '00000000-0000-0000-0000-00000000000a';
+select t_check('pending->in_transit: In transit card',   t_card('in_transit'), '1');
+select t_check('pending->in_transit: In transit list',   t_got(null, '{in_transit}', null, null), 'n4');
+select t_check('pending->in_transit: no longer pending', t_card('pending_payment'), '0');
+set request.jwt.uid = '00000000-0000-0000-0000-00000000000b';
+select t_check('B''s counts untouched',          t_counts(), 'delivered:1');
+reset request.jwt.uid;
+reset role;
+
 \set ON_ERROR_STOP 0
 set role anon;
 \echo 'ATTACK: anon calls search_customer_shipments (expect permission denied)'
 select count(*) from search_customer_shipments(null, null, null, null);
 \echo 'ATTACK: anon calls get_batch_qr_tokens (expect permission denied)'
 select count(*) from get_batch_qr_tokens('10000000-0000-0000-0000-00000000000a');
+\echo 'ATTACK: anon calls customer_shipment_status_counts (expect permission denied)'
+select count(*) from customer_shipment_status_counts();
 reset role;

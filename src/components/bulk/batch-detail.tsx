@@ -19,6 +19,8 @@ type BatchDetailProps = {
   shipmentBasePath: string;
   // Staff get the sender's contact details; the customer already knows them.
   showSender?: boolean;
+  // Merchants can identify each shipment by its recipient.
+  showRecipientName?: boolean;
   // This page's own path, for paging through the shipments.
   pageHref: string;
   // Extra buttons beside the status (e.g. the merchant's report download).
@@ -26,7 +28,16 @@ type BatchDetailProps = {
   backLabel?: string;
 };
 
-const BatchDetail = ({ batch, backHref, shipmentBasePath, showSender = false, pageHref, actions, backLabel }: BatchDetailProps) => {
+const BatchDetail = ({
+  batch,
+  backHref,
+  shipmentBasePath,
+  showSender = false,
+  showRecipientName = false,
+  pageHref,
+  actions,
+  backLabel,
+}: BatchDetailProps) => {
   const t = useTranslations('operator.bulk');
   const locale = useAppLocale();
   const format = useFormat();
@@ -137,7 +148,12 @@ const BatchDetail = ({ batch, backHref, shipmentBasePath, showSender = false, pa
           <p className="text-sm text-muted-foreground">{t('none')}</p>
         ) : (
           batch.shipments.items.map((shipment) => (
-            <ShipmentListItem key={shipment.id} shipment={shipment} basePath={shipmentBasePath} />
+            <ShipmentListItem
+              key={shipment.id}
+              shipment={shipment}
+              basePath={shipmentBasePath}
+              showRecipientName={showRecipientName}
+            />
           ))
         )}
         <Pagination page={batch.shipments.page} totalPages={batch.shipments.totalPages} href={pageHref} />
