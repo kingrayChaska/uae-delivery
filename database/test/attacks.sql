@@ -179,7 +179,7 @@ select issue_delivery_otp(:'p9_id');
 select complete_delivery(:'p9_id', null, null, null, '0000');
 
 \echo 'expect invalid_otp: wrong code'
-select complete_delivery(:'p9_id', null, :'p9_id' || '/photo-pod.jpg', null, 'wrong');
+select complete_delivery(:'p9_id', null, :'p9_id' || '/photo-pod.jpg', null, 'wrong', null, 'Handed to the recipient');
 
 reset role;
 -- OTPs are stored hashed (0018), so read the code the way a real customer
@@ -190,8 +190,11 @@ order by created_at desc limit 1 \gset
 set role authenticated;
 set request.jwt.uid = '00000000-0000-0000-0000-000000000003';
 
-\echo 'expect delivered: correct code, photo, and no recipient name (0028)'
-select complete_delivery(:'p9_id', null, :'p9_id' || '/photo-pod.jpg', null, :'p9_otp');
+\echo 'ATTACK: complete_delivery with the photo and the right code but no delivery note (0037)'
+select complete_delivery(:'p9_id', null, :'p9_id' || '/photo-pod.jpg', null, :'p9_otp', null, '   ');
+
+\echo 'expect delivered: correct code, photo, note, and no recipient name (0028, 0037)'
+select complete_delivery(:'p9_id', null, :'p9_id' || '/photo-pod.jpg', null, :'p9_otp', null, 'Handed to the recipient');
 
 \echo 'ATTACK: operator1 inserts an audit log row directly'
 set request.jwt.uid = '00000000-0000-0000-0000-000000000005';
@@ -625,15 +628,20 @@ update shipments set status = 'picked_up' where id in (:'p28_id', :'p28r_id');
 update shipments set status = 'in_transit' where id in (:'p28_id', :'p28r_id');
 update shipments set status = 'arrived_destination' where id = :'p28_id';
 insert into storage.objects (bucket_id, name, owner) values ('proof-of-delivery', :'p28_id' || '/photo.jpg', auth.uid());
+insert into storage.objects (bucket_id, name, owner) values ('proof-of-delivery', :'p28c_id' || '/cancel.jpg', auth.uid());
+insert into storage.objects (bucket_id, name, owner) values ('proof-of-delivery', :'p28r_id' || '/return.jpg', auth.uid());
 
 \echo 'expect 150 / 15: the COD record keeps the goods amount and the cash fee apart'
 select product_amount, delivery_fee_amount from cod_transactions where shipment_id = :'p28_id';
 
 \echo 'ATTACK: driver1 completes a postpaid delivery without confirming the COD was collected'
-select complete_delivery(p_shipment_id => :'p28_id', p_photo_path => :'p28_id' || '/photo.jpg');
+select complete_delivery(p_shipment_id => :'p28_id', p_photo_path => :'p28_id' || '/photo.jpg', p_notes => 'Left with reception');
 
-\echo 'LEGITIMATE: driver1 completes it with a photo and the COD confirmation, no recipient name'
+\echo 'ATTACK: driver1 completes it with the COD confirmation but no delivery note (0037)'
 select complete_delivery(p_shipment_id => :'p28_id', p_photo_path => :'p28_id' || '/photo.jpg', p_cod_collected => true);
+
+\echo 'LEGITIMATE: driver1 completes it with a photo, a note and the COD confirmation, no recipient name'
+select complete_delivery(p_shipment_id => :'p28_id', p_photo_path => :'p28_id' || '/photo.jpg', p_notes => 'Left with reception', p_cod_collected => true);
 
 \echo 'expect t / collected: the confirmation is on the proof and the COD record is collected'
 select pod.cod_collected, c.status, c.collected_at is not null as stamped
@@ -642,23 +650,39 @@ where pod.shipment_id = :'p28_id';
 
 \echo 'ATTACK: driver6 cancels a shipment assigned to driver1'
 set request.jwt.uid = '00000000-0000-0000-0000-000000000006';
-select driver_cancel_shipment(:'p28c_id', 'not mine');
+select driver_cancel_shipment(:'p28c_id', 'not mine', :'p28c_id' || '/cancel.jpg');
 
 \echo 'ATTACK: driver1 sets cancelled with a plain update, bypassing the function'
 set request.jwt.uid = '00000000-0000-0000-0000-000000000003';
 update shipments set status = 'cancelled', cancelled_reason = 'x' where id = :'p28c_id';
 
 \echo 'ATTACK: driver1 cancels without a reason'
-select driver_cancel_shipment(:'p28c_id', '   ');
+select driver_cancel_shipment(:'p28c_id', '   ', :'p28c_id' || '/cancel.jpg');
 
 \echo 'ATTACK: driver1 cancels a shipment that is already picked up (it must be returned)'
-select driver_cancel_shipment(:'p28r_id', 'changed mind');
+select driver_cancel_shipment(:'p28r_id', 'changed mind', :'p28r_id' || '/return.jpg');
 
 \echo 'ATTACK: driver1 returns a shipment that was never picked up'
-select driver_return_shipment(:'p28c_id', 'no');
+select driver_return_shipment(:'p28c_id', 'no', :'p28c_id' || '/cancel.jpg');
 
-\echo 'LEGITIMATE: driver1 cancels before pickup with a reason'
+\echo 'ATTACK: driver1 cancels with a reason but no photo (0037)'
+select driver_cancel_shipment(:'p28c_id', 'Sender cancelled the order', null);
+
+\echo 'ATTACK: driver1 cancels citing a photo that was never uploaded (0037)'
+select driver_cancel_shipment(:'p28c_id', 'Sender cancelled the order', :'p28c_id' || '/ghost.jpg');
+
+\echo 'ATTACK: driver1 cancels citing another shipment''s photo (0037)'
+select driver_cancel_shipment(:'p28c_id', 'Sender cancelled the order', :'p28_id' || '/photo.jpg');
+
+\echo 'ATTACK: the old two-argument cancel, without a photo, is gone (0037)'
 select driver_cancel_shipment(:'p28c_id', 'Sender cancelled the order');
+
+\echo 'ATTACK: driver1 writes cancellation evidence directly'
+insert into shipment_outcome_proofs (shipment_id, driver_id, outcome, photo_path, reason)
+values (:'p28c_id', auth.uid(), 'cancelled', :'p28c_id' || '/cancel.jpg', 'forged');
+
+\echo 'LEGITIMATE: driver1 cancels before pickup with a reason and a photo'
+select driver_cancel_shipment(:'p28c_id', 'Sender cancelled the order', :'p28c_id' || '/cancel.jpg');
 
 \echo 'expect cancelled / Sender cancelled the order'
 select status, cancelled_reason from shipments where id = :'p28c_id';
@@ -666,8 +690,11 @@ select status, cancelled_reason from shipments where id = :'p28c_id';
 \echo 'ATTACK: driver1 marks a picked-up shipment delivered with a plain update, skipping proof'
 update shipments set status = 'delivered' where id = :'p28r_id';
 
-\echo 'LEGITIMATE: driver1 returns a picked-up shipment with a reason'
-select driver_return_shipment(:'p28r_id', 'Recipient refused the parcel');
+\echo 'ATTACK: driver1 returns with a reason but no photo (0037)'
+select driver_return_shipment(:'p28r_id', 'Recipient refused the parcel', null);
+
+\echo 'LEGITIMATE: driver1 returns a picked-up shipment with a reason and a photo'
+select driver_return_shipment(:'p28r_id', 'Recipient refused the parcel', :'p28r_id' || '/return.jpg');
 
 \echo 'expect returned / Recipient refused the parcel / 0 expected COD left'
 select status, delivery_failed_reason,
@@ -675,9 +702,25 @@ select status, delivery_failed_reason,
 from shipments where id = :'p28r_id';
 
 \echo 'ATTACK: driver1 returns the same shipment again (returned is terminal)'
-select driver_return_shipment(:'p28r_id', 'again');
+select driver_return_shipment(:'p28r_id', 'again', :'p28r_id' || '/return.jpg');
 
 reset role;
+\echo 'expect cancelled|Sender cancelled the order|cancel.jpg and returned|Recipient refused the parcel|return.jpg: one evidence row each (0037)'
+select outcome, reason, right(photo_path, 10) as photo from shipment_outcome_proofs
+where shipment_id in (:'p28c_id', :'p28r_id') order by outcome;
+
+set role authenticated;
+set request.jwt.uid = '00000000-0000-0000-0000-000000000001'; -- the booking customer
+\echo 'expect 2: the customer can read the evidence for their shipments'
+select count(*) from shipment_outcome_proofs where shipment_id in (:'p28c_id', :'p28r_id');
+set request.jwt.uid = '00000000-0000-0000-0000-000000000006'; -- driver6
+\echo 'ATTACK: another driver reads driver1''s cancellation and return evidence'
+select count(*) from shipment_outcome_proofs where shipment_id in (:'p28c_id', :'p28r_id');
+\echo 'ATTACK: driver1 rewrites the recorded reason'
+set request.jwt.uid = '00000000-0000-0000-0000-000000000003';
+update shipment_outcome_proofs set reason = 'edited' where shipment_id = :'p28c_id';
+reset role;
+
 \echo 'expect 1 / 1 / 0: the customer heard about both; the driver was not told "cancelled by the customer"'
 select
   (select count(*) from notifications n join shipments s on n.body like s.tracking_number || '%'

@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Banknote, Camera, CheckCircle2 } from 'lucide-react';
+import { Banknote } from 'lucide-react';
 
 import Button from '@/components/ui/button';
 import Checkbox from '@/components/ui/checkbox';
 import Input from '@/components/ui/input';
 import Label from '@/components/ui/label';
 import FieldError from '@/components/ui/field-error';
+import ProofPhotoField from '@/components/driver/proof-photo-field';
 import SignaturePad from '@/components/driver/signature-pad';
 import QrScanner from '@/components/driver/qr-scanner';
 import { usePodUpload } from '@/lib/hooks/use-pod-upload';
@@ -24,9 +25,9 @@ type ProofOfDeliveryFormProps = {
   currency: string;
 };
 
-// A delivery photo, plus the COD confirmation when there's money to
-// collect, is all a driver needs. Signature, OTP and QR stay available as
-// optional extra proof.
+// A delivery photo and a note, plus the COD confirmation when there's
+// money to collect, is all a driver needs. Signature, OTP and QR stay
+// available as optional extra proof.
 const ProofOfDeliveryForm = ({ shipmentId, codToCollect, currency }: ProofOfDeliveryFormProps) => {
   const t = useTranslations('driver.pod');
   const format = useFormat();
@@ -43,11 +44,6 @@ const ProofOfDeliveryForm = ({ shipmentId, codToCollect, currency }: ProofOfDeli
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handlePhotoSelect = async (file: File) => {
-    const path = await upload(file, 'photo', file.name.split('.').pop() ?? 'jpg');
-    setPhotoPath(path);
-  };
 
   const handleSignatureCapture = async (blob: Blob) => {
     const path = await upload(blob, 'signature', 'png');
@@ -90,42 +86,16 @@ const ProofOfDeliveryForm = ({ shipmentId, codToCollect, currency }: ProofOfDeli
     <div className="flex flex-col gap-4 rounded-md border p-4">
       <h3 className="font-medium">{t('title')}</h3>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="podPhoto">
-          {t('photo')} <span className="text-destructive" aria-hidden>*</span>
-        </Label>
-        {photoPath ? (
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="flex items-center gap-1.5 text-sm text-success">
-              <CheckCircle2 className="size-4" aria-hidden />
-              {t('photoAttached')}
-            </p>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setPhotoPath(null)}>
-              {t('replacePhoto')}
-            </Button>
-          </div>
-        ) : (
-          <>
-            <input
-              id="podPhoto"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              aria-required
-              disabled={isUploading}
-              onChange={async (event) => {
-                const file = event.target.files?.[0];
-                if (file) await handlePhotoSelect(file);
-              }}
-              className="text-sm text-muted-foreground file:me-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground"
-            />
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Camera className="size-3.5" aria-hidden />
-              {isUploading ? t('uploading') : t('photoHint')}
-            </p>
-          </>
-        )}
-        <FieldError message={uploadError} />
-      </div>
+      <ProofPhotoField
+        id="podPhoto"
+        label={t('photo')}
+        hint={t('photoHint')}
+        value={photoPath}
+        onUpload={(file) => upload(file, 'photo', file.name.split('.').pop() ?? 'jpg')}
+        onChange={setPhotoPath}
+        isUploading={isUploading}
+        error={uploadError}
+      />
 
       {collectsCod ? (
         <div className="flex flex-col gap-3 rounded-xl border-2 border-primary/30 bg-secondary/40 p-3">
@@ -199,8 +169,19 @@ const ProofOfDeliveryForm = ({ shipmentId, codToCollect, currency }: ProofOfDeli
       </details>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="podNotes">{t('notes')}</Label>
-        <Input id="podNotes" value={notes} onChange={(event) => setNotes(event.target.value)} />
+        <Label htmlFor="podNotes">
+          {t('notes')} <span className="text-destructive" aria-hidden>*</span>
+        </Label>
+        <textarea
+          id="podNotes"
+          rows={2}
+          maxLength={500}
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          placeholder={t('notesPlaceholder')}
+          aria-required
+          className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 sm:text-sm"
+        />
       </div>
 
       {error ? <FieldError message={error} /> : null}

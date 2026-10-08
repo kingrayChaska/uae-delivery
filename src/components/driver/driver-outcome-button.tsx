@@ -7,7 +7,10 @@ import { Undo2, XCircle } from 'lucide-react';
 
 import ConfirmButton from '@/components/ui/confirm-button';
 import Label from '@/components/ui/label';
+import ProofPhotoField from '@/components/driver/proof-photo-field';
+import { usePodUpload } from '@/lib/hooks/use-pod-upload';
 import { cancelShipmentAsDriverAction, returnShipmentAction } from '@/lib/driver/actions';
+import { driverOutcomeSchema } from '@/lib/driver/schemas';
 
 type DriverOutcome = 'cancel' | 'return';
 
@@ -17,24 +20,29 @@ const ACTIONS = {
 } as const;
 
 // "Cancel shipment" (before pickup) or "Return to sender" (after pickup),
-// each behind a confirmation that asks for the reason.
+// each behind a confirmation that asks for a photo and the reason
+// (migration 0037 refuses either without both).
 const DriverOutcomeButton = ({ shipmentId, outcome }: { shipmentId: string; outcome: DriverOutcome }) => {
   const t = useTranslations(`driver.outcome.${outcome}`);
   const router = useRouter();
   const reasonId = useId();
+  const photoId = useId();
+  const { upload, isUploading, error: uploadError } = usePodUpload(shipmentId);
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const Icon = outcome === 'cancel' ? XCircle : Undo2;
 
   const confirm = async () => {
-    if (!reason.trim()) {
-      setError('driver.validation.reason');
+    const parsed = driverOutcomeSchema.safeParse({ shipmentId, reason, photoPath });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? 'validation.invalid');
       return false;
     }
     setIsPending(true);
     setError(null);
-    const result = await ACTIONS[outcome]({ shipmentId, reason });
+    const result = await ACTIONS[outcome](parsed.data);
     setIsPending(false);
     if (!result.success) {
       setError(result.error);
@@ -52,6 +60,18 @@ const DriverOutcomeButton = ({ shipmentId, outcome }: { shipmentId: string; outc
       description={
         <div className="flex flex-col gap-3">
           <p>{t('description')}</p>
+          <div className="text-foreground">
+            <ProofPhotoField
+              id={photoId}
+              label={t('photo')}
+              hint={t('photoHint')}
+              value={photoPath}
+              onUpload={(file) => upload(file, outcome, file.name.split('.').pop() ?? 'jpg')}
+              onChange={setPhotoPath}
+              isUploading={isUploading}
+              error={uploadError}
+            />
+          </div>
           <div className="flex flex-col gap-1.5 text-foreground">
             <Label htmlFor={reasonId}>{t('reason')}</Label>
             <textarea
@@ -69,7 +89,7 @@ const DriverOutcomeButton = ({ shipmentId, outcome }: { shipmentId: string; outc
       }
       confirmLabel={t('confirm')}
       confirmVariant="destructive"
-      isPending={isPending}
+      isPending={isPending || isUploading}
       error={error}
       onConfirm={confirm}
     >

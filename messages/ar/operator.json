@@ -93,7 +93,9 @@
     "reasonLabel": "سبب الإعادة",
     "reasonPlaceholder": "مثل: رفض المستلم الطرد",
     "batch": "دفعة الشحنات",
-    "outcomeReason": "السبب ({status})"
+    "outcomeReason": "السبب ({status})",
+    "outcomePhoto": "صورة السائق",
+    "outcomePhotoAlt": "صورة السائق لحالة {status}، تُفتح بالحجم الكامل"
   },
   "customers": {
     "meta": "العملاء · ParcelLink",

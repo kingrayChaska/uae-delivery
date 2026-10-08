@@ -17,6 +17,7 @@ export const useShipmentWorkflowActions = (shipmentId: string) => {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Resolves whether the step went through, so a caller can close its form.
   const run = async (action: () => Promise<{ success: boolean; error?: string }>) => {
     setIsPending(true);
     setError(null);
@@ -25,9 +26,10 @@ export const useShipmentWorkflowActions = (shipmentId: string) => {
 
     if (!result.success) {
       setError(result.error ?? 'driver.errors.generic');
-      return;
+      return false;
     }
     router.refresh();
+    return true;
   };
 
   return {

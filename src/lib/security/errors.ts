@@ -48,6 +48,9 @@ export const DATABASE_MESSAGES: Record<string, string> = {
     "errors.db.proofRequired",
   "Photo not found for this shipment": "errors.db.photoNotFound",
   "A delivery photo is required": "errors.db.photoRequired",
+  "A photo is required": "errors.db.outcomePhotoRequired",
+  "A delivery note is required": "errors.db.deliveryNoteRequired",
+  "Keep the delivery note under 500 characters": "errors.db.deliveryNoteTooLong",
   "Confirm the cash on delivery amount was collected":
     "errors.db.codConfirmRequired",
   "Only a shipment that has not been picked up can be cancelled":

@@ -99,9 +99,11 @@ export const reportDeliveryFailedAction = async (
 
 // Before pickup the driver can cancel; after pickup the parcel can only go
 // back to the sender. driver_cancel_shipment / driver_return_shipment
-// (migration 0028) are SECURITY DEFINER and check the caller is the
-// assigned driver, the status allows it, and a reason was given — the
-// general update policy stays as narrow as it was.
+// (migrations 0028, 0037) are SECURITY DEFINER and check the caller is the
+// assigned driver, the status allows it, a reason was given and the photo
+// was really uploaded to this shipment's folder — then keep both as
+// evidence (shipment_outcome_proofs). The general update policy stays as
+// narrow as it was.
 const runDriverOutcome = async (
   fn: 'driver_cancel_shipment' | 'driver_return_shipment',
   input: DriverOutcomeInput,
@@ -111,7 +113,11 @@ const runDriverOutcome = async (
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc(fn, { p_shipment_id: parsed.data.shipmentId, p_reason: parsed.data.reason });
+  const { error } = await supabase.rpc(fn, {
+    p_shipment_id: parsed.data.shipmentId,
+    p_reason: parsed.data.reason,
+    p_photo_path: parsed.data.photoPath,
+  });
   if (error) return { success: false, error: safeErrorMessage(error) };
   return { success: true };
 };
@@ -168,7 +174,7 @@ export const submitProofOfDeliveryAction = async (
     p_signature_path: signaturePath ?? null,
     p_otp: otpCode || null,
     p_qr_token: qrToken || null,
-    p_notes: notes || null,
+    p_notes: notes,
     p_cod_collected: codCollected,
   });
 

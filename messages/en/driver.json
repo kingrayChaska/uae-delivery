@@ -86,9 +86,6 @@
     "reason": "Reason"
   },
   "workflow": {
-    "failureReason": "Reason the delivery failed",
-    "confirmFailed": "Confirm Failed Delivery",
-    "reportFailed": "Report failed delivery",
     "accept": "Accept Delivery",
     "decline": "Decline",
     "navigatePickup": "Navigate to Pickup",
@@ -96,13 +93,11 @@
     "confirmPickup": "Confirm Pickup",
     "start": "Start Delivery",
     "navigateCustomer": "Navigate to Customer",
-    "arrived": "Arrived",
-    "problem": "Can’t complete this delivery?"
+    "arrived": "Arrived"
   },
   "pod": {
     "title": "Proof of Delivery",
     "photo": "Delivery photo",
-    "photoAttached": "Photo attached",
     "signature": "Recipient signature",
     "signatureCaptured": "Signature captured",
     "signaturePad": "Signature pad. Ask the recipient to sign here.",
@@ -112,15 +107,23 @@
     "codePlaceholder": "4-digit code",
     "qr": "Scan shipment QR",
     "qrCaptured": "QR captured",
-    "notes": "Notes (optional)",
+    "notes": "Delivery note",
+    "notesPlaceholder": "e.g. Handed to the recipient, or left with the building reception",
     "complete": "Complete Delivery",
     "completing": "Completing…",
     "photoHint": "Take a photo of the parcel at the delivery address.",
     "uploading": "Uploading photo…",
-    "replacePhoto": "Retake",
     "codTitle": "Cash on delivery",
     "codConfirm": "I confirm that I collected the required COD amount ({amount}) from the recipient.",
     "moreProof": "More proof (optional): signature, code or QR"
+  },
+  "proofPhoto": {
+    "take": "Take photo",
+    "choose": "Choose from gallery",
+    "attached": "Photo attached",
+    "replace": "Retake",
+    "uploading": "Uploading photo…",
+    "previewAlt": "The photo you attached"
   },
   "qr": {
     "verifyTitle": "Verify shipment QR (optional)",
@@ -136,8 +139,11 @@
   "validation": {
     "reason": "Enter a reason",
     "photo": "Take a delivery photo before completing the delivery.",
+    "outcomePhoto": "Take or choose a photo before confirming.",
     "codCollected": "Confirm you collected the COD amount before completing the delivery.",
-    "reasonTooLong": "Keep the reason under 500 characters."
+    "reasonTooLong": "Keep the reason under 500 characters.",
+    "note": "Add a delivery note — for example who received the parcel.",
+    "noteTooLong": "Keep the note under 500 characters."
   },
   "errors": {
     "notFound": "Not found",
@@ -152,6 +158,8 @@
       "button": "Cancel shipment",
       "title": "Cancel this shipment?",
       "description": "Only cancel if the parcel won’t be collected — for example, the sender cancelled or it isn’t ready. The customer and the operations team are notified.",
+      "photo": "Photo",
+      "photoHint": "Show why it can’t be collected — for example the closed shop, or the parcel that isn’t ready.",
       "reason": "Reason for cancelling",
       "reasonPlaceholder": "e.g. Sender cancelled the order",
       "confirm": "Cancel Shipment"
@@ -160,9 +168,47 @@
       "button": "Return to sender",
       "title": "Return this parcel to the sender?",
       "description": "The shipment is marked Returned and won’t be delivered. Take the parcel back to the sender. The customer and the operations team are notified.",
+      "photo": "Photo of the parcel",
+      "photoHint": "Take a photo of the parcel — and of the door or building if no one answered.",
       "reason": "Why it couldn’t be delivered",
       "reasonPlaceholder": "e.g. Recipient refused the parcel",
       "confirm": "Mark as Returned"
+    }
+  },
+  "updateStatus": {
+    "button": "Update Status",
+    "title": "What’s the new status?",
+    "pendingReason": "Why couldn’t it be completed?",
+    "confirmPending": "Mark as Pending",
+    "confirmInTransit": "Mark as In Transit",
+    "arrivedForProof": "I’ve arrived — add proof of delivery",
+    "goToProof": "Go to proof of delivery",
+    "options": {
+      "pending": {
+        "label": "Pending",
+        "hint": "Couldn’t complete it this time. Dispatch will arrange another attempt.",
+        "unavailable": "Available from arrival at pickup until delivery."
+      },
+      "cancelled": {
+        "label": "Cancelled",
+        "hint": "The parcel won’t be collected. You’ll be asked why.",
+        "unavailable": "Only before the parcel is picked up."
+      },
+      "in_transit": {
+        "label": "In Transit",
+        "hint": "You have the parcel and are on your way.",
+        "unavailable": "Available right after pickup."
+      },
+      "returned": {
+        "label": "Returned",
+        "hint": "Take the parcel back to the sender. You’ll be asked why.",
+        "unavailable": "Only after the parcel is picked up."
+      },
+      "delivered": {
+        "label": "Delivered",
+        "hint": "Finish with proof of delivery at the address.",
+        "unavailable": "Only once the parcel is on its way to the customer."
+      }
     }
   }
 }

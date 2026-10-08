@@ -57,6 +57,8 @@ test.describe.serial('Operator dispatch -> driver delivery with OTP proof -> cus
     await expect(page.locator('#recipientName')).toHaveCount(0);
     await page.locator('#podPhoto').setInputFiles({ name: 'pod.jpg', mimeType: 'image/jpeg', buffer: Buffer.from([0xff, 0xd8, 0xff, 0xd9]) });
     await expect(page.getByText('Photo attached')).toBeVisible();
+    // A delivery note is required too (migration 0037).
+    await page.locator('#podNotes').fill('Handed to the recipient');
 
     await page.getByText('More proof (optional)').click();
     await page.getByRole('button', { name: 'Send code to customer' }).click();
@@ -83,6 +85,7 @@ test.describe.serial('Operator dispatch -> driver delivery with OTP proof -> cus
     await page.getByRole('button', { name: 'Complete Delivery' }).click();
     await expect.poll(() => sql(`select status from shipments where tracking_number = '${tracking()}'`)).toBe('delivered');
     expect(sql(`select recipient_otp_verified from proof_of_delivery pod join shipments s on s.id = pod.shipment_id where s.tracking_number = '${tracking()}'`)).toBe('t');
+    expect(sql(`select notes from proof_of_delivery pod join shipments s on s.id = pod.shipment_id where s.tracking_number = '${tracking()}'`)).toBe('Handed to the recipient');
   });
 
   test('customer sees the delivery as delivered, with the full notification trail', async ({ page }) => {

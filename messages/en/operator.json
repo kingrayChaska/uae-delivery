@@ -93,7 +93,9 @@
     "reasonLabel": "Reason for return",
     "reasonPlaceholder": "e.g. Recipient refused the parcel",
     "batch": "Bulk batch",
-    "outcomeReason": "Reason ({status})"
+    "outcomeReason": "Reason ({status})",
+    "outcomePhoto": "Driver’s photo",
+    "outcomePhotoAlt": "Driver’s photo for {status}, opens full size"
   },
   "customers": {
     "meta": "Customers · ParcelLink",

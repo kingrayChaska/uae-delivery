@@ -14,6 +14,7 @@ import ProofOfDeliveryButton from '@/components/shipment/proof-of-delivery';
 import TrackingCode from '@/components/shipment/tracking-code';
 import { getShipmentDetail } from '@/services/shipments/get-shipment';
 import { getProofOfDelivery } from '@/services/shipments/get-proof-of-delivery';
+import { getOutcomeProof } from '@/services/shipments/get-outcome-proof';
 import { getProfileName } from '@/services/profiles/get-profile-name';
 import { getBatchLabel } from '@/services/bulk/list-batches';
 import { getInvoiceNumberFor } from '@/services/invoices/get-invoice';
@@ -26,10 +27,12 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
   if (!detail) notFound();
 
   const { shipment, history } = detail;
-  const [driverName, batch, proof, t, tShipments, tInvoices, format, invoiceNumber] = await Promise.all([
+  const [driverName, batch, proof, outcomeProof, t, tShipments, tInvoices, format, invoiceNumber] = await Promise.all([
     getProfileName(shipment.driverId),
     getBatchLabel(shipment.batchId),
     shipment.status === 'delivered' ? getProofOfDelivery(shipment.id) : Promise.resolve(null),
+    // The driver's photo when they cancelled or returned it (migration 0037).
+    shipment.status === 'cancelled' || shipment.status === 'returned' ? getOutcomeProof(shipment.id) : Promise.resolve(null),
     getTranslations('operator.shipmentDetail'),
     getTranslations('shipments'),
     getTranslations('invoices.actions'),
@@ -89,6 +92,24 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
                 <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground">{t('outcomeReason', { status: tShipments(`status.${shipment.status}`) })}</span>
                   <span className="wrap-break-word text-end">{outcomeReason}</span>
+                </div>
+              ) : null}
+              {outcomeProof?.photoUrl ? (
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">{t('outcomePhoto')}</span>
+                  <a
+                    href={outcomeProof.photoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed Supabase Storage URL */}
+                    <img
+                      src={outcomeProof.photoUrl}
+                      alt={t('outcomePhotoAlt', { status: tShipments(`status.${shipment.status}`) })}
+                      className="size-24 rounded-md border object-cover"
+                    />
+                  </a>
                 </div>
               ) : null}
               {batch ? (
