@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ACTIVE_STATUSES, NO_FILTERS, hasFilters, parseShipmentFilters, shipmentListHref, statusesFor } from '@/lib/shipment/filters';
+import { ACTIVE_STATUSES, DRIVER_STATUS_FILTERS, NO_FILTERS, hasFilters, parseShipmentFilters, shipmentListHref, statusesFor } from '@/lib/shipment/filters';
 import { SHIPMENT_STATUSES } from '@/lib/types';
 
 // The matching itself happens in Postgres (search_customer_shipments,
@@ -116,5 +116,40 @@ describe('shipmentListHref', () => {
   it('keeps the filters on later pages, and leaves page 1 out', () => {
     expect(shipmentListHref(BASE, { status: 'delivered' }, 3)).toBe(`${BASE}?status=delivered&page=3`);
     expect(shipmentListHref(BASE, { status: 'delivered' }, 1)).toBe(`${BASE}?status=delivered`);
+  });
+});
+
+describe('driver list', () => {
+  const DRIVER = '/dashboard/driver/deliveries';
+
+  it('offers only statuses an assigned shipment can be in', () => {
+    expect(DRIVER_STATUS_FILTERS).not.toContain('pending_payment');
+    expect(DRIVER_STATUS_FILTERS).not.toContain('confirmed');
+    expect(parseShipmentFilters({ status: 'pending_payment' }, DRIVER_STATUS_FILTERS).status).toBe('all');
+    expect(parseShipmentFilters({ status: 'in_transit' }, DRIVER_STATUS_FILTERS).status).toBe('in_transit');
+    expect(parseShipmentFilters({ status: 'active' }, DRIVER_STATUS_FILTERS).status).toBe('active');
+  });
+
+  it('reads search, a single day and status together', () => {
+    expect(parseShipmentFilters({ q: ' PL-1024 ', from: '2026-10-08', to: '2026-10-08', status: 'delivered' }, DRIVER_STATUS_FILTERS)).toEqual({
+      scope: 'mine',
+      q: 'PL-1024',
+      status: 'delivered',
+      from: '2026-10-08',
+      to: '2026-10-08',
+    });
+  });
+
+  it('treats a blank search as no search', () => {
+    expect(hasFilters(parseShipmentFilters({ q: '   ' }, DRIVER_STATUS_FILTERS))).toBe(false);
+  });
+
+  it('round-trips through the URL with a page, and a new search starts at page 1', () => {
+    const filters = { scope: 'mine' as const, q: 'Ahmed', status: 'all' as const, from: '2026-10-08', to: '2026-10-08' };
+    const href = shipmentListHref(DRIVER, filters, 2);
+    expect(href).toBe(`${DRIVER}?q=Ahmed&from=2026-10-08&to=2026-10-08&page=2`);
+    const params = Object.fromEntries(new URL(href, 'https://example.com').searchParams);
+    expect(parseShipmentFilters(params, DRIVER_STATUS_FILTERS)).toEqual(filters);
+    expect(shipmentListHref(DRIVER, { ...filters, q: 'Dubai Marina' })).not.toContain('page=');
   });
 });

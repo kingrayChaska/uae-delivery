@@ -48,6 +48,8 @@
       "status": "Status",
       "allStatuses": "All statuses",
       "active": "Active (on the way)",
+      "more": "Date and status",
+      "today": "Today",
       "apply": "Apply filters",
       "clear": "Clear filters",
       "results": "{count, plural, =0 {No shipments match} one {# shipment matches} other {# shipments match}}",

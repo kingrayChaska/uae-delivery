@@ -23,7 +23,28 @@
     "meta": "My deliveries · ParcelLink",
     "title": "My Deliveries",
     "emptyTitle": "No active deliveries",
-    "emptyBody": "New assignments from dispatch will appear here."
+    "emptyBody": "New assignments from dispatch will appear here.",
+    "filters": {
+      "label": "Search and filter my deliveries",
+      "search": "Search deliveries",
+      "searchPlaceholder": "Search by name, shipment ID or address...",
+      "searchHint": "Sender or recipient name, shipment ID, pickup or drop-off address, or phone number.",
+      "from": "Booked from",
+      "to": "Booked to",
+      "dateHint": "Dates are the booking date (UAE time). Leave either one empty for an open range.",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "active": "Active (in progress)",
+      "more": "Date and status",
+      "today": "Today",
+      "apply": "Search",
+      "clear": "Clear filters",
+      "results": "{count, plural, =0 {No deliveries match} one {# delivery matches} other {# deliveries match}}",
+      "empty": "No shipments found matching your search.",
+      "emptyHint": "Search covers every delivery assigned to you, active or finished.",
+      "error": "We couldn't search your deliveries. Please try again.",
+      "retry": "Try again"
+    }
   },
   "history": {
     "meta": "Delivery history · ParcelLink",

@@ -3,7 +3,7 @@
 import { useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LoaderCircle, Search, X } from 'lucide-react';
+import { CalendarDays, ChevronDown, LoaderCircle, Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
@@ -12,19 +12,35 @@ import Label from '@/components/ui/label';
 import Select from '@/components/ui/select';
 import { MAX_QUERY_LENGTH, STATUS_FILTERS, hasFilters, parseShipmentFilters, shipmentListHref } from '@/lib/shipment/filters';
 
-import type { ShipmentFilters as Filters } from '@/lib/shipment/filters';
+import type { ShipmentFilters as Filters, StatusFilter } from '@/lib/shipment/filters';
 
 type ShipmentFiltersProps = {
   basePath: string;
   filters: Filters;
+  // Whose wording: the customer's list or the driver's (same keys).
+  messages?: 'customer.deliveries.filters' | 'driver.deliveries.filters';
+  // The statuses this list offers.
+  statuses?: readonly StatusFilter[];
+  // Today's date (YYYY-MM-DD, UAE): shows a one-tap "Today" filter.
+  today?: string;
+  // Date and status folded away until opened (or in use), so the search
+  // box stays near the top of a phone screen.
+  collapsible?: boolean;
 };
 
-// Search and filters for a customer's shipments. A plain GET form, so the
-// filters live in the URL (refresh, share, Back all work, and it works
-// before JavaScript loads); with JavaScript it navigates to the tidy URL
-// without empty parameters. The database does the matching.
-const ShipmentFilters = ({ basePath, filters }: ShipmentFiltersProps) => {
-  const t = useTranslations('customer.deliveries.filters');
+// Search and filters for a customer's (or a driver's) shipments. A plain
+// GET form, so the filters live in the URL (refresh, share, Back all work,
+// and it works before JavaScript loads); with JavaScript it navigates to
+// the tidy URL without empty parameters. The database does the matching.
+const ShipmentFilters = ({
+  basePath,
+  filters,
+  messages = 'customer.deliveries.filters',
+  statuses = STATUS_FILTERS,
+  today,
+  collapsible = false,
+}: ShipmentFiltersProps) => {
+  const t = useTranslations(messages);
   const tStatus = useTranslations('shipments.status');
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -40,10 +56,37 @@ const ShipmentFilters = ({ basePath, filters }: ShipmentFiltersProps) => {
       status: String(data.get('status') ?? ''),
       from: String(data.get('from') ?? ''),
       to: String(data.get('to') ?? ''),
-    });
+    }, statuses);
     // New filters start again from page 1.
     startTransition(() => router.push(shipmentListHref(basePath, next)));
   };
+
+  const narrowed = filters.status !== 'all' || filters.from !== null || filters.to !== null;
+  const dateAndStatus = (
+    <>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Label htmlFor="shipment-from">{t('from')}</Label>
+          <Input id="shipment-from" name="from" type="date" defaultValue={filters.from ?? ''} className="min-w-0" />
+        </div>
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Label htmlFor="shipment-to">{t('to')}</Label>
+          <Input id="shipment-to" name="to" type="date" defaultValue={filters.to ?? ''} className="min-w-0" />
+        </div>
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Label htmlFor="shipment-status">{t('status')}</Label>
+          <Select id="shipment-status" name="status" defaultValue={filters.status}>
+            {statuses.map((status) => (
+              <option key={status} value={status}>
+                {status === 'all' ? t('allStatuses') : status === 'active' ? t('active') : tStatus(status)}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </div>
+      <p className="-mt-1 text-xs text-muted-foreground">{t('dateHint')}</p>
+    </>
+  );
 
   return (
     <form
@@ -79,33 +122,31 @@ const ShipmentFilters = ({ basePath, filters }: ShipmentFiltersProps) => {
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <Label htmlFor="shipment-from">{t('from')}</Label>
-          <Input id="shipment-from" name="from" type="date" defaultValue={filters.from ?? ''} className="min-w-0" />
-        </div>
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <Label htmlFor="shipment-to">{t('to')}</Label>
-          <Input id="shipment-to" name="to" type="date" defaultValue={filters.to ?? ''} className="min-w-0" />
-        </div>
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <Label htmlFor="shipment-status">{t('status')}</Label>
-          <Select id="shipment-status" name="status" defaultValue={filters.status}>
-            {STATUS_FILTERS.map((status) => (
-              <option key={status} value={status}>
-                {status === 'all' ? t('allStatuses') : status === 'active' ? t('active') : tStatus(status)}
-              </option>
-            ))}
-          </Select>
-        </div>
-      </div>
-      <p className="-mt-1 text-xs text-muted-foreground">{t('dateHint')}</p>
+      {collapsible ? (
+        <details open={narrowed} className="group">
+          <summary className="flex min-h-10 cursor-pointer list-none items-center gap-1.5 text-sm font-medium [&::-webkit-details-marker]:hidden">
+            <ChevronDown className="size-4 transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden />
+            {t('more')}
+          </summary>
+          <div className="mt-2 flex flex-col gap-3">{dateAndStatus}</div>
+        </details>
+      ) : (
+        dateAndStatus
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" disabled={pending}>
           {pending ? <LoaderCircle className="animate-spin motion-reduce:animate-none" aria-hidden /> : <Search aria-hidden />}
           {t('apply')}
         </Button>
+        {today && (filters.from !== today || filters.to !== today) ? (
+          <Button asChild variant="outline">
+            <Link href={shipmentListHref(basePath, { ...filters, from: today, to: today })}>
+              <CalendarDays aria-hidden />
+              {t('today')}
+            </Link>
+          </Button>
+        ) : null}
         {hasFilters(filters) ? (
           <Button asChild variant="ghost">
             <Link href={shipmentListHref(basePath, { scope: filters.scope })}>

@@ -66,6 +66,7 @@ You do **not** need to add any `GRANT` statements yourselves — Supabase's mana
   - RLS: `invoices_select` matches `shipments_select` minus drivers — the customer, members of the billed business account, and staff. Lines follow their invoice. No client write policies.
   - Helpers (`next_invoice_number`, `invoice_caller_may_issue`, `invoice_billed_to`) have EXECUTE revoked explicitly. Note: 0018's `alter default privileges in schema public revoke execute on functions` cannot remove Postgres's *global* EXECUTE-to-PUBLIC default, so every new function needs an explicit `revoke … from public` (as 0024 does for `anonymize_profile`).
 
+- **Driver shipment search** (migration 0035). `search_driver_shipments(query, statuses, from, to)` is the driver's counterpart of `search_customer_shipments()` (0032): same parameters, matching rules and paging, so the driver's My Deliveries page reuses the customer list's filters. Its scope is `driver_id = auth.uid()` inside the query — there is no driver id parameter to swap — and it is `SECURITY INVOKER`, so `shipments_select` RLS still applies. One search box matches sender/recipient name, tracking number (current or legacy), pickup/drop-off address and building, or phone; status and UAE booking date combine with it by AND. Anyone not assigned a shipment (customer, staff, anonymous) gets nothing; `anon` can't call it.
 - **Realtime** (migration 0014) publishes `shipments` and `driver_locations` for the live dispatch map. Supabase Realtime applies each subscriber's RLS, so no extra policies are needed — but Realtime itself can't run in the local harness, so the live-update behaviour is only verifiable against a real Supabase project.
 
 ## Local verification (`test/`)
@@ -87,10 +88,13 @@ sudo -u postgres psql -d uae_delivery_test -f database/test/transitions.sql   # 
 sudo -u postgres psql -d uae_delivery_test -f database/test/customer-search.sql  # shipment search + bulk label tokens
 sudo -u postgres psql -d uae_delivery_test -f database/test/merchant-pricing.sql # merchant flat rate AED 15 (0033)
 sudo -u postgres psql -d uae_delivery_test -f database/test/merchant-repricing.sql # existing merchant shipments to AED 15 (0034)
+sudo -u postgres psql -d uae_delivery_test -f database/test/driver-search.sql   # driver shipment search (0035)
 bash database/test/price-consistency.sh    # needs the e2e database: bash e2e/stack/setup-db.sh
 ```
 
 `customer-search.sql` checks migration 0032 on its own fresh scratch database (it adds its own users): every name, phone, status, UAE-date and combined search, the business-wide list matching the Shipments card's count, bulk label QR tokens, operator edits reaching the merchant, and that no other merchant (or anonymous caller) gets any of it. Each check raises `FAIL …` when wrong.
+
+`driver-search.sql` checks migration 0035 on its own fresh scratch database: name, shipment ID (current and legacy), pickup/drop-off address, phone, status, UAE-date and combined searches, operator edits and reassignment reaching the driver's results, and that no other driver, customer, staff member or anonymous caller can find a driver's shipments through it.
 
 `transitions.sql` tries every from→to status pair (self-transitions are no-ops and skipped) and compares the database's verdict with a state machine written out independently in the test. `price-consistency.sh` prices 5,000 random bookings with the app's `calculatePrice()` and asks the database's own `shipment_price_is_valid()` to accept each one.
 

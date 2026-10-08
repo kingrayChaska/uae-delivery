@@ -2,7 +2,8 @@ import { SHIPMENT_STATUSES } from '@/lib/types';
 
 import type { ShipmentStatus } from '@/lib/types';
 
-// The customer Deliveries list's filters, read from and written to the URL
+// The customer Deliveries list's filters (and the driver's, with
+// DRIVER_STATUS_FILTERS), read from and written to the URL
 // (?scope=&q=&status=&from=&to=) so a filtered view survives a refresh, can be
 // shared, and is what the dashboard cards link to. The database does the
 // filtering (search_customer_shipments, migration 0032).
@@ -22,6 +23,25 @@ export const ACTIVE_STATUSES = [
 // 'all', the 'active' group, or one shipment status.
 export const STATUS_FILTERS = ['all', 'active', ...SHIPMENT_STATUSES] as const;
 export type StatusFilter = (typeof STATUS_FILTERS)[number];
+
+// The driver's list offers only the statuses an assigned shipment can be
+// in: the driver workflow and how it ended. 'active' still means
+// ACTIVE_STATUSES (search_driver_shipments, migration 0035, only ever
+// returns the driver's own shipments).
+export const DRIVER_STATUS_FILTERS = [
+  'all',
+  'active',
+  'assigned',
+  'driver_accepted',
+  'arrived_pickup',
+  'picked_up',
+  'in_transit',
+  'arrived_destination',
+  'delivered',
+  'delivery_failed',
+  'cancelled',
+  'returned',
+] as const satisfies readonly StatusFilter[];
 
 // Whose shipments: the customer's own bookings, or (merchants in a
 // business account) every shipment of that account — what the merchant
@@ -54,18 +74,22 @@ const parseDate = (value: RawParam): string | null => {
   return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(raw) ? raw : null;
 };
 
-// Anything unrecognised falls back to no filter, like ?page= does.
-export const parseShipmentFilters = (params: {
-  scope?: RawParam;
-  q?: RawParam;
-  status?: RawParam;
-  from?: RawParam;
-  to?: RawParam;
-}): ShipmentFilters => {
+// Anything unrecognised falls back to no filter, like ?page= does —
+// including a status the list doesn't offer (`statuses`).
+export const parseShipmentFilters = (
+  params: {
+    scope?: RawParam;
+    q?: RawParam;
+    status?: RawParam;
+    from?: RawParam;
+    to?: RawParam;
+  },
+  statuses: readonly StatusFilter[] = STATUS_FILTERS,
+): ShipmentFilters => {
   // Whether the caller may use 'business' is the page's decision.
   const scope = first(params.scope) === 'business' ? 'business' : 'mine';
   const q = (first(params.q) ?? '').trim().replace(/\s+/g, ' ').slice(0, MAX_QUERY_LENGTH);
-  const status = STATUS_FILTERS.find((s) => s === first(params.status)) ?? 'all';
+  const status = statuses.find((s) => s === first(params.status)) ?? 'all';
   let from = parseDate(params.from);
   let to = parseDate(params.to);
   // A range typed backwards still means the days between them.
