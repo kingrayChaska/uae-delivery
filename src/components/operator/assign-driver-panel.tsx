@@ -14,6 +14,8 @@ type AssignDriverPanelProps = {
   shipmentId: string;
   drivers: AvailableDriver[];
   mode?: 'assign' | 'reassign';
+  // The shipment's assignee when this page was rendered (reassign only).
+  currentDriverId?: string | null;
 };
 
 const AVAILABILITY_VARIANT: Record<string, 'success' | 'secondary' | 'default'> = {
@@ -22,11 +24,11 @@ const AVAILABILITY_VARIANT: Record<string, 'success' | 'secondary' | 'default'> 
   offline: 'default',
 };
 
-const AssignDriverPanel = ({ shipmentId, drivers, mode = 'assign' }: AssignDriverPanelProps) => {
+const AssignDriverPanel = ({ shipmentId, drivers, mode = 'assign', currentDriverId = null }: AssignDriverPanelProps) => {
   const t = useTranslations('operator.dispatch');
   const tAvailability = useTranslations('shipments.driverAvailability');
   const format = useFormat();
-  const { assign, isAssigning, error } = useAssignDriver(shipmentId, mode);
+  const { assign, pendingDriverId, isAssigning, error } = useAssignDriver(shipmentId, mode, currentDriverId);
 
   if (drivers.length === 0) {
     return <p className="text-sm text-muted-foreground">{t('noDrivers')}</p>;
@@ -48,9 +50,15 @@ const AssignDriverPanel = ({ shipmentId, drivers, mode = 'assign' }: AssignDrive
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={AVAILABILITY_VARIANT[driver.availability]}>{tAvailability(driver.availability)}</Badge>
-            <Button type="button" size="sm" disabled={isAssigning} onClick={() => assign(driver.id)}>
-              {mode === 'assign' ? t('assign') : t('reassign')}
-            </Button>
+            {driver.id === currentDriverId ? (
+              <Badge variant="secondary">{t('current')}</Badge>
+            ) : (
+              <Button type="button" size="sm" disabled={isAssigning} onClick={() => assign(driver.id)}>
+                {pendingDriverId === driver.id
+                  ? t(mode === 'assign' ? 'assigning' : 'reassigning')
+                  : t(mode === 'assign' ? 'assign' : 'reassign')}
+              </Button>
+            )}
           </div>
         </div>
       ))}

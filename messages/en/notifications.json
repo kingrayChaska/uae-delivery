@@ -58,6 +58,10 @@
       "title": "New delivery assigned",
       "body": "You’ve been assigned {code}."
     },
+    "unassigned": {
+      "title": "Delivery reassigned",
+      "body": "{code} has been reassigned to another driver."
+    },
     "deliveryOtp": {
       "title": "Delivery verification code",
       "body": "Share this code with your driver to confirm delivery of {code}: {otp}"

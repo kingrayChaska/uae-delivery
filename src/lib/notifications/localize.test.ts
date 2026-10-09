@@ -15,6 +15,9 @@ describe('localizeNotification', () => {
     expect(localizeNotification({ type: 'shipment.assigned', title: 'New delivery assigned', body: "You've been assigned PL7K29X4." })?.key).toBe(
       'assigned',
     );
+    expect(
+      localizeNotification({ type: 'shipment.unassigned', title: 'Delivery reassigned', body: 'PL7K29X4 has been reassigned to another driver.' }),
+    ).toEqual({ key: 'unassigned', values: { code: 'PL7K29X4' } });
   });
 
   it('tells apart the customer and staff versions of the same event', () => {

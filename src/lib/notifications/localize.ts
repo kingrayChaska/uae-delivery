@@ -64,6 +64,8 @@ const RULES: Rule[] = [
     values: code,
   },
   { type: 'shipment.assigned', key: 'assigned', body: /^You've been assigned (\S+)\.$/, values: code },
+  // The driver a shipment was reassigned away from (migration 0039).
+  { type: 'shipment.unassigned', key: 'unassigned', body: /^(\S+) has been reassigned to another driver\.$/, values: code },
   {
     type: 'delivery.otp',
     key: 'deliveryOtp',

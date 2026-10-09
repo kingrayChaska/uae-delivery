@@ -11,14 +11,16 @@ type ReassignDriverSectionProps = {
   shipmentId: string;
   pickup: Coordinates;
   mode: 'assign' | 'reassign';
+  currentDriverId: string | null;
 };
 
-const ReassignDriverSection = ({ shipmentId, pickup, mode }: ReassignDriverSectionProps) => {
+const ReassignDriverSection = ({ shipmentId, pickup, mode, currentDriverId }: ReassignDriverSectionProps) => {
   const t = useTranslations('operator.dispatch');
-  const { drivers, isLoading } = useAvailableDrivers(pickup);
+  // Refetched when the assignee changes, so active-delivery counts follow.
+  const { drivers, isLoading } = useAvailableDrivers(pickup, currentDriverId);
 
-  if (isLoading) return <p className="text-sm text-muted-foreground">{t('finding')}</p>;
-  return <AssignDriverPanel shipmentId={shipmentId} drivers={drivers} mode={mode} />;
+  if (isLoading && drivers.length === 0) return <p className="text-sm text-muted-foreground">{t('finding')}</p>;
+  return <AssignDriverPanel shipmentId={shipmentId} drivers={drivers} mode={mode} currentDriverId={currentDriverId} />;
 };
 
 export default ReassignDriverSection;

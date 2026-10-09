@@ -32,7 +32,10 @@
     "active": "{count, plural, one {# active delivery} other {# active deliveries}}",
     "assign": "Assign",
     "reassign": "Reassign",
-    "driver": "Driver"
+    "driver": "Driver",
+    "current": "Current driver",
+    "assigning": "Assigning…",
+    "reassigning": "Reassigning…"
   },
   "liveMap": {
     "meta": "Live map · ParcelLink",
@@ -231,6 +234,8 @@
     "shipmentNotFound": "Shipment not found",
     "notAwaiting": "This shipment is not awaiting assignment",
     "cannotReassign": "This shipment can no longer be reassigned",
-    "cannotMarkReturned": "This shipment can no longer be marked as returned"
+    "cannotMarkReturned": "This shipment can no longer be marked as returned",
+    "assignmentChanged": "This shipment’s driver was changed since you opened it. The page has been refreshed — check the current driver and try again.",
+    "alreadyAssigned": "This driver is already assigned to the shipment"
   }
 }

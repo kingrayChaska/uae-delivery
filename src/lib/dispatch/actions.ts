@@ -32,12 +32,19 @@ export const assignDriverAction = async (shipmentId: string, driverId: string): 
     return { success: false, error: 'operator.errors.notAwaiting' };
   }
 
-  const { error } = await supabase
+  // Compare-and-set: the update only lands while the shipment is still
+  // unassigned, so a double-click or two staff racing past the check above
+  // can't both assign — the second one matches no row and is rejected.
+  const { data: updated, error } = await supabase
     .from('shipments')
     .update({ driver_id: driverId, status: 'assigned' })
-    .eq('id', shipmentId);
+    .eq('id', shipmentId)
+    .eq('status', 'confirmed')
+    .is('driver_id', null)
+    .select('id');
 
   if (error) return { success: false, error: safeErrorMessage(error) };
+  if (!updated?.length) return { success: false, error: 'operator.errors.assignmentChanged' };
 
   await logAuditEvent({
     actorId: profile.id,
@@ -57,11 +64,21 @@ export const assignDriverAction = async (shipmentId: string, driverId: string): 
 // original driver has already accepted and is en route on isn't
 // supported here; that needs a human decision the DB shouldn't paper
 // over with a self-service reassignment button.
+//
+// expectedDriverId is the driver the operator saw as current when they
+// clicked. Every click used to be applied blindly (last write wins), so a
+// few quick clicks on the list reassigned the shipment back and forth and
+// left each driver along the way with a "New delivery assigned"
+// notification. Now a request made against a stale view, or one that
+// wouldn't change anything, is rejected instead of applied.
 export const reassignDriverAction = async (
   shipmentId: string,
   newDriverId: string,
+  expectedDriverId: string | null,
 ): Promise<DispatchActionResult> => {
-  if (!isUuid(shipmentId) || !isUuid(newDriverId)) return { success: false, error: 'operator.errors.notFound' };
+  if (!isUuid(shipmentId) || !isUuid(newDriverId) || (expectedDriverId !== null && !isUuid(expectedDriverId))) {
+    return { success: false, error: 'operator.errors.notFound' };
+  }
   const profile = await requireRole('operator', 'manager');
   const supabase = await createClient();
 
@@ -75,13 +92,28 @@ export const reassignDriverAction = async (
   if (!['assigned', 'delivery_failed'].includes(shipment.status)) {
     return { success: false, error: 'operator.errors.cannotReassign' };
   }
+  if (shipment.driver_id !== expectedDriverId) {
+    return { success: false, error: 'operator.errors.assignmentChanged' };
+  }
+  // Same driver is only meaningful as a retry after a failed attempt
+  // (delivery_failed -> assigned); on an 'assigned' shipment it's a no-op.
+  if (shipment.status === 'assigned' && shipment.driver_id === newDriverId) {
+    return { success: false, error: 'operator.errors.alreadyAssigned' };
+  }
 
-  const { error } = await supabase
+  // Compare-and-set on the state checked above, so a concurrent change
+  // (another operator, the driver accepting or declining) between the read
+  // and this write makes it match no row rather than overwrite that change.
+  let update = supabase
     .from('shipments')
     .update({ driver_id: newDriverId, status: 'assigned' })
-    .eq('id', shipmentId);
+    .eq('id', shipmentId)
+    .eq('status', shipment.status);
+  update = expectedDriverId === null ? update.is('driver_id', null) : update.eq('driver_id', expectedDriverId);
+  const { data: updated, error } = await update.select('id');
 
   if (error) return { success: false, error: safeErrorMessage(error) };
+  if (!updated?.length) return { success: false, error: 'operator.errors.assignmentChanged' };
 
   await logAuditEvent({
     actorId: profile.id,

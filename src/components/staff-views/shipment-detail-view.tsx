@@ -150,6 +150,7 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
                   shipmentId={shipment.id}
                   pickup={shipment.pickup.coordinates}
                   mode={canAssign ? 'assign' : 'reassign'}
+                  currentDriverId={shipment.driverId}
                 />
               </CardContent>
             </Card>
