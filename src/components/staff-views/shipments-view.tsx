@@ -60,7 +60,7 @@ const ShipmentsView = async ({ basePath, page, batchId = null, category = 'all' 
         ) : (
           <div className="flex flex-col gap-2">
             {shipments.items.map((shipment) => (
-              <ShipmentListItem key={shipment.id} shipment={shipment} basePath={`${basePath}/shipments`} showBookedAt />
+              <ShipmentListItem key={shipment.id} shipment={shipment} basePath={`${basePath}/shipments`} showBookedAt showRecipientName />
             ))}
           </div>
         )}
@@ -105,7 +105,7 @@ const ShipmentsView = async ({ basePath, page, batchId = null, category = 'all' 
                 item.kind === 'batch' ? (
                   <BatchListItem key={`batch-${item.batch.id}`} batch={item.batch} hrefBase={`${basePath}/bulk`} showSender />
                 ) : (
-                  <ShipmentListItem key={item.shipment.id} shipment={item.shipment} basePath={`${basePath}/shipments`} showBookedAt />
+                  <ShipmentListItem key={item.shipment.id} shipment={item.shipment} basePath={`${basePath}/shipments`} showBookedAt showRecipientName />
                 ),
               )}
             </div>

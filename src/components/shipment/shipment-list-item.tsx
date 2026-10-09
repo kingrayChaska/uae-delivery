@@ -12,7 +12,8 @@ type ShipmentListItemProps = {
   basePath?: string;
   // Staff lists show when each shipment was booked.
   showBookedAt?: boolean;
-  // Merchants use the recipient to identify individual business shipments.
+  // Merchants, staff and drivers use the recipient (the drop-off contact,
+  // never the merchant's company) to identify each shipment.
   showRecipientName?: boolean;
 };
 

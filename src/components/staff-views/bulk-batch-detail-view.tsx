@@ -26,6 +26,7 @@ const BulkBatchDetailView = async ({ basePath, id, page }: StaffDetailListViewPr
       shipmentBasePath={`${basePath}/shipments`}
       pageHref={`${basePath}/bulk/${batch.id}`}
       showSender
+      showRecipientName
       actions={
         <>
           {/* Read-only: the merchant issues it; staff can open it. */}

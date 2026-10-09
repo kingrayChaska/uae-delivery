@@ -21,6 +21,7 @@ type DispatchBoardProps = {
 
 const DispatchBoard = ({ unassignedShipments, initialDriverLocations, driverLabels }: DispatchBoardProps) => {
   const t = useTranslations('operator.dispatch');
+  const tShipments = useTranslations('shipments');
   const [selectedId, setSelectedId] = useState<string | null>(unassignedShipments[0]?.id ?? null);
   const driverLocations = useRealtimeDriverLocations(initialDriverLocations);
   useRealtimeRefresh('shipments');
@@ -50,6 +51,8 @@ const DispatchBoard = ({ unassignedShipments, initialDriverLocations, driverLabe
                 <p dir="ltr" className="font-brand-mono text-xs text-muted-foreground rtl:text-right">
                   {shipment.trackingNumber}
                 </p>
+                {/* The recipient (drop-off contact), as on the shipment lists. */}
+                <p className="truncate font-semibold">{shipment.dropoff.contactName.trim() || tShipments('list.recipientNotProvided')}</p>
                 <p className="flex min-w-0 items-center gap-1.5">
                   <span dir="auto" className="truncate">{shipment.pickup.formattedAddress}</span>
                   <span className="inline-block shrink-0 rtl:rotate-180" aria-hidden>→</span>

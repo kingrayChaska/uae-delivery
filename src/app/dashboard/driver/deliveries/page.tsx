@@ -106,7 +106,7 @@ const DriverDeliveriesPage = async ({
           ) : (
             <div className="flex flex-col gap-2">
               {results.items.map((shipment) => (
-                <ShipmentListItem key={shipment.id} shipment={shipment} basePath={BASE_PATH} />
+                <ShipmentListItem key={shipment.id} shipment={shipment} basePath={BASE_PATH} showRecipientName />
               ))}
             </div>
           )}
@@ -120,7 +120,7 @@ const DriverDeliveriesPage = async ({
       ) : (
         <div className="flex flex-col gap-2">
           {active.map((shipment) => (
-            <ShipmentListItem key={shipment.id} shipment={shipment} basePath={BASE_PATH} />
+            <ShipmentListItem key={shipment.id} shipment={shipment} basePath={BASE_PATH} showRecipientName />
           ))}
         </div>
       )}

@@ -67,7 +67,7 @@ const CustomerDetailView = async ({ basePath, id, page }: StaffDetailListViewPro
               <p className="text-sm text-muted-foreground">{t('noShipments')}</p>
             ) : (
               shipments.items.map((shipment) => (
-                <ShipmentListItem key={shipment.id} shipment={shipment} basePath={`${basePath}/shipments`} showBookedAt />
+                <ShipmentListItem key={shipment.id} shipment={shipment} basePath={`${basePath}/shipments`} showBookedAt showRecipientName />
               ))
             )}
             <Pagination page={shipments.page} totalPages={shipments.totalPages} href={pageHref} />

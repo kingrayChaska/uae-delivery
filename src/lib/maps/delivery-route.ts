@@ -17,8 +17,6 @@ export type DeliveryEndpoint = {
   // The Google place the customer selected, when they searched for one.
   placeId?: string | null;
   source?: LocationSource | null;
-  // TEMPORARY (route-distance investigation): logged in development only.
-  address?: string | null;
 };
 
 // A searched place's coordinates are copied from its Place Details, so the
@@ -48,7 +46,7 @@ const toWaypoint = async ({ lat, lng, placeId, source }: DeliveryEndpoint): Prom
   return { coordinates };
 };
 
-const describe = ({ coordinates, placeId }: RouteWaypoint) => ({ ...coordinates, routedBy: placeId ? 'placeId' : 'latLng' });
+const reason = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 export const getDeliveryRoute = async ({
   origin,
@@ -59,29 +57,29 @@ export const getDeliveryRoute = async ({
 }): Promise<RouteResult> => {
   const [from, to] = await Promise.all([toWaypoint(origin), toWaypoint(destination)]);
 
-  let route: RouteResult;
   try {
-    route = await googleMapsProvider.getRoute(from, to);
+    return await googleMapsProvider.getRoute(from, to);
   } catch (error) {
     // Google occasionally can't route to a place's access point; the exact
     // coordinates are still a real driving route. Any other failure throws.
-    if (!from.placeId && !to.placeId) throw error;
-    console.warn('Delivery route: Google could not route the selected places; routing their exact coordinates instead', error instanceof Error ? error.message : error);
-    route = await googleMapsProvider.getRoute({ coordinates: from.coordinates }, { coordinates: to.coordinates });
-  }
-
-  if (process.env.NODE_ENV !== 'production') {
-    // TEMPORARY (route-distance investigation).
-    console.info('[route-debug] Delivery route', {
-      pickupAddress: origin.address ?? null,
-      deliveryAddress: destination.address ?? null,
-      pickup: { ...describe(from), placeId: from.placeId ?? null, requestedPlaceId: origin.placeId ?? null, source: origin.source ?? null },
-      dropoff: { ...describe(to), placeId: to.placeId ?? null, requestedPlaceId: destination.placeId ?? null, source: destination.source ?? null },
-      distanceMeters: route.distanceMeters,
-      distanceKm: route.distanceKm,
-      durationSeconds: route.durationSeconds,
+    if (!from.placeId && !to.placeId) {
+      console.error('maps:route_failed', { reason: reason(error), originPlaceId: null, destinationPlaceId: null });
+      throw error;
+    }
+    console.warn('maps:route_place_retry', {
+      reason: reason(error),
+      originPlaceId: from.placeId ?? null,
+      destinationPlaceId: to.placeId ?? null,
     });
+    try {
+      return await googleMapsProvider.getRoute({ coordinates: from.coordinates }, { coordinates: to.coordinates });
+    } catch (retryError) {
+      console.error('maps:route_failed', {
+        reason: reason(retryError),
+        originPlaceId: from.placeId ?? null,
+        destinationPlaceId: to.placeId ?? null,
+      });
+      throw retryError;
+    }
   }
-
-  return route;
 };

@@ -25,6 +25,8 @@ type RoutesRequest = {
   origin: { location?: { latLng: { latitude: number; longitude: number } }; placeId?: string };
   destination: { location?: { latLng: { latitude: number; longitude: number } }; placeId?: string };
   travelMode: string;
+  routingPreference: string;
+  departureTime: string;
 };
 
 // Google's answer per trip, keyed by "originLat,originLng|destLat,destLng".
@@ -75,9 +77,12 @@ describe('route distance → price (Google driving distance, metres → km)', ()
 
     const result = await routeAndPrice(pickup, dropoff);
 
-    // One Routes API DRIVE request, with exactly these coordinates.
+    // One Routes API DRIVE request, with exactly these coordinates, routed
+    // with typical traffic at the reference departure (as Google Maps).
     expect(requests).toHaveLength(1);
     expect(requests[0].travelMode).toBe('DRIVE');
+    expect(requests[0].routingPreference).toBe('TRAFFIC_AWARE');
+    expect(Date.parse(requests[0].departureTime)).toBeGreaterThan(Date.now());
     expect(requests[0].origin.location?.latLng).toEqual({ latitude: pickup.lat, longitude: pickup.lng });
     expect(requests[0].destination.location?.latLng).toEqual({ latitude: dropoff.lat, longitude: dropoff.lng });
 
@@ -129,6 +134,20 @@ describe('route distance → price (Google driving distance, metres → km)', ()
     expect(after.route.distanceKm).toBe(52);
     expect(after.nextDay.totalPrice).toBe(43.25);
     expect(tripKey(pickup, newDropoff)).not.toBe(tripKey(pickup, dropoff));
+  });
+
+  it('prices the booking from the same Google route the wizard quoted', async () => {
+    const [pickup, dropoff] = [point(), point()];
+    distances[key(pickup, dropoff)] = 42_220;
+
+    // getRouteAction (the wizard's quote), then quoteShipment (the booking).
+    const quoted = await routeAndPrice(pickup, dropoff);
+    const booked = await routeAndPrice(pickup, dropoff);
+
+    expect(requests).toHaveLength(1);
+    expect(booked.route.distanceMeters).toBe(quoted.route.distanceMeters);
+    expect(booked.sameDay.totalPrice).toBe(quoted.sameDay.totalPrice);
+    expect(booked.sameDay.totalPrice).toBe(49.22);
   });
 
   it('reuses a route only for the identical trip', async () => {

@@ -17,6 +17,7 @@ import {
   parseReverseGeocodeResponse,
   parseRouteResponse,
   parseTextSearchResponse,
+  referenceDepartureTime,
 } from '@/lib/maps/google-client';
 import { splitAddress } from '@/lib/maps/location';
 
@@ -305,15 +306,28 @@ describe('Forward geocoding (staff CSV import)', () => {
 });
 
 describe('Routes API', () => {
-  it('asks for a traffic-unaware driving route (stable prices between quote and booking)', () => {
-    const request = buildRouteRequest({ coordinates: { lat: 25.08, lng: 55.14 } }, { coordinates: { lat: 25.19, lng: 55.27 } }, KEY);
+  it('asks for the traffic-aware driving route at the reference departure time (as Google Maps routes it)', () => {
+    const request = buildRouteRequest(
+      { coordinates: { lat: 25.08, lng: 55.14 } },
+      { coordinates: { lat: 25.19, lng: 55.27 } },
+      KEY,
+      '2026-10-12T05:00:00.000Z',
+    );
     expect(request.headers['X-Goog-FieldMask']).toBe('routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline');
     expect(body(request)).toMatchObject({
       origin: { location: { latLng: { latitude: 25.08, longitude: 55.14 } } },
       destination: { location: { latLng: { latitude: 25.19, longitude: 55.27 } } },
       travelMode: 'DRIVE',
-      routingPreference: 'TRAFFIC_UNAWARE',
+      routingPreference: 'TRAFFIC_AWARE',
+      departureTime: '2026-10-12T05:00:00.000Z',
+      computeAlternativeRoutes: false,
     });
+  });
+
+  it('defaults to the reference departure time, which is always in the future', () => {
+    const request = buildRouteRequest({ coordinates: { lat: 25.08, lng: 55.14 } }, { coordinates: { lat: 25.19, lng: 55.27 } }, KEY);
+    expect(body(request).departureTime).toBe(referenceDepartureTime());
+    expect(Date.parse(body(request).departureTime)).toBeGreaterThan(Date.now());
   });
 
   it('allows toll roads, highways and ferries (the ordinary driving route)', () => {
@@ -379,6 +393,28 @@ describe('Routes API', () => {
       { lat: 40.7, lng: -120.95 },
       { lat: 43.252, lng: -126.453 },
     ]);
+  });
+});
+
+describe('referenceDepartureTime (next working day, 09:00 Dubai = 05:00 UTC)', () => {
+  it.each([
+    ['Monday 10:00', '2026-10-05T06:00:00Z', '2026-10-06T05:00:00.000Z'],
+    ['Monday 03:00, before the reference hour', '2026-10-04T23:00:00Z', '2026-10-06T05:00:00.000Z'],
+    ['Thursday 23:30', '2026-10-08T19:30:00Z', '2026-10-09T05:00:00.000Z'],
+    ['Friday 08:00', '2026-10-09T04:00:00Z', '2026-10-12T05:00:00.000Z'],
+    ['Friday 01:00 (still Thursday in UTC)', '2026-10-08T21:00:00Z', '2026-10-12T05:00:00.000Z'],
+    ['Saturday', '2026-10-10T12:00:00Z', '2026-10-12T05:00:00.000Z'],
+    ['Sunday', '2026-10-11T12:00:00Z', '2026-10-12T05:00:00.000Z'],
+    ['New Year’s Eve, Thursday', '2026-12-31T10:00:00Z', '2027-01-01T05:00:00.000Z'],
+  ])('%s (Dubai time)', (_label, now, expected) => {
+    expect(referenceDepartureTime(new Date(now))).toBe(expected);
+  });
+
+  it('is the same all day in Dubai, so a quote and a booking made that day share it', () => {
+    const morning = referenceDepartureTime(new Date('2026-10-06T20:00:01Z')); // Wed 00:00:01
+    const night = referenceDepartureTime(new Date('2026-10-07T19:59:59Z')); // Wed 23:59:59
+    expect(morning).toBe(night);
+    expect(morning).toBe('2026-10-08T05:00:00.000Z');
   });
 });
 

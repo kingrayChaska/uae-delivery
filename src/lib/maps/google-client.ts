@@ -458,9 +458,35 @@ export const parseForwardGeocodeLocation = (json: GeocodingResponse & { results?
 };
 
 // ── Routes API: driving distance, duration and path ─────────────────────────
-// TRAFFIC_UNAWARE on purpose: the price is quoted in the booking wizard and
-// recomputed by the server when the booking is made, so the route must not
-// change between the two with live traffic. (It's also the Essentials SKU.)
+// The route is the one Google picks with typical traffic at a fixed
+// reference time — the next working day at 09:00 in Dubai — not the
+// traffic-free route. TRAFFIC_UNAWARE routes on free-flow speeds, which in
+// Dubai favours the shortest city-core road (E11, Al Ittihad) that drivers
+// and Google Maps avoid for most of the day: Hoshi (Sharjah) → Al Karama
+// priced at 36.44 km while Google Maps showed 42.22 km from 07:30 to 18:30.
+// A fixed reference time (rather than "now") keeps the price the same
+// whenever in the day the customer books, and the wizard's quote and the
+// server's booking ask for the same departure. (TRAFFIC_AWARE is the
+// Compute Routes Pro SKU.)
+
+export const ROUTING_PREFERENCE = 'TRAFFIC_AWARE';
+export const REFERENCE_DEPARTURE_HOUR_DUBAI = 9;
+
+// Dubai is UTC+4 all year (no daylight saving).
+const DUBAI_UTC_OFFSET_HOURS = 4;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// The next working day (Monday–Friday, the UAE working week) strictly after
+// today's date in Dubai, at 09:00 Dubai time. The same all day, so every
+// quote and booking made on one day share it; always in the future, as
+// Google requires for a traffic-aware departure time.
+export const referenceDepartureTime = (now: Date = new Date()): string => {
+  const dubai = new Date(now.getTime() + DUBAI_UTC_OFFSET_HOURS * 60 * 60 * 1000);
+  let day = Date.UTC(dubai.getUTCFullYear(), dubai.getUTCMonth(), dubai.getUTCDate()) + DAY_MS;
+  // getUTCDay: 0 Sunday … 6 Saturday.
+  while ([0, 6].includes(new Date(day).getUTCDay())) day += DAY_MS;
+  return new Date(day + (REFERENCE_DEPARTURE_HOUR_DUBAI - DUBAI_UTC_OFFSET_HOURS) * 60 * 60 * 1000).toISOString();
+};
 
 const ROUTE_FIELDS = 'routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline';
 
@@ -483,7 +509,12 @@ const routeWaypoint = ({ coordinates, placeId }: RouteWaypoint) =>
 // pricing uses Google's total distanceMeters exactly as returned.
 const ROUTE_MODIFIERS = { avoidTolls: false, avoidHighways: false, avoidFerries: false };
 
-export const buildRouteRequest = (origin: RouteWaypoint, destination: RouteWaypoint, key: string): ApiRequest => ({
+export const buildRouteRequest = (
+  origin: RouteWaypoint,
+  destination: RouteWaypoint,
+  key: string,
+  departureTime: string = referenceDepartureTime(),
+): ApiRequest => ({
   url: `${routesBase()}/directions/v2:computeRoutes`,
   method: 'POST',
   headers: jsonHeaders(key, ROUTE_FIELDS),
@@ -491,7 +522,8 @@ export const buildRouteRequest = (origin: RouteWaypoint, destination: RouteWaypo
     origin: routeWaypoint(origin),
     destination: routeWaypoint(destination),
     travelMode: 'DRIVE',
-    routingPreference: 'TRAFFIC_UNAWARE',
+    routingPreference: ROUTING_PREFERENCE,
+    departureTime,
     routeModifiers: ROUTE_MODIFIERS,
     computeAlternativeRoutes: false,
     units: 'METRIC',

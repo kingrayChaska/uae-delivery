@@ -2,6 +2,7 @@ import 'server-only';
 
 import {
   MapsProviderError,
+  ROUTING_PREFERENCE,
   buildAutocompleteRequest,
   buildForwardGeocodeRequest,
   buildPlaceDetailsRequest,
@@ -78,29 +79,49 @@ const send = async (request: ApiRequest) => {
 export { MapsProviderError };
 
 // The booking wizard's quote and the booking itself (quoteShipment) ask for
-// the same route minutes apart. Routes are traffic-unaware, so the answer
-// is the same: reuse it for an hour (on this instance, then the shared
-// cache) rather than pay for it twice. Failures aren't cached.
+// the same route minutes apart, with the same reference departure time:
+// reuse the answer for an hour (on this instance, then the shared cache)
+// so the booking is priced from exactly the route that was quoted, and
+// Google is paid once. Failures aren't cached.
 const ROUTE_CACHE_TTL_MS = 60 * 60 * 1000;
 const ROUTE_CACHE_MAX_ENTRIES = 500;
 const routeCache = new Map<string, { route: RouteResult; expires: number }>();
 // Bump whenever buildRouteRequest changes what it asks Google for (travel
 // mode, routing preference, modifiers, waypoint shape): routes cached
-// under the old request are then never reused.
-const ROUTE_CACHE_VERSION = 'v2';
+// under the old request are then never reused. v3: traffic-aware.
+const ROUTE_CACHE_VERSION = 'v3';
 // The cache key only: requests always carry the full-precision coordinates.
 const waypointKey = ({ coordinates: { lat, lng }, placeId }: RouteWaypoint) =>
   `${lat.toFixed(7)},${lng.toFixed(7)},${placeId ?? ''}`;
 const routeKey = (a: RouteWaypoint, b: RouteWaypoint) => `${ROUTE_CACHE_VERSION}|${waypointKey(a)}|${waypointKey(b)}`;
 
-// TEMPORARY (route-distance investigation): where each route came from and
-// exactly what Google was asked and answered. Development only; the API
-// key is never logged.
-const logRoute = (from: 'memory cache' | 'shared cache' | 'google', route: RouteResult, request?: ApiRequest) => {
-  if (process.env.NODE_ENV === 'production') return;
-  console.info('[route-debug] Routes API', {
-    from,
-    ...(request ? { url: request.url, fieldMask: request.headers['X-Goog-FieldMask'], body: request.body ? JSON.parse(request.body) : null } : {}),
+// One structured line per route, in every environment, for diagnosing a
+// distance that differs from Google Maps: what was routed (Place ID or
+// exact point), how, and what Google answered. Never the API key, and no
+// addresses, names or phone numbers.
+const describeWaypoint = ({ coordinates, placeId }: RouteWaypoint) => ({
+  placeId: placeId ?? null,
+  lat: coordinates.lat,
+  lng: coordinates.lng,
+});
+
+const logRoute = (
+  source: 'memory_cache' | 'shared_cache' | 'google',
+  origin: RouteWaypoint,
+  destination: RouteWaypoint,
+  route: RouteResult,
+  request?: ApiRequest,
+) => {
+  const sent = request?.body ? (JSON.parse(request.body) as { departureTime?: string }) : null;
+  console.info('maps:route', {
+    source,
+    api: 'routes.computeRoutes',
+    travelMode: 'DRIVE',
+    routingPreference: ROUTING_PREFERENCE,
+    departureTime: sent?.departureTime ?? null,
+    cacheVersion: ROUTE_CACHE_VERSION,
+    origin: describeWaypoint(origin),
+    destination: describeWaypoint(destination),
     distanceMeters: route.distanceMeters,
     distanceKm: route.distanceKm,
     durationSeconds: route.durationSeconds,
@@ -215,7 +236,7 @@ export const googleMapsProvider: MapsProvider = {
     const key = routeKey(origin, destination);
     const cached = routeCache.get(key);
     if (cached && cached.expires > Date.now()) {
-      logRoute('memory cache', cached.route);
+      logRoute('memory_cache', origin, destination, cached.route);
       return cached.route;
     }
 
@@ -229,13 +250,13 @@ export const googleMapsProvider: MapsProvider = {
     // wizard's quote and the booking often land on different instances).
     const shared = await readSharedCache<RouteResult>(`route:${key}`);
     if (shared) {
-      logRoute('shared cache', shared);
+      logRoute('shared_cache', origin, destination, shared);
       return remember(shared);
     }
 
     const request = buildRouteRequest(origin, destination, getKey());
     const route = parseRouteResponse(await send(request));
-    logRoute('google', route, request);
+    logRoute('google', origin, destination, route, request);
     await writeSharedCache(`route:${key}`, route, ROUTE_CACHE_TTL_MS);
     return remember(route);
   },

@@ -157,8 +157,8 @@ export const quoteShipment = async (
     // The same route the wizard quoted: the selected Google places (when
     // they're really at these coordinates), else the exact points.
     route = await getDeliveryRoute({
-      origin: { ...pickup, placeId: input.pickup.place?.placeId, source: input.pickup.place?.source, address: input.pickup.address },
-      destination: { ...dropoff, placeId: input.dropoff.place?.placeId, source: input.dropoff.place?.source, address: input.dropoff.address },
+      origin: { ...pickup, placeId: input.pickup.place?.placeId, source: input.pickup.place?.source },
+      destination: { ...dropoff, placeId: input.dropoff.place?.placeId, source: input.dropoff.place?.source },
     });
   } catch {
     // Whatever went wrong (network, bad token, no route) the customer sees
@@ -178,22 +178,25 @@ export const quoteShipment = async (
     codAmount: input.codAmount,
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    // TEMPORARY (route-distance investigation): deliveryType added.
-    console.info("[route-debug] Shipment quote", {
-      deliveryType: input.deliveryType,
-      accountType: customer.accountType,
-      pricingRule: rule.name,
-      pickup: { address: input.pickup.address, ...pickup },
-      dropoff: { address: input.dropoff.address, ...dropoff },
-      routeDistanceMeters: route.distanceMeters,
-      billableDistanceKm: breakdown.distanceKm,
-      durationSeconds: route.durationSeconds,
-      deliveryFee: breakdown.totalPrice,
-      maxDistanceKm: breakdown.maxDistanceKm,
-      exceedsDistanceLimit: breakdown.exceedsDistanceLimit,
-    });
-  }
+  // How this shipment was priced, alongside the maps:route line for its
+  // route. No addresses, contacts or payment details.
+  console.info("shipment:quote", {
+    deliveryType: input.deliveryType,
+    accountType: customer.accountType,
+    pricingRuleId: rule.id,
+    routeDistanceMeters: route.distanceMeters,
+    routeDistanceKm: route.distanceKm,
+    billableDistanceKm: breakdown.distanceKm,
+    rounding: "km to 0.01 half-up; extra km charged proportionally",
+    baseDistanceKm: breakdown.baseDistanceKm,
+    basePrice: breakdown.basePrice,
+    distanceCharge: breakdown.distanceCharge,
+    weightCharge: breakdown.weightCharge,
+    codCharge: breakdown.codCharge,
+    deliveryFee: breakdown.totalPrice,
+    maxDistanceKm: breakdown.maxDistanceKm,
+    exceedsDistanceLimit: breakdown.exceedsDistanceLimit,
+  });
 
   if (breakdown.exceedsDistanceLimit) {
     throw new Error(

@@ -103,7 +103,7 @@ const BusinessAccountDetailPage = async ({
           <p className="text-sm text-muted-foreground">{t('noShipments')}</p>
         ) : (
           shipments.items.map((shipment) => (
-            <ShipmentListItem key={shipment.id} shipment={shipment} basePath="/dashboard/manager/shipments" />
+            <ShipmentListItem key={shipment.id} shipment={shipment} basePath="/dashboard/manager/shipments" showRecipientName />
           ))
         )}
         <Pagination

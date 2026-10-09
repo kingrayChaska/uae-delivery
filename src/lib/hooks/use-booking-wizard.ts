@@ -301,17 +301,8 @@ export const useBookingWizard = ({
     // The selected places go with the route request so the quote is routed
     // exactly as the booking will be (lib/maps/delivery-route.ts).
     const routeInput = {
-      origin: {
-        ...coverageRequest.pickup,
-        source: pickup.place?.source,
-        // TEMPORARY (route-distance investigation): for the dev log only.
-        address: pickup.address?.slice(0, 500),
-      },
-      destination: {
-        ...coverageRequest.dropoff,
-        source: dropoff.place?.source,
-        address: dropoff.address?.slice(0, 500),
-      },
+      origin: { ...coverageRequest.pickup, source: pickup.place?.source },
+      destination: { ...coverageRequest.dropoff, source: dropoff.place?.source },
     };
     const promise = (async () => {
       // The server's own emirate check — the one the booking will get — runs
@@ -351,35 +342,6 @@ export const useBookingWizard = ({
         setRouteError(result.error);
         setRouted(null);
         return false;
-      }
-
-      if (process.env.NODE_ENV !== "production") {
-        // TEMPORARY (route-distance investigation): what the wizard will
-        // show and charge for this route, per delivery type.
-        console.info("[route-debug] Booking quote", {
-          pickupAddress: pickup.address,
-          deliveryAddress: dropoff.address,
-          pickup: routeInput.origin,
-          dropoff: routeInput.destination,
-          distanceMeters: result.route.distanceMeters,
-          distanceKm: result.route.distanceKm,
-          fees: Object.fromEntries(
-            DELIVERY_TYPES.map((type) => {
-              const quote = calculateShipmentPrice({
-                rule: rules[type],
-                distanceKm: result.route.distanceKm,
-              });
-              return [
-                type,
-                {
-                  deliveryFee: quote.totalPrice,
-                  maxDistanceKm: quote.maxDistanceKm,
-                  exceedsDistanceLimit: quote.exceedsDistanceLimit,
-                },
-              ];
-            }),
-          ),
-        });
       }
 
       setRouted({ trip, route: result.route });
