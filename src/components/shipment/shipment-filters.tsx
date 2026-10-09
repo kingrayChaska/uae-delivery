@@ -17,8 +17,8 @@ import type { ShipmentFilters as Filters, StatusFilter } from '@/lib/shipment/fi
 type ShipmentFiltersProps = {
   basePath: string;
   filters: Filters;
-  // Whose wording: the customer's list or the driver's (same keys).
-  messages?: 'customer.deliveries.filters' | 'driver.deliveries.filters';
+  // Whose wording: the customer's, the driver's or staff's list (same keys).
+  messages?: 'customer.deliveries.filters' | 'driver.deliveries.filters' | 'operator.shipments.filters';
   // The statuses this list offers.
   statuses?: readonly StatusFilter[];
   // Today's date (YYYY-MM-DD, UAE): shows a one-tap "Today" filter.
@@ -26,9 +26,12 @@ type ShipmentFiltersProps = {
   // Date and status folded away until opened (or in use), so the search
   // box stays near the top of a phone screen.
   collapsible?: boolean;
+  // The list's own parameters that aren't filters (e.g. the staff list's
+  // ?type=), kept through searching and clearing.
+  keep?: Record<string, string>;
 };
 
-// Search and filters for a customer's (or a driver's) shipments. A plain
+// Search and filters for a customer's, a driver's or staff's shipments. A plain
 // GET form, so the filters live in the URL (refresh, share, Back all work,
 // and it works before JavaScript loads); with JavaScript it navigates to
 // the tidy URL without empty parameters. The database does the matching.
@@ -39,13 +42,14 @@ const ShipmentFilters = ({
   statuses = STATUS_FILTERS,
   today,
   collapsible = false,
+  keep = {},
 }: ShipmentFiltersProps) => {
   const t = useTranslations(messages);
   const tStatus = useTranslations('shipments.status');
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   // Remounted with the URL's values whenever they change (key below).
-  const key = shipmentListHref(basePath, filters);
+  const key = shipmentListHref(basePath, filters, 1, keep);
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -58,7 +62,7 @@ const ShipmentFilters = ({
       to: String(data.get('to') ?? ''),
     }, statuses);
     // New filters start again from page 1.
-    startTransition(() => router.push(shipmentListHref(basePath, next)));
+    startTransition(() => router.push(shipmentListHref(basePath, next, 1, keep)));
   };
 
   const narrowed = filters.status !== 'all' || filters.from !== null || filters.to !== null;
@@ -100,6 +104,9 @@ const ShipmentFilters = ({
     >
       {/* Whose list (My bookings / the business) isn't a filter: kept. */}
       {filters.scope === 'business' ? <input type="hidden" name="scope" value="business" /> : null}
+      {Object.entries(keep).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="shipment-search">{t('search')}</Label>
         <div className="relative">
@@ -141,7 +148,7 @@ const ShipmentFilters = ({
         </Button>
         {today && (filters.from !== today || filters.to !== today) ? (
           <Button asChild variant="outline">
-            <Link href={shipmentListHref(basePath, { ...filters, from: today, to: today })}>
+            <Link href={shipmentListHref(basePath, { ...filters, from: today, to: today }, 1, keep)}>
               <CalendarDays aria-hidden />
               {t('today')}
             </Link>
@@ -149,7 +156,7 @@ const ShipmentFilters = ({
         ) : null}
         {hasFilters(filters) ? (
           <Button asChild variant="ghost">
-            <Link href={shipmentListHref(basePath, { scope: filters.scope })}>
+            <Link href={shipmentListHref(basePath, { scope: filters.scope }, 1, keep)}>
               <X aria-hidden />
               {t('clear')}
             </Link>

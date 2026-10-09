@@ -179,3 +179,32 @@ describe('countFor', () => {
     expect(countFor(counts, 'all')).toBe(71);
   });
 });
+
+describe('staff list (keep)', () => {
+  const STAFF = '/dashboard/operator/shipments';
+  const filters = { scope: 'mine' as const, q: 'Ahmed', status: 'in_transit' as const, from: '2026-10-08', to: null };
+
+  it('keeps the tab through searching and paging', () => {
+    expect(shipmentListHref(STAFF, filters, 2, { type: 'merchant' })).toBe(`${STAFF}?type=merchant&q=Ahmed&status=in_transit&from=2026-10-08&page=2`);
+  });
+
+  it('keeps the tab when the filters are cleared', () => {
+    expect(shipmentListHref(STAFF, {}, 1, { type: 'bulk' })).toBe(`${STAFF}?type=bulk`);
+  });
+
+  it('keeps one bulk batch', () => {
+    const batch = '6f1c2a4e-8b3d-4c5e-9f7a-1b2c3d4e5f60';
+    expect(shipmentListHref(STAFF, { q: 'PXK' }, 1, { batch })).toBe(`${STAFF}?batch=${batch}&q=PXK`);
+  });
+
+  it('round-trips: the kept parameter is not read as a filter', () => {
+    const href = shipmentListHref(STAFF, filters, 1, { type: 'individual' });
+    const params = Object.fromEntries(new URL(href, 'https://example.com').searchParams);
+    expect(params.type).toBe('individual');
+    expect(parseShipmentFilters(params)).toEqual(filters);
+  });
+
+  it('leaves the plain list a bare path', () => {
+    expect(shipmentListHref(STAFF, NO_FILTERS, 1, {})).toBe(STAFF);
+  });
+});

@@ -118,9 +118,16 @@ export const countFor = (counts: StatusCounts, status: StatusFilter): number => 
 };
 
 // The list's URL for these filters (and page), with defaults left out so
-// the unfiltered list is just the bare path.
-export const shipmentListHref = (basePath: string, filters: Partial<ShipmentFilters> = {}, page = 1) => {
-  const params = new URLSearchParams();
+// the unfiltered list is just the bare path. `keep` carries a list's own
+// parameters that aren't filters (the staff list's ?type= and ?batch=),
+// first, so searching, clearing and paging don't lose them.
+export const shipmentListHref = (
+  basePath: string,
+  filters: Partial<ShipmentFilters> = {},
+  page = 1,
+  keep: Record<string, string> = {},
+) => {
+  const params = new URLSearchParams(keep);
   if (filters.scope === 'business') params.set('scope', 'business');
   if (filters.q) params.set('q', filters.q);
   if (filters.status && filters.status !== 'all') params.set('status', filters.status);

@@ -71,7 +71,26 @@
       "bulk": "No bulk shipments found."
     },
     "loadError": "Unable to load shipments. Please try again.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "filters": {
+      "label": "Search and filter shipments",
+      "search": "Search shipments",
+      "searchPlaceholder": "Shipment ID, name, phone, address, customer or driver",
+      "searchHint": "Shipment ID; sender or recipient name or phone (any format: +971 50…, 050…); pickup or drop-off address; the customer, company or driver.",
+      "from": "Booked from",
+      "to": "Booked to",
+      "dateHint": "Dates are the booking date (UAE time). Leave either one empty for an open range.",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "active": "Active (on the way)",
+      "more": "Date and status",
+      "today": "Today",
+      "apply": "Search",
+      "clear": "Clear filters",
+      "results": "{count, plural, =0 {No shipments match} one {# shipment matches} other {# shipments match}} · bulk shipments are listed one by one",
+      "empty": "No shipments found matching your search.",
+      "error": "We couldn’t search shipments. Please try again."
+    }
   },
   "shipmentDetail": {
     "meta": "Shipment · ParcelLink",
