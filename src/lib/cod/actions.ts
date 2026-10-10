@@ -13,13 +13,18 @@ export const reconcileCodAction = async (codTransactionId: string): Promise<CodA
   const profile = await requireRole('operator', 'manager');
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('cod_transactions')
     .update({ status: 'reconciled', reconciled_by: profile.id, reconciled_at: new Date().toISOString() })
     .eq('id', codTransactionId)
-    .eq('status', 'collected');
+    .eq('status', 'collected')
+    // A recorded collection is settled by a driver remittance (migration
+    // 0042); the database refuses it here too.
+    .is('collected_amount', null)
+    .select('id');
 
   if (error) return { success: false, error: safeErrorMessage(error) };
+  if (!updated?.length) return { success: false, error: 'operator.cod.notReconcilable' };
 
   await logAuditEvent({
     actorId: profile.id,

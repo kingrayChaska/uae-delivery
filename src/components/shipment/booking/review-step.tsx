@@ -34,6 +34,8 @@ type ReviewStepProps = {
   total: number;
   collectTotal: number;
   paymentMethod: PaymentMethod;
+  // The methods offered (default: every method).
+  paymentMethods?: readonly PaymentMethod[];
   onPaymentMethodChange: (method: PaymentMethod) => void;
   onEdit: (key: string) => void;
   onRemove: (key: string) => void;
@@ -47,6 +49,7 @@ const ReviewStep = ({
   total,
   collectTotal,
   paymentMethod,
+  paymentMethods,
   onPaymentMethodChange,
   onEdit,
   onRemove,
@@ -153,7 +156,7 @@ const ReviewStep = ({
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-1 text-lg font-semibold">{t('paymentTitle')}</legend>
         <div className="grid gap-3 sm:grid-cols-2">
-          {(Object.keys(PAYMENT_METHOD_ICONS) as PaymentMethod[]).map((method) => {
+          {(paymentMethods ?? (Object.keys(PAYMENT_METHOD_ICONS) as PaymentMethod[])).map((method) => {
             const Icon = PAYMENT_METHOD_ICONS[method];
             const selected = paymentMethod === method;
             return (

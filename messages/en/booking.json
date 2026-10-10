@@ -158,7 +158,9 @@
     "bookingFailed": "Unable to book this delivery. Please try again.",
     "cancelNotFound": "Shipment not found",
     "cannotCancel": "This delivery can no longer be cancelled",
-    "invalidRow": "Invalid row"
+    "invalidRow": "Invalid row",
+    "guestDetailsFirst": "Enter the customer’s name and phone number first.",
+    "guestCashOnly": "Bookings for customers without an account are paid in cash."
   },
   "validation": {
     "chooseLocation": "Please select a valid pickup or delivery location.",
@@ -197,7 +199,8 @@
     "codMax": "The collection amount can be at most AED {max}",
     "twoDecimals": "Use at most 2 decimal places",
     "atLeastOne": "Add at least one shipment",
-    "tooMany": "A booking can hold at most {max} shipments"
+    "tooMany": "A booking can hold at most {max} shipments",
+    "guestName": "Enter the customer’s name."
   },
   "routeSummary": {
     "calculating": "Calculating route and delivery price…",

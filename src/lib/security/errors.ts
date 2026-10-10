@@ -116,6 +116,37 @@ export const DATABASE_MESSAGES: Record<string, string> = {
   "Issued invoices cannot be changed": "errors.db.invoiceImmutable",
   "A void invoice cannot be changed": "errors.db.invoiceImmutable",
   "Invoices cannot be deleted": "errors.db.invoiceImmutable",
+  // Guest bookings (0040)
+  "This customer has no ParcelLink account to receive a code. Use the delivery photo as proof.":
+    "errors.db.guestNoOtp",
+  // Status corrections (0041)
+  "Only operators and managers can correct a shipment status":
+    "errors.db.correctionStaffOnly",
+  "Give a reason for the correction": "errors.db.correctionReason",
+  "The shipment already has this status": "errors.db.correctionSameStatus",
+  "Delivered shipments have proof of delivery and can't be corrected here":
+    "errors.db.correctionDelivered",
+  "Only a manager can re-open a cancelled or returned shipment":
+    "errors.db.correctionManagerReopens",
+  "Assign a driver before correcting this shipment's delivery status":
+    "errors.db.correctionNeedsDriver",
+  // Driver cash (0042)
+  "Only operators and managers can manage driver cash": "errors.db.cashStaffOnly",
+  "Only a manager can confirm or reject a remittance": "errors.db.remittanceManagerDecides",
+  "Choose confirm or reject": "errors.db.remittanceChooseDecision",
+  "Give a reason for rejecting this remittance": "errors.db.remittanceRejectReason",
+  "Keep the note under 500 characters": "errors.db.remittanceNoteTooLong",
+  "Remittance not found": "errors.db.remittanceNotFound",
+  "Driver not found": "errors.db.driverNotFound",
+  "Enter an amount greater than zero": "errors.db.remittanceAmountPositive",
+  "Use at most two decimal places": "errors.db.remittanceTwoDecimals",
+  "Choose how the money was received": "errors.db.remittanceMethod",
+  "The date received can't be in the future": "errors.db.remittanceFutureDate",
+  "This request was already used for a different remittance": "errors.db.remittanceRequestReused",
+  "Record a driver remittance to settle this cash": "errors.db.settleWithRemittance",
+  "A recorded collection can't be changed": "errors.db.collectionLocked",
+  "A remittance can only be confirmed or rejected once": "errors.db.remittanceLocked",
+  "Remittances can't be deleted": "errors.db.remittanceLocked",
 };
 
 // Messages that carry values (RAISE EXCEPTION '... %', value).
@@ -131,6 +162,37 @@ const DATABASE_PATTERNS: [RegExp, (match: RegExpMatchArray) => string][] = [
       msg("errors.db.invalidTransition", {
         from: ref(`shipments.status.${from}`),
         to: ref(`shipments.status.${to}`),
+      }),
+  ],
+  [
+    /^This shipment is now (\w+), not (\w+) — reload it before correcting$/,
+    ([, status]) =>
+      msg("errors.db.correctionStale", {
+        status: ref(`shipments.status.${status}`),
+      }),
+  ],
+  [
+    /^A shipment can't be corrected from (\w+) to (\w+)$/,
+    ([, from, to]) =>
+      msg("errors.db.correctionNotAllowed", {
+        from: ref(`shipments.status.${from}`),
+        to: ref(`shipments.status.${to}`),
+      }),
+  ],
+  [
+    /^This is more than the driver owes: AED ([\d.]+) outstanding, AED ([\d.]+) already awaiting confirmation$/,
+    ([, outstanding, pending]) =>
+      msg("errors.db.remittanceTooLarge", { outstanding, pending }),
+  ],
+  [
+    /^This is more than the driver now owes \(AED ([\d.]+)\)$/,
+    ([, outstanding]) => msg("errors.db.remittanceTooLargeNow", { outstanding }),
+  ],
+  [
+    /^This remittance was already (confirmed|rejected)$/,
+    ([, status]) =>
+      msg("errors.db.remittanceAlreadyDecided", {
+        status: ref(`operator.cash.status.${status}`),
       }),
   ],
   [

@@ -41,7 +41,7 @@ import { useAppLocale, useFormat, useMessage } from "@/i18n/hooks";
 import type { ReactNode } from "react";
 import type { MultiBookingInput } from "@/lib/shipment/schemas";
 import type { CreateBookingResult } from "@/lib/shipment/actions";
-import type { AccountType, DeliveryType, PricingRule } from "@/lib/types";
+import type { AccountType, DeliveryType, PaymentMethod, PricingRule } from "@/lib/types";
 import type { ServiceArea } from "@/lib/service-areas/config";
 import type { RouteEnd } from "@/components/maps/route-map";
 import type { Coordinates } from "@/lib/types";
@@ -65,6 +65,8 @@ type BookingWizardProps = {
   // the review step, once they've chosen. The quote itself is always
   // computed — it drives the distance-limit checks and the review step.
   showPrices?: boolean;
+  // How the delivery fee may be paid (default: every method).
+  paymentMethods?: readonly PaymentMethod[];
 };
 
 const sr = (chunks: ReactNode) => <span className="sr-only">{chunks}</span>;
@@ -79,6 +81,7 @@ const BookingWizard = ({
   supportHref,
   header = null,
   showPrices = false,
+  paymentMethods,
 }: BookingWizardProps) => {
   const t = useTranslations("booking.wizard");
   const translate = useMessage();
@@ -91,6 +94,7 @@ const BookingWizard = ({
     onSubmit,
     getSuccessPath,
     validateBeforeSubmit,
+    paymentMethods,
   });
   const { form, step, drafts } = wizard;
 
@@ -384,6 +388,7 @@ const BookingWizard = ({
               total={wizard.total}
               collectTotal={wizard.collectTotal}
               paymentMethod={wizard.paymentMethod}
+              paymentMethods={paymentMethods}
               onPaymentMethodChange={wizard.setPaymentMethod}
               onEdit={wizard.editShipment}
               onRemove={wizard.removeShipment}

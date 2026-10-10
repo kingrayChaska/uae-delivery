@@ -11,6 +11,7 @@ import { MAX_CELL_LENGTH, MERCHANT_BULK_COLUMNS, MERCHANT_BULK_MAX_FILE_BYTES } 
 import { PAYMENT_METHODS } from '@/lib/types';
 import { cardPaymentsLive } from '@/lib/payments';
 import { startBulkWorker } from '@/lib/bulk/worker';
+import { scheduleOperatorBookingEmails } from '@/services/notifications/operator-booking-emails';
 import {
   bookMerchantDraft,
   cancelDraft,
@@ -151,6 +152,8 @@ export const bookBulkDraftAction = async (
 
   try {
     const result = await bookMerchantDraft(merchant, batchId, parsed.data);
+    // Sends the one summary email the booked batch queued (migration 0043).
+    scheduleOperatorBookingEmails();
     if (!result.alreadyBooked) {
       await logAuditEvent({
         actorId: merchant.id,

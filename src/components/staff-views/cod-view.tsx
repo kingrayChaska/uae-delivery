@@ -78,7 +78,15 @@ const CodView = async ({ basePath, page }: StaffListViewProps) => {
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant={STATUS_VARIANT[record.status] ?? 'default'}>{statusLabel(record.status)}</Badge>
-                  <CodActionsCell codTransactionId={record.id} status={record.status} />
+                  <CodActionsCell
+                    codTransactionId={record.id}
+                    status={record.status}
+                    settleHref={
+                      record.status === 'collected' && record.collectedAmount !== null
+                        ? `${basePath}/cash/${record.driverId}`
+                        : null
+                    }
+                  />
                 </div>
               </CardContent>
             </Card>

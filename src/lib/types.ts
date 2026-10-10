@@ -130,10 +130,20 @@ export type PriceBreakdown = {
   exceedsDistanceLimit: boolean;
 };
 
+// A customer with no ParcelLink account, booked by staff (migration 0040).
+export type GuestCustomer = {
+  name: string;
+  phone: string;
+};
+
 export type Shipment = {
   id: string;
   trackingNumber: string;
-  customerId: string;
+  // null for a guest booking (guestCustomer is set instead).
+  customerId: string | null;
+  guestCustomer: GuestCustomer | null;
+  // The staff member (or customer) who entered the booking; null before migration 0040.
+  bookedBy: string | null;
   driverId: string | null;
   status: ShipmentStatus;
   pickup: Address;
@@ -180,7 +190,7 @@ export type Shipment = {
 // file stays free of UI imports.
 export type NavIcon =
   | 'dashboard' | 'book' | 'deliveries' | 'track' | 'merchant' | 'payments' | 'notifications' | 'profile' | 'support'
-  | 'current' | 'history' | 'cod' | 'shipments' | 'bulk' | 'bulkShipments' | 'dispatch' | 'drivers' | 'customers' | 'map' | 'activity'
+  | 'current' | 'history' | 'cod' | 'cash' | 'shipments' | 'bulk' | 'bulkShipments' | 'dispatch' | 'drivers' | 'customers' | 'map' | 'activity'
   | 'operators' | 'business' | 'merchants' | 'pricing' | 'reports' | 'settings';
 
 // Labels live in the translations (dashboard.nav.items.<icon> and
@@ -245,6 +255,7 @@ export const NAV_SECTIONS: Record<Role, NavSection[]> = {
         { href: '/dashboard/operator/dispatch', icon: 'dispatch' },
         { href: '/dashboard/operator/live-map', icon: 'map' },
         { href: '/dashboard/operator/cod', icon: 'cod' },
+        { href: '/dashboard/operator/cash', icon: 'cash' },
       ],
     },
     {
@@ -270,6 +281,7 @@ export const NAV_SECTIONS: Record<Role, NavSection[]> = {
         { href: '/dashboard/manager/bulk', icon: 'bulk' },
         { href: '/dashboard/manager/live-map', icon: 'map' },
         { href: '/dashboard/manager/cod', icon: 'cod' },
+        { href: '/dashboard/manager/cash', icon: 'cash' },
         { href: '/dashboard/manager/payments', icon: 'payments' },
       ],
     },

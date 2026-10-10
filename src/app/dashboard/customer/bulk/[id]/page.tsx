@@ -17,6 +17,7 @@ import { PAYMENT_METHODS } from '@/lib/types';
 import { getBatchDetail } from '@/services/bulk/list-batches';
 import { getMerchantBatch, listBatchRows, reconcileStaleBooking } from '@/services/bulk/merchant-bulk';
 import { getInvoiceNumberFor } from '@/services/invoices/get-invoice';
+import { scheduleOperatorBookingEmails } from '@/services/notifications/operator-booking-emails';
 
 import type { Metadata } from 'next';
 
@@ -42,7 +43,11 @@ const MerchantBatchPage = async ({
   let batch = await getMerchantBatch(id);
   if (!batch) notFound();
   // A booking interrupted part-way is finished or handed back here.
-  if (batch.status === 'processing' && (await reconcileStaleBooking(profile.id, id))) batch = await getMerchantBatch(id);
+  if (batch.status === 'processing' && (await reconcileStaleBooking(profile.id, id))) {
+    // Finishing it queues the operator email (migration 0043); send it.
+    scheduleOperatorBookingEmails();
+    batch = await getMerchantBatch(id);
+  }
   if (!batch) notFound();
 
   if (batch.status === 'draft') {

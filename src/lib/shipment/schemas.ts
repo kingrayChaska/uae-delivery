@@ -246,6 +246,19 @@ export const multiBookingSchema = z.object({
 
 export type MultiBookingInput = z.infer<typeof multiBookingSchema>;
 
+// The customer behind a booking staff take for someone with no ParcelLink
+// account (WhatsApp, phone, walk-in). Same rules as a contact on the booking.
+export const guestCustomerSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "booking.validation.guestName")
+    .max(120, "booking.validation.contactNameTooLong"),
+  phone: bookingLocationSchema.shape.contactPhone,
+});
+
+export type GuestCustomerInput = z.infer<typeof guestCustomerSchema>;
+
 // Per-step field subsets, used to validate only the current step before
 // letting the wizard advance (react-hook-form's trigger(fields)).
 export const BOOKING_STEP_FIELDS: Record<string, Path<BookingShipmentInput>[]> =

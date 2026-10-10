@@ -52,9 +52,14 @@ const ShipmentsView = async ({ basePath, page, batchId = null, category = 'all',
   const header = (
     <div className="flex items-center justify-between gap-3">
       <h1 className="text-2xl font-semibold">{t('title')}</h1>
-      <Button asChild>
-        <Link href={`${basePath}/shipments/new`}>{t('new')}</Link>
-      </Button>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button asChild variant="outline">
+          <Link href={`${basePath}/shipments/new?for=guest`}>{t('newForGuest')}</Link>
+        </Button>
+        <Button asChild>
+          <Link href={`${basePath}/shipments/new`}>{t('new')}</Link>
+        </Button>
+      </div>
     </div>
   );
 

@@ -27,6 +27,9 @@ const REPORT_ROW_CAP = 20_000;
 // All staff-readable via RLS; callers (page + export route) additionally
 // require the manager role. Fetches raw rows once, then the pure functions
 // in lib/reports/aggregate.ts do all the counting.
+// The report row for every booking made for a customer without an account.
+export const GUEST_CUSTOMERS = 'guest';
+
 export const getReportData = async (range: ReportRange): Promise<ReportData> => {
   const supabase = await createClient();
   const fromIso = range.from.toISOString();
@@ -54,7 +57,9 @@ export const getReportData = async (range: ReportRange): Promise<ReportData> => 
     price: Number(row.price),
     paymentMethod: row.payment_method,
     paymentStatus: row.payment_status,
-    customerId: row.customer_id,
+    // Bookings for customers without an account (migration 0040) have no
+    // customer; they are reported together, as one clearly labelled row.
+    customerId: row.customer_id ?? GUEST_CUSTOMERS,
     driverId: row.driver_id,
     createdAt: row.created_at,
   }));

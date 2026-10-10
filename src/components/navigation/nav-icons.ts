@@ -24,6 +24,7 @@ import {
   UserCog,
   Users,
   Navigation,
+  WalletCards,
 } from 'lucide-react';
 
 import type { LucideIcon } from 'lucide-react';
@@ -42,6 +43,7 @@ export const NAV_ICONS: Record<NavIcon, LucideIcon> = {
   current: Navigation,
   history: History,
   cod: Banknote,
+  cash: WalletCards,
   shipments: Truck,
   bulk: Boxes,
   bulkShipments: FileSpreadsheet,

@@ -8,12 +8,19 @@ import { isUuid } from '@/lib/security/validate';
 import { verifyTurnstile } from '@/lib/security/turnstile';
 import { RATE_LIMIT_MESSAGE, checkIpRateLimit, checkRateLimit } from '@/lib/security/rate-limit';
 import { getShipmentTracking } from '@/services/tracking/get-shipment-tracking';
-import { createBooking } from '@/services/shipments/create-booking';
-import { multiBookingSchema, normalizeTrackingCode, trackingLookupSchema } from '@/lib/shipment/schemas';
+import { createBooking, createGuestBooking } from '@/services/shipments/create-booking';
+import { scheduleOperatorBookingEmails } from '@/services/notifications/operator-booking-emails';
+import {
+  guestCustomerSchema,
+  multiBookingSchema,
+  normalizeTrackingCode,
+  trackingLookupSchema,
+} from '@/lib/shipment/schemas';
 
 import { msg } from '@/i18n/message';
 
-import type { MultiBookingInput, TrackingLookupInput } from '@/lib/shipment/schemas';
+import type { GuestCustomerInput, MultiBookingInput, TrackingLookupInput } from '@/lib/shipment/schemas';
+import type { BookingOutcome } from '@/services/shipments/create-booking';
 import type { Shipment } from '@/lib/types';
 import type { PublicTrackingResult, TrackingHistoryEntry } from '@/services/tracking/get-shipment-tracking';
 
@@ -56,7 +63,10 @@ export type CreateBookingResult =
     }
   | { success: false; error: string };
 
-const runBooking = async (customerId: string, createdBy: string, input: MultiBookingInput): Promise<CreateBookingResult> => {
+const runBooking = async (
+  input: MultiBookingInput,
+  book: (input: MultiBookingInput) => Promise<BookingOutcome>,
+): Promise<CreateBookingResult> => {
   const parsed = multiBookingSchema.safeParse(input);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
@@ -72,7 +82,7 @@ const runBooking = async (customerId: string, createdBy: string, input: MultiBoo
   }
 
   try {
-    const outcome = await createBooking({ customerId, createdBy, input: parsed.data });
+    const outcome = await book(parsed.data);
     return {
       success: true,
       shipmentIds: outcome.shipments.map((shipment) => shipment.id),
@@ -95,7 +105,11 @@ const runBooking = async (customerId: string, createdBy: string, input: MultiBoo
 export const createBookingAction = async (input: MultiBookingInput): Promise<CreateBookingResult> => {
   const profile = await requireRole('customer');
   if (!(await checkRateLimit('bookingPerUser', profile.id))) return { success: false, error: RATE_LIMIT_MESSAGE };
-  return runBooking(profile.id, profile.id, input);
+  const result = await runBooking(input, (data) => createBooking({ customerId: profile.id, createdBy: profile.id, input: data }));
+  // The booking's own transaction queued the operator email (migration
+  // 0043); this only sends it, after the response.
+  if (result.success) scheduleOperatorBookingEmails();
+  return result;
 };
 
 // Operator/Manager booking on a customer's behalf (phone orders, walk-ins).
@@ -122,7 +136,7 @@ export const createBookingForCustomerAction = async (
     return { success: false, error: 'booking.errors.selectCustomer' };
   }
 
-  const result = await runBooking(customerId, profile.id, input);
+  const result = await runBooking(input, (data) => createBooking({ customerId, createdBy: profile.id, input: data }));
   if (result.success) {
     await logAuditEvent({
       actorId: profile.id,
@@ -130,6 +144,41 @@ export const createBookingForCustomerAction = async (
       entityType: result.batchId ? 'shipment_batch' : 'shipment',
       entityId: result.batchId ?? result.shipmentIds[0],
       newValue: { customerId, shipmentIds: result.shipmentIds, total: result.total },
+    });
+  }
+  return result;
+};
+
+// Operator/Manager booking for a customer with no ParcelLink account
+// (WhatsApp, phone or walk-in orders; migration 0040). No profile is created
+// or matched: the shipments carry the customer's name and phone, and record
+// the signed-in staff member as who booked them — taken from the session,
+// never the request. Routing, coverage, pricing and the distance limit are
+// the same server-side checks as every booking, at individual rates. The
+// delivery fee is paid in cash: a customer without an account has nowhere
+// to pay by card.
+export const createGuestBookingAction = async (
+  guest: GuestCustomerInput,
+  input: MultiBookingInput,
+): Promise<CreateBookingResult> => {
+  const profile = await requireRole('operator', 'manager');
+  const guestParsed = guestCustomerSchema.safeParse(guest);
+  if (!guestParsed.success) {
+    return { success: false, error: guestParsed.error.issues[0]?.message ?? 'validation.invalid' };
+  }
+  if (input?.paymentMethod !== 'cod') return { success: false, error: 'booking.errors.guestCashOnly' };
+  if (!(await checkRateLimit('bookingPerUser', profile.id))) return { success: false, error: RATE_LIMIT_MESSAGE };
+
+  const result = await runBooking(input, (data) =>
+    createGuestBooking({ guest: guestParsed.data, bookedBy: profile.id, input: data }),
+  );
+  if (result.success) {
+    await logAuditEvent({
+      actorId: profile.id,
+      action: 'shipment.create_for_guest',
+      entityType: 'shipment',
+      entityId: result.shipmentIds[0],
+      newValue: { shipmentIds: result.shipmentIds, total: result.total },
     });
   }
   return result;

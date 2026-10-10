@@ -26,7 +26,8 @@
       "pricing": "Pricing",
       "reports": "Reports",
       "settings": "Settings",
-      "bulkShipments": "Bulk Shipments"
+      "bulkShipments": "Bulk Shipments",
+      "cash": "Driver Cash"
     },
     "sections": {
       "account": "Account",

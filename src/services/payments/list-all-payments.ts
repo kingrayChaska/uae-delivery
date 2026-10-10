@@ -34,7 +34,9 @@ export const listAllPayments = async (page: number): Promise<Paginated<PaymentOv
       .limit(depth),
     supabase
       .from('shipments')
-      .select('id, tracking_number, price, currency, status, created_at, profiles!customer_id(full_name)', { count: 'exact' })
+      .select('id, tracking_number, price, currency, status, created_at, guest_customer_name, profiles!customer_id(full_name)', {
+        count: 'exact',
+      })
       .eq('payment_method', 'cod')
       .order('created_at', { ascending: false })
       .limit(depth),
@@ -56,7 +58,9 @@ export const listAllPayments = async (page: number): Promise<Paginated<PaymentOv
     id: row.id,
     shipmentId: row.id,
     trackingNumber: row.tracking_number,
-    customerName: (row.profiles as unknown as { full_name: string } | null)?.full_name ?? '—',
+    // A booking for a customer without an account (migration 0040) carries their name.
+    customerName:
+      (row.profiles as unknown as { full_name: string } | null)?.full_name ?? row.guest_customer_name ?? '—',
     method: 'cod',
     amount: Number(row.price),
     currency: row.currency,

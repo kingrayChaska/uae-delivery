@@ -1,4 +1,7 @@
+import { effectiveStatusHistory } from '@/lib/shipment/status-corrections';
+
 import type { ShipmentStatus } from '@/lib/types';
+import type { StatusHistoryEvent } from '@/lib/shipment/status-corrections';
 
 export const MILESTONE_KEYS = ['created', 'assigned', 'received', 'in_transit', 'out_for_delivery', 'delivered'] as const;
 export type MilestoneKey = (typeof MILESTONE_KEYS)[number];
@@ -83,10 +86,12 @@ const TERMINAL_NEGATIVE: Partial<Record<ShipmentStatus, string>> = {
 
 export const getTrackingMilestones = (
   status: ShipmentStatus,
-  history: { status: ShipmentStatus; createdAt: string }[] = [],
+  history: StatusHistoryEvent[] = [],
 ): TrackingMilestone[] => {
+  // Steps a staff correction undid (migration 0041) were never really reached.
+  const trail = effectiveStatusHistory(history);
   const firstReached = (statuses: ShipmentStatus[]) =>
-    history.find((entry) => statuses.includes(entry.status))?.createdAt ?? null;
+    trail.find((entry) => statuses.includes(entry.status))?.createdAt ?? null;
 
   // A cancelled, failed or returned shipment still shows how far it got.
   const stopped = status in TERMINAL_NEGATIVE;

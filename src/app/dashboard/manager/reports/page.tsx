@@ -8,7 +8,7 @@ import ReportCharts from '@/components/manager/lazy-report-charts';
 import ExportLink from '@/components/manager/export-link';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { parseReportRange } from '@/lib/reports/range';
-import { getReportData } from '@/services/reports/get-report-data';
+import { GUEST_CUSTOMERS, getReportData } from '@/services/reports/get-report-data';
 import { getFormat } from '@/i18n/server';
 
 import type { Metadata } from 'next';
@@ -147,7 +147,9 @@ const ReportsPage = async ({ searchParams }: ReportsPageProps) => {
               <tbody>
                 {data.customers.map((customer) => (
                   <tr key={customer.customerId} className="border-t">
-                    <td className="px-3 py-2">{customer.name}</td>
+                    <td className="px-3 py-2">
+                      {customer.customerId === GUEST_CUSTOMERS ? t('guestCustomers') : customer.name}
+                    </td>
                     <td className="px-3 py-2 font-brand-mono">{count(customer.shipments)}</td>
                     <td className="px-3 py-2 font-brand-mono whitespace-nowrap">{aed(customer.totalSpent)}</td>
                     <td className="px-3 py-2 font-brand-mono whitespace-nowrap">{aed(customer.codAmount)}</td>

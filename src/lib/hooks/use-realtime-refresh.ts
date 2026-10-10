@@ -12,7 +12,8 @@ const DEBOUNCE_MS = 500;
 // grained approach is what useRealtimeDriverLocations does instead, since
 // location pings are frequent enough that a full page refetch per ping
 // would be wasteful).
-export const useRealtimeRefresh = (table: string) => {
+// filter narrows it to matching rows, in Realtime's syntax (e.g. 'id=eq.<uuid>').
+export const useRealtimeRefresh = (table: string, filter?: string) => {
   const router = useRouter();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -20,8 +21,8 @@ export const useRealtimeRefresh = (table: string) => {
     const supabase = createClient();
 
     const channel = supabase
-      .channel(`${table}-refresh`)
-      .on('postgres_changes', { event: '*', schema: 'public', table }, () => {
+      .channel(filter ? `${table}-refresh-${filter}` : `${table}-refresh`)
+      .on('postgres_changes', { event: '*', schema: 'public', table, ...(filter ? { filter } : {}) }, () => {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         timeoutRef.current = setTimeout(() => router.refresh(), DEBOUNCE_MS);
       })
@@ -32,5 +33,5 @@ export const useRealtimeRefresh = (table: string) => {
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- router is stable from Next's app router; re-subscribing on every render identity change would thrash the channel
-  }, [table]);
+  }, [table, filter]);
 };

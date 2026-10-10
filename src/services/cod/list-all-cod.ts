@@ -9,6 +9,7 @@ export type CodOverviewRecord = {
   id: string;
   shipmentId: string;
   trackingNumber: string;
+  driverId: string;
   driverName: string;
   // amount = productAmount + deliveryFeeAmount: all the cash the driver
   // accounts for. Only productAmount comes from the recipient; the fee is
@@ -18,16 +19,22 @@ export type CodOverviewRecord = {
   deliveryFeeAmount: number;
   currency: string;
   status: string;
+  // Recorded when the driver confirmed collection (migration 0042); null
+  // before then. A recorded collection is settled by a driver remittance,
+  // not row by row.
+  collectedAmount: number | null;
   collectedAt: string | null;
   reconciledAt: string | null;
 };
 
 const COD_SELECT =
-  'id, shipment_id, amount, product_amount, delivery_fee_amount, status, collected_at, reconciled_at, shipments(tracking_number, currency), profiles!cod_transactions_driver_id_fkey(full_name)';
+  'id, shipment_id, driver_id, collected_amount, amount, product_amount, delivery_fee_amount, status, collected_at, reconciled_at, shipments(tracking_number, currency), profiles!cod_transactions_driver_id_fkey(full_name)';
 
 type CodRow = {
   id: string;
   shipment_id: string;
+  driver_id: string;
+  collected_amount: number | string | null;
   amount: number;
   product_amount: number | string;
   delivery_fee_amount: number | string;
@@ -46,12 +53,14 @@ const toRecord = (row: CodRow): CodOverviewRecord => {
     id: row.id,
     shipmentId: row.shipment_id,
     trackingNumber: shipment?.tracking_number ?? '—',
+    driverId: row.driver_id,
     driverName: driver?.full_name ?? '—',
     amount: Number(row.amount),
     productAmount: Number(row.product_amount),
     deliveryFeeAmount: Number(row.delivery_fee_amount),
     currency: shipment?.currency ?? 'AED',
     status: row.status,
+    collectedAmount: row.collected_amount === null ? null : Number(row.collected_amount),
     collectedAt: row.collected_at,
     reconciledAt: row.reconciled_at,
   };

@@ -8,13 +8,15 @@ type PaginationProps = {
   // The list page's own path (it may already carry filters); the page
   // number is added as page=n.
   href: string;
+  // The parameter to use instead of page=, for a page with two lists.
+  param?: string;
 };
 
-const Pagination = ({ page, totalPages, href }: PaginationProps) => {
+const Pagination = ({ page, totalPages, href, param = 'page' }: PaginationProps) => {
   const t = useTranslations('common.pagination');
   if (totalPages <= 1) return null;
 
-  const pageHref = (n: number) => `${href}${href.includes('?') ? '&' : '?'}page=${n}`;
+  const pageHref = (n: number) => `${href}${href.includes('?') ? '&' : '?'}${param}=${n}`;
   const linkClass =
     'inline-flex min-h-10 items-center gap-1 rounded-lg border px-3 transition-colors hover:bg-secondary/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
   const disabledClass = 'inline-flex min-h-10 items-center gap-1 rounded-lg border px-3 opacity-40';

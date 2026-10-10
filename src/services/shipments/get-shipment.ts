@@ -6,7 +6,15 @@ import { mapRowToShipment, SHIPMENT_SELECT_COLUMNS } from '@/services/shipments/
 import type { Shipment, ShipmentStatus } from '@/lib/types';
 import type { ShipmentRow } from '@/services/shipments/shipment-mapper';
 
-export type ShipmentHistoryEntry = { status: ShipmentStatus; createdAt: string };
+export type ShipmentHistoryEntry = {
+  status: ShipmentStatus;
+  createdAt: string;
+  // 'correction' when staff corrected a mistaken status (migration 0041),
+  // with the status it replaced and the reason.
+  eventType: 'transition' | 'correction';
+  previousStatus: ShipmentStatus | null;
+  note: string | null;
+};
 
 export type ShipmentDetail = {
   shipment: Shipment;
@@ -27,9 +35,10 @@ export const getShipmentDetail = async (shipmentId: string): Promise<ShipmentDet
     supabase.from('shipments').select(SHIPMENT_SELECT_COLUMNS).eq('id', shipmentId).maybeSingle(),
     supabase
       .from('shipment_status_history')
-      .select('status, created_at')
+      .select('status, created_at, event_type, previous_status, note')
       .eq('shipment_id', shipmentId)
-      .order('created_at', { ascending: true }),
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true }),
   ]);
 
   if (!row) return null;
@@ -50,6 +59,9 @@ export const getShipmentDetail = async (shipmentId: string): Promise<ShipmentDet
     history: (historyRows ?? []).map((entry) => ({
       status: entry.status as ShipmentStatus,
       createdAt: entry.created_at as string,
+      eventType: entry.event_type === 'correction' ? 'correction' : 'transition',
+      previousStatus: (entry.previous_status as ShipmentStatus | null) ?? null,
+      note: (entry.note as string | null) ?? null,
     })),
     packageImageUrl,
   };

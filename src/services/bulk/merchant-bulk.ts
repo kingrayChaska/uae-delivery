@@ -40,7 +40,7 @@ import type { Emirate, ServiceArea } from '@/lib/service-areas/config';
 import type { BulkRowResult } from '@/lib/bulk/schemas';
 import type { MerchantRowInput, RowIssue, RowStatus } from '@/lib/bulk/merchant-csv';
 import type { PaymentMethod, PriceBreakdown, PricingRuleSet, Profile } from '@/lib/types';
-import type { BookingCustomer, ShipmentQuote } from '@/services/shipments/create-shipment';
+import type { RegisteredBookingCustomer, ShipmentQuote } from '@/services/shipments/create-shipment';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Merchant bulk shipments (migrations 0026, 0029). A CSV becomes a DRAFT
@@ -61,7 +61,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 // ── Merchant ────────────────────────────────────────────────────────────────
 
-export type MerchantContext = BookingCustomer & {
+export type MerchantContext = RegisteredBookingCustomer & {
   businessAccountId: string;
   // Every shipment's pickup contact: the business's contact person.
   pickupContactName: string;
@@ -841,7 +841,7 @@ const finishBooking = async (batchId: string, rows: RowRecord[]) => {
 
 // Re-checks a stored quote against today's rules before it's booked.
 // Returns null when it still stands, or the row's new state when not.
-const recheck = (row: RowRecord, rules: PricingRuleSet, accountType: BookingCustomer['accountType'], today: string): Partial<RowUpdate> | null => {
+const recheck = (row: RowRecord, rules: PricingRuleSet, accountType: RegisteredBookingCustomer['accountType'], today: string): Partial<RowUpdate> | null => {
   const booking = row.quote?.booking;
   if (!booking) return { status: 'pending' };
   const fail = (issue: RowIssue): Partial<RowUpdate> => ({ status: 'invalid', issues: [...(row.issues ?? []), issue] });

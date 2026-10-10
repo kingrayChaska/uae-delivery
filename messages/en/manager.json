@@ -436,7 +436,8 @@
       "delivered": "Delivered",
       "topDrivers": "Top drivers",
       "failed": "Failed"
-    }
+    },
+    "guestCustomers": "Customers without an account (combined)"
   },
   "settings": {
     "meta": "Settings · ParcelLink",

@@ -8,6 +8,9 @@ import AddressBlock from '@/components/shipment/address-block';
 import ShipmentStatusBadge from '@/components/shipment/shipment-status-badge';
 import RouteMap from '@/components/maps/lazy-route-map';
 import MarkReturnedButton from '@/components/operator/mark-returned-button';
+import CorrectStatusButton from '@/components/operator/correct-status-button';
+import RealtimeRefresh from '@/components/dashboard/realtime-refresh';
+import Badge from '@/components/ui/badge';
 import ReassignDriverSection from '@/components/operator/reassign-driver-section';
 import ShipmentChargesCard from '@/components/shipment/shipment-charges-card';
 import ProofOfDeliveryButton from '@/components/shipment/proof-of-delivery';
@@ -18,6 +21,8 @@ import { getOutcomeProof } from '@/services/shipments/get-outcome-proof';
 import { getProfileName } from '@/services/profiles/get-profile-name';
 import { getBatchLabel } from '@/services/bulk/list-batches';
 import { getInvoiceNumberFor } from '@/services/invoices/get-invoice';
+import { getCurrentProfile } from '@/lib/auth/session';
+import { correctionTargets } from '@/lib/shipment/status-corrections';
 import { getFormat } from '@/i18n/server';
 
 import type { StaffDetailViewProps } from '@/components/staff-views/types';
@@ -27,8 +32,12 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
   if (!detail) notFound();
 
   const { shipment, history } = detail;
-  const [driverName, batch, proof, outcomeProof, t, tShipments, tInvoices, format, invoiceNumber] = await Promise.all([
+  const [viewer, driverName, customerName, bookedByName, batch, proof, outcomeProof, t, tShipments, tInvoices, format, invoiceNumber] = await Promise.all([
+    getCurrentProfile(),
     getProfileName(shipment.driverId),
+    getProfileName(shipment.customerId),
+    // Who entered it, when that wasn't the customer themselves.
+    shipment.bookedBy && shipment.bookedBy !== shipment.customerId ? getProfileName(shipment.bookedBy) : Promise.resolve(null),
     getBatchLabel(shipment.batchId),
     shipment.status === 'delivered' ? getProofOfDelivery(shipment.id) : Promise.resolve(null),
     // The driver's photo when they cancelled or returned it (migration 0037).
@@ -51,6 +60,11 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
         : null;
   const canAssign = shipment.status === 'confirmed' && !shipment.driverId;
   const canReassign = shipment.status === 'assigned' || shipment.status === 'delivery_failed';
+  // Correcting a status a driver set by mistake (migration 0041).
+  const correctTo = correctionTargets(shipment.status, {
+    isManager: viewer?.role === 'manager',
+    hasDriver: shipment.driverId !== null,
+  });
   const packageDetails = [
     t('packageLine', { quantity: format.number(shipment.packageQuantity), description: shipment.packageDescription }),
     shipment.packageWeightKg ? format.kg(shipment.packageWeightKg) : null,
@@ -59,6 +73,8 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
+      {/* A driver's update (or another operator's) shows up without a reload. */}
+      <RealtimeRefresh table="shipments" filter={`id=eq.${shipment.id}`} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 flex-col gap-2">
           <TrackingCode code={shipment.trackingNumber} />
@@ -77,6 +93,9 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
           ) : null}
           <ShipmentStatusBadge status={shipment.status} />
           {shipment.status === 'delivery_failed' ? <MarkReturnedButton shipmentId={shipment.id} /> : null}
+          {correctTo.length > 0 ? (
+            <CorrectStatusButton shipmentId={shipment.id} currentStatus={shipment.status} targets={correctTo} />
+          ) : null}
         </div>
       </div>
 
@@ -84,6 +103,28 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
         <div className="flex flex-col gap-4">
           <Card>
             <CardContent className="flex flex-col gap-3 pt-6 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">{t('customer')}</span>
+                {shipment.guestCustomer ? (
+                  <span className="flex flex-col items-end gap-1 text-end">
+                    <span className="flex flex-wrap items-center justify-end gap-2">
+                      <span className="wrap-break-word">{shipment.guestCustomer.name}</span>
+                      <Badge variant="secondary">{t('noAccount')}</Badge>
+                    </span>
+                    <a href={`tel:${shipment.guestCustomer.phone.replace(/[^\d+]/g, '')}`} dir="ltr" className="font-brand-mono hover:underline">
+                      {shipment.guestCustomer.phone}
+                    </a>
+                  </span>
+                ) : (
+                  <span className="wrap-break-word text-end">{customerName ?? '—'}</span>
+                )}
+              </div>
+              {bookedByName ? (
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">{t('bookedBy')}</span>
+                  <span className="wrap-break-word text-end">{bookedByName}</span>
+                </div>
+              ) : null}
               <div className="flex justify-between gap-4">
                 <span className="text-muted-foreground">{t('driver')}</span>
                 <span>{driverName ?? t('unassigned')}</span>
@@ -160,12 +201,27 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
             <CardContent className="pt-6">
               <p className="mb-2 text-sm font-medium">{t('history')}</p>
               <ul className="flex flex-col gap-1 text-sm">
-                {history.map((entry) => (
-                  <li key={`${entry.status}-${entry.createdAt}`} className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">{tShipments(`status.${entry.status}`)}</span>
-                    <span className="font-brand-mono">{format.dateTime(entry.createdAt)}</span>
-                  </li>
-                ))}
+                {history.map((entry, index) =>
+                  entry.eventType === 'correction' ? (
+                    <li key={`${index}-${entry.createdAt}`} className="flex flex-col gap-0.5 rounded-md bg-secondary/60 px-2 py-1.5">
+                      <span className="flex justify-between gap-4">
+                        <span>
+                          {t('correctedEntry', {
+                            from: entry.previousStatus ? tShipments(`status.${entry.previousStatus}`) : '—',
+                            to: tShipments(`status.${entry.status}`),
+                          })}
+                        </span>
+                        <span className="font-brand-mono">{format.dateTime(entry.createdAt)}</span>
+                      </span>
+                      {entry.note ? <span className="wrap-break-word text-muted-foreground">{entry.note}</span> : null}
+                    </li>
+                  ) : (
+                    <li key={`${index}-${entry.createdAt}`} className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">{tShipments(`status.${entry.status}`)}</span>
+                      <span className="font-brand-mono">{format.dateTime(entry.createdAt)}</span>
+                    </li>
+                  ),
+                )}
               </ul>
             </CardContent>
           </Card>

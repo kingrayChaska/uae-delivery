@@ -18,6 +18,8 @@ export type PublicTrackingResult = {
 export type TrackingHistoryEntry = {
   status: ShipmentStatus;
   createdAt: string;
+  // 'correction' for a status staff corrected (migration 0041).
+  eventType: string | null;
 };
 
 // Calls the SECURITY DEFINER functions from database/migrations/0011 —
@@ -46,7 +48,7 @@ export const getShipmentTracking = async (
     driver_location_updated_at: string | null;
   } | null;
 
-  const historyRows = (history ?? []) as { status: ShipmentStatus; created_at: string }[];
+  const historyRows = (history ?? []) as { status: ShipmentStatus; created_at: string; event_type?: string | null }[];
 
   if (trackingError || !trackingRow || !trackingRow.tracking_number) return null;
 
@@ -64,6 +66,7 @@ export const getShipmentTracking = async (
     history: historyRows.map((entry) => ({
       status: entry.status,
       createdAt: entry.created_at,
+      eventType: entry.event_type ?? null,
     })),
   };
 };

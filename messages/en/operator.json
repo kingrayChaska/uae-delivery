@@ -3,7 +3,21 @@
     "onBehalfOf": "Booking on behalf of",
     "selectCustomer": "Select a customer…",
     "customer": "{name} — {email}",
-    "customerMerchant": "{name} — {email} (merchant)"
+    "customerMerchant": "{name} — {email} (merchant)",
+    "bookingFor": "Who is this booking for?",
+    "for": {
+      "registered": {
+        "label": "Registered customer",
+        "description": "Book on behalf of a customer with a ParcelLink account."
+      },
+      "guest": {
+        "label": "Customer without an account",
+        "description": "Details sent by WhatsApp, phone or in person. No account is created."
+      }
+    },
+    "guestName": "Customer name",
+    "guestPhone": "Customer phone",
+    "guestHint": "Share the tracking code with the customer once the booking is created. The delivery fee is paid in cash."
   },
   "home": {
     "title": "Operations",
@@ -93,7 +107,8 @@
       "results": "{count, plural, =0 {No shipments match} one {# shipment matches} other {# shipments match}} · bulk shipments are listed one by one",
       "empty": "No shipments found matching your search.",
       "error": "We couldn’t search shipments. Please try again."
-    }
+    },
+    "newForGuest": "Book for customer without account"
   },
   "shipmentDetail": {
     "meta": "Shipment · ParcelLink",
@@ -117,7 +132,21 @@
     "batch": "Bulk batch",
     "outcomeReason": "Reason ({status})",
     "outcomePhoto": "Driver’s photo",
-    "outcomePhotoAlt": "Driver’s photo for {status}, opens full size"
+    "outcomePhotoAlt": "Driver’s photo for {status}, opens full size",
+    "customer": "Customer",
+    "noAccount": "No account",
+    "bookedBy": "Booked by",
+    "correctedEntry": "Corrected: {from} → {to}",
+    "correct": "Correct status",
+    "correcting": "Correcting…",
+    "correctTitle": "Correct this shipment’s status?",
+    "correctDescription": "The shipment is currently {status}. Choose the status it should have. The mistaken update stays in the history.",
+    "correctTo": "Correct status",
+    "correctChoose": "Choose a status…",
+    "correctReason": "Reason for the correction",
+    "correctReasonPlaceholder": "e.g. Driver marked In Transit before pickup",
+    "correctAudit": "Your name, the reason and the time are recorded. The driver is notified.",
+    "correctConfirm": "Correct status"
   },
   "customers": {
     "meta": "Customers · ParcelLink",
@@ -170,7 +199,9 @@
     "empty": "No COD transactions",
     "driver": "Driver: {name}",
     "reconcile": "Reconcile",
-    "remit": "Mark Remitted"
+    "remit": "Mark Remitted",
+    "settleWithRemittance": "Settle via driver remittance",
+    "notReconcilable": "This record can’t be reconciled here. Recorded collections are settled by recording the driver’s remittance."
   },
   "activity": {
     "meta": "Activity log · ParcelLink",
@@ -227,7 +258,9 @@
   },
   "validation": {
     "reason": "Enter a reason",
-    "reasonTooLong": "Keep the reason under 500 characters."
+    "reasonTooLong": "Keep the reason under 500 characters.",
+    "correctionStatus": "Choose the correct status",
+    "correctionReason": "Give a reason for the correction (at least 5 characters)"
   },
   "errors": {
     "notFound": "Not found",
@@ -237,5 +270,164 @@
     "cannotMarkReturned": "This shipment can no longer be marked as returned",
     "assignmentChanged": "This shipment’s driver was changed since you opened it. The page has been refreshed — check the current driver and try again.",
     "alreadyAssigned": "This driver is already assigned to the shipment"
+  },
+  "cash": {
+    "meta": "Driver cash · ParcelLink",
+    "title": "Driver Cash Reconciliation",
+    "intro": "What each driver has collected, handed over to ParcelLink, and still owes. Only confirmed remittances reduce a balance; cash still to be collected is shown separately.",
+    "loadFailed": "Driver balances couldn’t be loaded.",
+    "retry": "Try again",
+    "pendingQueue": "{count, plural, one {# remittance is} other {# remittances are}} waiting for your confirmation. Open a driver to confirm or reject.",
+    "drivers": "Drivers",
+    "empty": "No driver has handled cash yet.",
+    "emptySearch": "No driver matches this search.",
+    "unverifiedNote": "Plus {amount} collected before amounts were recorded (unverified, not in the balance).",
+    "recordAction": "Record remittance",
+    "view": "View",
+    "back": "All drivers",
+    "pendingNote": "{amount} recorded and awaiting a manager’s confirmation (not yet deducted).",
+    "nothingAvailable": "Everything this driver owes is already recorded and awaiting confirmation.",
+    "nothingOwed": "This driver doesn’t owe anything right now.",
+    "period": {
+      "range": "{from} – {to}",
+      "allTime": "all time"
+    },
+    "cards": {
+      "nowHeading": "Balance now",
+      "outstanding": "Outstanding (cash held)",
+      "expected": "Still to collect",
+      "pending": "Awaiting confirmation",
+      "unverified": "Unverified (older records)",
+      "periodHeading": "Activity: {period}",
+      "collected": "Collected",
+      "remitted": "Remitted (confirmed)",
+      "periodNote": "Activity counts cash collected and remittances received in the period. The balance above is always today’s.",
+      "collectedAllTime": "Collected (all time)",
+      "remittedAllTime": "Remitted (all time)"
+    },
+    "columns": {
+      "driver": "Driver",
+      "shipments": "Cash shipments",
+      "expected": "Still to collect",
+      "collected": "Collected",
+      "remitted": "Remitted",
+      "outstanding": "Outstanding",
+      "pending": "Awaiting confirmation",
+      "lastRemittance": "Last remittance",
+      "action": "Action"
+    },
+    "definitions": {
+      "title": "How these figures are calculated",
+      "expected": {
+        "term": "Still to collect",
+        "meaning": "Cash due on shipments assigned to the driver and not yet collected: the recipient’s cash on delivery plus the sender’s cash delivery fee. It is not money the driver holds."
+      },
+      "collected": {
+        "term": "Collected",
+        "meaning": "Amounts recorded at the moment the driver confirmed collecting them."
+      },
+      "remitted": {
+        "term": "Remitted",
+        "meaning": "Cash handed over by the driver and confirmed by a manager. Pending and rejected remittances are not included."
+      },
+      "outstanding": {
+        "term": "Outstanding",
+        "meaning": "Collected minus remitted: the cash the driver holds for ParcelLink right now."
+      },
+      "pending": {
+        "term": "Awaiting confirmation",
+        "meaning": "Remittances an operator recorded that a manager hasn’t confirmed yet. They don’t reduce the balance."
+      },
+      "unverified": {
+        "term": "Unverified",
+        "meaning": "Collections marked before amounts were recorded. They are kept out of the balance rather than guessed, and can still be reconciled one by one on the Cash on Delivery page."
+      }
+    },
+    "filters": {
+      "driver": "Driver name or phone",
+      "tracking": "Shipment ID",
+      "from": "From",
+      "to": "To",
+      "collection": "Collection status",
+      "remittance": "Remittance status",
+      "all": "All",
+      "unverified": "Unverified",
+      "apply": "Apply",
+      "clear": "Clear",
+      "datesHint": "Dates filter the activity figures (UAE time). Balances are always today’s.",
+      "ledgerDatesHint": "Dates match when cash was collected (or assigned, if not yet collected) and when a remittance was received."
+    },
+    "status": {
+      "pending": "Awaiting confirmation",
+      "confirmed": "Confirmed",
+      "rejected": "Rejected"
+    },
+    "methods": {
+      "cash": "Cash",
+      "bank_transfer": "Bank transfer",
+      "other": "Other"
+    },
+    "record": {
+      "available": "{name} can remit up to {amount} now.",
+      "amount": "Amount received (AED)",
+      "method": "How it was received",
+      "receivedOn": "Date received",
+      "reference": "Reference (optional)",
+      "notes": "Notes (optional)",
+      "managerHint": "As a manager, your remittance is confirmed when you record it.",
+      "operatorHint": "A manager confirms the remittance before it reduces the driver’s balance.",
+      "saving": "Recording…",
+      "submit": "Record remittance",
+      "doneConfirmed": "{amount} recorded and confirmed.",
+      "donePending": "{amount} recorded. It counts once a manager confirms it."
+    },
+    "decision": {
+      "confirmTitle": "Confirm this remittance?",
+      "confirmDescription": "Confirm that ParcelLink received {amount}. It will reduce the driver’s balance and can’t be undone.",
+      "confirm": "Confirm",
+      "rejectTitle": "Reject this remittance?",
+      "rejectDescription": "{amount} will not be counted. The record and your reason are kept.",
+      "rejectReason": "Reason",
+      "reject": "Reject"
+    },
+    "remittances": {
+      "title": "Remittances",
+      "empty": "No remittances match.",
+      "columns": {
+        "received": "Received",
+        "amount": "Amount",
+        "method": "Method / reference",
+        "status": "Status",
+        "recorded": "Recorded"
+      },
+      "decidedBy": "By {name}, {date}",
+      "recordedBy": "By {name}, {date}"
+    },
+    "collections": {
+      "title": "Cash collections",
+      "empty": "No collections match.",
+      "columns": {
+        "shipment": "Shipment",
+        "expected": "To collect",
+        "collected": "Collected",
+        "status": "Status",
+        "collectedAt": "Collected at"
+      },
+      "split": "{goods} goods + {fee} fee",
+      "unverified": "Unverified",
+      "settled": "Settled by a remittance"
+    },
+    "validation": {
+      "driver": "Choose a driver",
+      "amount": "Enter an amount greater than zero",
+      "amountTooLarge": "That amount is too large",
+      "twoDecimals": "Use at most two decimal places",
+      "method": "Choose how the money was received",
+      "date": "Enter the date the money was received",
+      "referenceTooLong": "Keep the reference under 100 characters",
+      "notesTooLong": "Keep the notes under 500 characters",
+      "rejectReason": "Give a reason for rejecting it",
+      "moreThanOwed": "That’s more than the driver can remit right now"
+    }
   }
 }

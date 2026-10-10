@@ -26,7 +26,8 @@
       "pricing": "الأسعار",
       "reports": "التقارير",
       "settings": "الإعدادات",
-      "bulkShipments": "الشحنات المجمّعة"
+      "bulkShipments": "الشحنات المجمّعة",
+      "cash": "نقدية السائقين"
     },
     "sections": {
       "account": "الحساب",

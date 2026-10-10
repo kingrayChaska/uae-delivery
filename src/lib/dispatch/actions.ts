@@ -8,6 +8,9 @@ import { createClient } from '@/lib/supabase/server';
 import { safeErrorMessage } from '@/lib/security/errors';
 import { logAuditEvent } from '@/lib/audit/log';
 import { listAvailableDrivers } from '@/services/drivers/list-available-drivers';
+import { statusCorrectionSchema } from '@/lib/shipment/status-corrections';
+
+import type { StatusCorrectionInput } from '@/lib/shipment/status-corrections';
 
 export type DispatchActionResult = { success: true } | { success: false; error: string };
 
@@ -158,6 +161,29 @@ export const markReturnedAction = async (input: { shipmentId: string; reason: st
     oldValue: { deliveryFailedReason: shipment.delivery_failed_reason },
     newValue: { deliveryFailedReason: parsed.data.reason, status: 'returned' },
   });
+
+  return { success: true };
+};
+
+// Corrects a status a driver set by mistake. correct_shipment_status()
+// (migration 0041) is the real gate: it re-checks the caller's role from
+// the session, refuses a status the operator didn't see (stale view), any
+// move outside the allowed list, and delivered shipments; then records the
+// correction in the status history and audit log in the same transaction.
+// The actor is never taken from the request.
+export const correctShipmentStatusAction = async (input: StatusCorrectionInput): Promise<DispatchActionResult> => {
+  await requireRole('operator', 'manager');
+  const parsed = statusCorrectionSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('correct_shipment_status', {
+    p_shipment_id: parsed.data.shipmentId,
+    p_expected_status: parsed.data.expectedStatus,
+    p_new_status: parsed.data.newStatus,
+    p_reason: parsed.data.reason,
+  });
+  if (error) return { success: false, error: safeErrorMessage(error) };
 
   return { success: true };
 };

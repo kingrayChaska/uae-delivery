@@ -48,6 +48,23 @@ const findByClientRequestId = async (
   return data ? mapRowToShipment(data as ShipmentRow) : null;
 };
 
+// A guest booking's retry: unique per (booked_by, client_request_id)
+// among shipments with no customer (migration 0040).
+const findGuestByClientRequestId = async (
+  bookedBy: string,
+  clientRequestId: string,
+): Promise<Shipment | null> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("shipments")
+    .select(SHIPMENT_SELECT_COLUMNS)
+    .is("customer_id", null)
+    .eq("booked_by", bookedBy)
+    .eq("client_request_id", clientRequestId)
+    .maybeSingle();
+  return data ? mapRowToShipment(data as ShipmentRow) : null;
+};
+
 // Customer-typed details and Google's structured address for one end of the
 // trip. The coordinates (pickup_lat/lng etc.) stay the authoritative location;
 // `emirate` in *_place is the one this server confirmed, not the browser's.
@@ -63,12 +80,45 @@ const locationDetailColumns = (
   [`${prefix}_place`]: { ...location.place, emirate },
 });
 
-export type BookingCustomer = {
+export type RegisteredBookingCustomer = {
   id: string;
   accountType: AccountType;
   // Approved merchants' shipments are tagged with their business account.
   merchantBusinessAccountId: string | null;
+  guest?: undefined;
 };
+
+// A customer with no ParcelLink account, and the staff member booking for
+// them (migration 0040).
+export type GuestBookingCustomer = {
+  id: null;
+  accountType: "individual";
+  merchantBusinessAccountId: null;
+  guest: { name: string; phone: string; bookedBy: string };
+};
+
+export type BookingCustomer = RegisteredBookingCustomer | GuestBookingCustomer;
+
+// Someone with no account is priced like any individual customer. There is
+// nothing to look up: no profile, no business account.
+export const guestBookingCustomer = (
+  guest: { name: string; phone: string },
+  bookedBy: string,
+): GuestBookingCustomer => ({
+  id: null,
+  accountType: "individual",
+  merchantBusinessAccountId: null,
+  guest: { name: guest.name.trim(), phone: guest.phone.trim(), bookedBy },
+});
+
+// A retry of a booking that already went through, for either kind of customer.
+export const findExistingBooking = (
+  customer: BookingCustomer,
+  clientRequestId: string,
+): Promise<Shipment | null> =>
+  customer.guest
+    ? findGuestByClientRequestId(customer.guest.bookedBy, clientRequestId)
+    : findByClientRequestId(customer.id, clientRequestId);
 
 // Account type is read from the database, never from the request. The
 // caller's own session reads it: a customer can read their own profile,
@@ -77,7 +127,7 @@ export type BookingCustomer = {
 export const getBookingCustomer = async (
   customerId: string,
   client?: SupabaseClient,
-): Promise<BookingCustomer> => {
+): Promise<RegisteredBookingCustomer> => {
   const supabase = client ?? (await createClient());
   const { data: profile } = await supabase
     .from("profiles")
@@ -232,6 +282,13 @@ export const shipmentInsertValues = (
 
   return {
     customer_id: customer.id,
+    ...(customer.guest
+      ? {
+          booked_by: customer.guest.bookedBy,
+          guest_customer_name: customer.guest.name,
+          guest_customer_phone: customer.guest.phone,
+        }
+      : {}),
     business_account_id:
       businessAccountId ?? customer.merchantBusinessAccountId,
     batch_id: batchId,
@@ -309,10 +366,7 @@ export const insertQuotedShipment = async (
     // Two identical submits raced past the lookup in createShipment; the
     // unique index (migration 0019) let exactly one insert through.
     if (error?.code === "23505" && input.clientRequestId) {
-      const existing = await findByClientRequestId(
-        customer.id,
-        input.clientRequestId,
-      );
+      const existing = await findExistingBooking(customer, input.clientRequestId);
       if (existing) return existing;
     }
     throw new Error(safeErrorMessage(error, "booking.errors.createFailed"));

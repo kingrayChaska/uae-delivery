@@ -7,15 +7,17 @@ import { todayInUae } from '@/lib/bulk/schemas';
 import { finalizeBatch, openBatch } from '@/services/bulk/create-batch';
 import {
   findByClientRequestId,
+  findExistingBooking,
   getBookingCustomer,
+  guestBookingCustomer,
   insertQuotedShipment,
   quoteShipment,
 } from '@/services/shipments/create-shipment';
 import { mapRowToShipment, SHIPMENT_SELECT_COLUMNS } from '@/services/shipments/shipment-mapper';
 
-import type { MultiBookingInput } from '@/lib/shipment/schemas';
+import type { GuestCustomerInput, MultiBookingInput } from '@/lib/shipment/schemas';
 import type { Shipment } from '@/lib/types';
-import type { ShipmentQuote } from '@/services/shipments/create-shipment';
+import type { BookingCustomer, ShipmentQuote } from '@/services/shipments/create-shipment';
 import type { ShipmentRow } from '@/services/shipments/shipment-mapper';
 import type { BulkRowResult } from '@/lib/bulk/schemas';
 
@@ -125,4 +127,66 @@ export const createBooking = async ({
   await finalizeBatch(batch.id, results);
 
   return { ...toOutcome(created, batch.id, batch.reference), failed };
+};
+
+// Validates, routes and prices every shipment with the same rules as any
+// booking (quoteShipment); throws the customer-readable reason when one
+// can't be booked, naming which one when there are several.
+const quoteAll = async (customer: BookingCustomer, shipments: (MultiBookingInput['shipments'][number] & { paymentMethod: MultiBookingInput['paymentMethod']; index: number })[]) => {
+  const rules = await getActivePricingRules();
+  const quotes: ShipmentQuote[] = [];
+  for (const { index, ...shipment } of shipments) {
+    try {
+      quotes.push(await quoteShipment(customer, shipment, rules));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'booking.errors.cannotBook';
+      throw new Error(shipments.length > 1 ? msg('booking.errors.shipmentPrefix', { number: index + 1, message }) : message);
+    }
+  }
+  return quotes;
+};
+
+// Staff booking for a customer with no ParcelLink account (migration 0040).
+// Priced, routed and coverage-checked exactly like an individual customer's
+// booking; the shipments carry the customer's name and phone instead of a
+// profile, and record who entered them. A batch belongs to one registered
+// customer, so several guest shipments are booked as separate shipments;
+// each one's own request id makes a retry return it instead of a duplicate.
+export const createGuestBooking = async ({
+  guest,
+  bookedBy,
+  input,
+}: {
+  guest: GuestCustomerInput;
+  bookedBy: string;
+  input: MultiBookingInput;
+}): Promise<BookingOutcome> => {
+  const customer = guestBookingCustomer(guest, bookedBy);
+  const shipments = input.shipments.map((shipment, index) => ({
+    ...shipment,
+    paymentMethod: input.paymentMethod,
+    clientRequestId: shipment.clientRequestId ?? (input.shipments.length === 1 ? input.clientRequestId : undefined),
+    index,
+  }));
+
+  const existing = await Promise.all(
+    shipments.map((shipment) => (shipment.clientRequestId ? findExistingBooking(customer, shipment.clientRequestId) : null)),
+  );
+  if (existing.every(Boolean)) return toOutcome(existing as Shipment[], null, null);
+
+  const pending = shipments.filter((_, index) => !existing[index]);
+  const quotes = await quoteAll(customer, pending);
+
+  const created: Shipment[] = existing.filter((shipment): shipment is Shipment => shipment !== null);
+  const failed: BookingOutcome['failed'] = [];
+  for (const [position, quote] of quotes.entries()) {
+    try {
+      created.push(await insertQuotedShipment(customer, quote));
+    } catch (error) {
+      failed.push({ index: pending[position].index, message: error instanceof Error ? error.message : 'booking.errors.createOneFailed' });
+    }
+  }
+  if (created.length === 0) throw new Error(failed[0]?.message ?? 'booking.errors.createFailed');
+
+  return { ...toOutcome(created, null, null), failed };
 };

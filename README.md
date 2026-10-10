@@ -68,6 +68,26 @@ The end-to-end suite found four bugs that every other check had passed — most 
 - Google lookups for uploads are cached in `maps_cache` for a day and shared by every server instance. Driving routes are cached there for an hour, which also helps single bookings.
 - Card payment is not offered for bulk bookings until a real payment provider replaces the stub in `lib/payments` (see `cardPaymentsLive()`).
 
+## Operator booking emails
+
+When a customer — individual or merchant — books a shipment themselves, the operations inbox gets an email with the booking details and a **View Shipment** link. A multi-shipment booking or merchant bulk list sends **one** summary email listing its shipments, not one per parcel.
+
+- **Deploy order:** apply `database/migrations/0043_operator_booking_emails.sql` **before** deploying this code.
+- **Environment variables** (server-side only):
+  - `OPERATOR_NOTIFICATION_EMAIL` — the inbox, e.g. `operations@parcellinkuae.com`. Several addresses can be separated by commas (up to 10).
+  - `RESEND_API_KEY` and `EMAIL_FROM` — the same Resend setup as merchant emails. In production, `EMAIL_FROM` must be on a domain verified in Resend.
+  - `NEXT_PUBLIC_APP_URL` — the app's public URL (e.g. `https://parcellinkuae.com`), used only to build the email links.
+  - `CRON_SECRET` (or `BULK_WORKER_SECRET`) — lets a cron call the retry sweep.
+- **Which bookings:** bookings the customer made themselves (`/dashboard/customer/book` and merchant bulk lists). Bookings staff enter (on a customer's behalf, guest bookings, the manager's CSV upload) don't send one, and neither do edits, reassignments or status changes.
+- **How it's sent:** database triggers queue each booking in `operator_booking_emails`, in the same transaction as the booking, so a booking that fails queues nothing. The app sends the email straight after the booking response. Failed sends are retried with backoff (1 min, 5 min, 15 min, 1 h, 3 h; 6 attempts in total). Bookings more than 48 hours old are never sent.
+- **Retry sweep:** schedule `GET /api/internal/operator-emails` with `Authorization: Bearer <CRON_SECRET>`, for example every 5 minutes. Without it, a retry only happens when the next customer booking arrives. On Vercel, add this to `vercel.json` (needs a plan that allows crons more often than daily):
+  ```json
+  "crons": [{ "path": "/api/internal/operator-emails", "schedule": "*/5 * * * *" }]
+  ```
+- **If something's missing:** with no `OPERATOR_NOTIFICATION_EMAIL`, `RESEND_API_KEY` or `EMAIL_FROM`, bookings work as normal. Emails wait in the queue without using up attempts, and every run logs `recipient_missing` / `provider_not_configured`.
+- **Monitoring:** every step logs one JSON line with `"scope":"operator_booking_email"`. The events are `notification_requested`, `provider_accepted` (with Resend's message id), `retry_scheduled`, `notification_failed`, `duplicate_ignored` and `recipient_missing`. The logs contain ids and tracking codes only: no names, phones, addresses or email addresses. The queue row records `status`, `attempts`, `last_error`, `provider_message_id` and `accepted_at`. `accepted` means Resend accepted the email. It does **not** mean the email was delivered (see Resend's dashboard for delivery).
+- **Don't email real inboxes from development:** point `OPERATOR_NOTIFICATION_EMAIL` at your own address, or at Resend's test address `delivered@resend.dev`.
+
 ## Supabase email templates
 
 Staff invitations and password resets use Supabase's server-side `token_hash` flow, handled by `/auth/confirm`. In the Supabase dashboard (Authentication → Email Templates), point these links at it:

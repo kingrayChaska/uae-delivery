@@ -436,7 +436,8 @@
       "delivered": "تم تسليمها",
       "topDrivers": "أفضل السائقين",
       "failed": "متعذّرة"
-    }
+    },
+    "guestCustomers": "عملاء بدون حساب (مجمّعون)"
   },
   "settings": {
     "meta": "الإعدادات · ParcelLink",
