@@ -24,7 +24,7 @@ const CashView = async ({ basePath, page, filters }: StaffListViewProps & { filt
     getFormat(),
     Promise.all([listDriverCash(page, filters), getDriverCashTotals(filters), countPendingRemittances()]).catch(
       (error: unknown) => {
-        console.error('Driver cash summary failed', error instanceof Error ? error.message : error);
+        console.error('Driver cash summary failed', error);
         return null;
       },
     ),

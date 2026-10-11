@@ -32,7 +32,7 @@ export const listShipmentFeed = async (page: number, category: ShipmentCategory)
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .range(from, to);
-  if (error) throw new Error(error.message);
+  if (error) throw error;
 
   const rows = (data ?? []) as FeedRow[];
   const shipmentIds = rows.filter((row) => row.kind === 'shipment').map((row) => row.id);
@@ -44,7 +44,7 @@ export const listShipmentFeed = async (page: number, category: ShipmentCategory)
       : Promise.resolve({ data: [] as ShipmentRow[], error: null }),
     listBatchSummariesByIds(batchIds),
   ]);
-  if (shipmentResult.error) throw new Error(shipmentResult.error.message);
+  if (shipmentResult.error) throw shipmentResult.error;
 
   const shipmentsById = new Map(((shipmentResult.data ?? []) as ShipmentRow[]).map((row) => [row.id, mapRowToShipment(row)]));
   const batchesById = new Map(batches.map((batch) => [batch.id, batch]));

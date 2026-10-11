@@ -68,6 +68,11 @@ The end-to-end suite found four bugs that every other check had passed — most 
 - Google lookups for uploads are cached in `maps_cache` for a day and shared by every server instance. Driving routes are cached there for an hour, which also helps single bookings.
 - Card payment is not offered for bulk bookings until a real payment provider replaces the stub in `lib/payments` (see `cardPaymentsLive()`).
 
+## Staff shipment and cash dashboards
+
+- **Deploy order:** apply all pending files in `database/migrations/` in numeric order through `0043` before deploying the matching app code. The staff shipment list requires the guest-aware `staff_shipment_feed` and guest shipment columns from migration `0040`; the driver cash dashboard requires `driver_cash_summary`, `driver_cash_totals`, and the cash reconciliation schema from migration `0042`. If those migrations are missing, these pages show load errors instead of shipment rows or driver balances.
+- On a failed load, check the server logs for `Staff shipment list failed` or `Driver cash summary failed`. The full database error, including its PostgREST/PostgreSQL code and details, is logged there.
+
 ## Operator booking emails
 
 When a customer — individual or merchant — books a shipment themselves, the operations inbox gets an email with the booking details and a **View Shipment** link. A multi-shipment booking or merchant bulk list sends **one** summary email listing its shipments, not one per parcel.

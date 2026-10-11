@@ -41,7 +41,7 @@ const ShipmentsView = async ({ basePath, page, batchId = null, category = 'all',
     batchId ? getBatchLabel(batchId) : Promise.resolve(null),
     filtered
       ? searchStaffShipments(page, filters, { category, batchId }).catch((error: unknown) => {
-          console.error('Staff shipment search failed', error instanceof Error ? error.message : error);
+          console.error('Staff shipment search failed', error);
           return null;
         })
       : Promise.resolve(undefined),
@@ -111,7 +111,7 @@ const ShipmentsView = async ({ basePath, page, batchId = null, category = 'all',
     );
   } else if (batchId) {
     const shipments = await listAllShipments(page, { batchId }).catch((error: unknown) => {
-      console.error('Staff batch shipment list failed', error instanceof Error ? error.message : error);
+      console.error('Staff batch shipment list failed', error);
       return null;
     });
     list =
@@ -132,7 +132,7 @@ const ShipmentsView = async ({ basePath, page, batchId = null, category = 'all',
       );
   } else {
     const feed = await listShipmentFeed(page, category).catch((error: unknown) => {
-      console.error('Staff shipment list failed', error instanceof Error ? error.message : error);
+      console.error('Staff shipment list failed', error);
       return null;
     });
     list =

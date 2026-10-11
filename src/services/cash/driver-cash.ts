@@ -88,7 +88,7 @@ export const listDriverCash = async (page: number, filters: CashFilters): Promis
   const { data, count, error } = await supabase
     .rpc('driver_cash_summary', summaryParams(filters), { count: 'exact' })
     .range(from, to);
-  if (error) throw new Error(error.message);
+  if (error) throw error;
   return toPaginated(((data ?? []) as SummaryRow[]).map(toRow), count ?? 0, page);
 };
 
@@ -96,7 +96,7 @@ export const listDriverCash = async (page: number, filters: CashFilters): Promis
 export const getDriverCashTotals = async (filters: CashFilters): Promise<DriverCashTotals> => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('driver_cash_totals', summaryParams(filters)).single();
-  if (error) throw new Error(error.message);
+  if (error) throw error;
   const row = data as Record<string, number | string>;
   return {
     drivers: Number(row.drivers ?? 0),
@@ -122,7 +122,7 @@ export const getDriverCashPosition = async (
     .rpc('driver_cash_summary', { p_from: filters.from, p_to: filters.to, p_query: null })
     .eq('driver_id', driverId)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw error;
   return data ? toRow(data as SummaryRow) : null;
 };
 
@@ -236,7 +236,7 @@ export const listDriverCollections = async (
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .range(from, to);
-  if (error) throw new Error(error.message);
+  if (error) throw error;
 
   const items = ((data ?? []) as CollectionRow[]).map((row): CollectionRecord => {
     const shipment = Array.isArray(row.shipment) ? row.shipment[0] : row.shipment;
@@ -318,7 +318,7 @@ export const listDriverRemittances = async (
     .order('received_on', { ascending: false })
     .order('created_at', { ascending: false })
     .range(from, to);
-  if (error) throw new Error(error.message);
+  if (error) throw error;
 
   const items = ((data ?? []) as RemittanceRow[]).map(
     (row): RemittanceRecord => ({
@@ -343,10 +343,11 @@ export const listDriverRemittances = async (
 // Remittances waiting for a manager, across every driver (the manager's queue).
 export const countPendingRemittances = async (): Promise<number> => {
   const supabase = await createClient();
-  const { count } = await supabase
+  const { count, error } = await supabase
     .from('driver_cash_remittances')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'pending');
+  if (error) throw error;
   return count ?? 0;
 };
 
