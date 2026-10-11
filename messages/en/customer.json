@@ -38,6 +38,8 @@
     "emptyBody": "Your booked shipments will appear here.",
     "emptyCta": "Book your first delivery",
     "all": "All deliveries",
+    "loadError": "We couldn't load your shipments. Please try again.",
+    "retry": "Try again",
     "filters": {
       "label": "Search and filter shipments",
       "search": "Search shipments",
@@ -80,6 +82,8 @@
     "subtitle": "Follow every parcel you’ve booked, from pickup to proof of delivery.",
     "onTheWay": "On the way",
     "empty": "No shipments on the way right now.",
+    "loadError": "We couldn't load your shipments. Please try again.",
+    "retry": "Try again",
     "past": "See past deliveries",
     "to": "To {address}",
     "progress": "Progress for {code}",

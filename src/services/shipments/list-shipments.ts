@@ -58,12 +58,13 @@ export const listCustomerShipments = async (
     return toPaginated(((data ?? []) as unknown as ShipmentRow[]).map(mapRowToShipment), count ?? 0, page);
   }
 
-  const { data, count } = await supabase
+  const { data, count, error } = await supabase
     .from('shipments')
     .select(SHIPMENT_SELECT_COLUMNS, { count: 'exact' })
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false })
     .range(from, to);
+  if (error) throw new Error(error.message);
 
   return toPaginated(((data ?? []) as ShipmentRow[]).map(mapRowToShipment), count ?? 0, page);
 };
@@ -84,6 +85,8 @@ export const getCustomerDashboardSummary = async (customerId: string): Promise<C
       .limit(5),
   ]);
   if (countsRes.error) throw new Error(countsRes.error.message);
+  if (spentRes.error) throw new Error(spentRes.error.message);
+  if (recentRes.error) throw new Error(recentRes.error.message);
   const byStatus: StatusCounts = Object.fromEntries(
     ((countsRes.data ?? []) as { status: ShipmentStatus; shipment_count: number | string }[]).map((row) => [
       row.status,
@@ -112,7 +115,7 @@ export type CustomerBooking = { reference: string; createdAt: string; shipments:
 // customer's own bookings.
 export const getCustomerBooking = async (customerId: string, batchId: string): Promise<CustomerBooking | null> => {
   const supabase = await createClient();
-  const [{ data: batch }, { data: rows }] = await Promise.all([
+  const [batchResult, shipmentsResult] = await Promise.all([
     supabase.from('shipment_batches').select('reference, created_at').eq('id', batchId).eq('customer_id', customerId).maybeSingle(),
     supabase
       .from('shipments')
@@ -121,6 +124,10 @@ export const getCustomerBooking = async (customerId: string, batchId: string): P
       .eq('customer_id', customerId)
       .order('created_at', { ascending: true }),
   ]);
+  if (batchResult.error) throw new Error(batchResult.error.message);
+  if (shipmentsResult.error) throw new Error(shipmentsResult.error.message);
+  const { data: batch } = batchResult;
+  const { data: rows } = shipmentsResult;
   if (!batch) return null;
   return {
     reference: batch.reference,
@@ -132,12 +139,13 @@ export const getCustomerBooking = async (customerId: string, batchId: string): P
 // Shipments still on their way, for the dashboard's tracking view.
 export const listCustomerActiveShipments = async (customerId: string, limit = 20): Promise<Shipment[]> => {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('shipments')
     .select(SHIPMENT_SELECT_COLUMNS)
     .eq('customer_id', customerId)
     .in('status', ['pending_payment', ...ACTIVE_STATUSES])
     .order('created_at', { ascending: false })
     .limit(limit);
+  if (error) throw new Error(error.message);
   return ((data ?? []) as ShipmentRow[]).map(mapRowToShipment);
 };

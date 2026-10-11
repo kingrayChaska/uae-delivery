@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CircleAlert, CircleCheck, PackagePlus, PackageSearch, X } from 'lucide-react';
+import { CircleAlert, CircleCheck, PackagePlus, PackageSearch, RotateCw, X } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 import Button from '@/components/ui/button';
@@ -51,13 +51,20 @@ const DeliveriesPage = async ({
   const parsed = parseShipmentFilters(params);
   const filters = parsed.scope === 'business' && !business ? { ...parsed, scope: 'mine' as const } : parsed;
   const filtered = hasFilters(filters);
-  const [shipments, booking, t, tStatus, format] = await Promise.all([
-    listCustomerShipments(profile.id, parsePage(params.page), filters, filters.scope === 'business' ? business!.id : null),
+  const page = parsePage(params.page);
+  const [shipmentResult, booking, t, tStatus, format] = await Promise.all([
+    listCustomerShipments(profile.id, page, filters, filters.scope === 'business' ? business!.id : null)
+      .then((data) => ({ data }))
+      .catch((error: unknown) => {
+        console.error('Customer shipment list failed', error instanceof Error ? error.message : error);
+        return { data: null };
+      }),
     bookingId ? getCustomerBooking(profile.id, bookingId) : Promise.resolve(null),
     getTranslations('customer.deliveries'),
     getTranslations('shipments.status'),
     getFormat(),
   ]);
+  const { data: shipments } = shipmentResult;
   const failed = Number(params.failed ?? 0);
   const statusLabel =
     filters.status === 'all' ? null : filters.status === 'active' ? t('filters.active') : tStatus(filters.status);
@@ -133,13 +140,24 @@ const DeliveriesPage = async ({
 
       <ShipmentFilters basePath={BASE_PATH} filters={filters} />
 
-      {filtered ? (
+      {filtered && shipments ? (
         <p role="status" className="text-sm text-muted-foreground">
           {t('filters.results', { count: shipments.total })}
         </p>
       ) : null}
 
-      {shipments.items.length === 0 && filtered ? (
+      {shipments === null ? (
+        <div role="alert" className="flex flex-col items-center gap-3 rounded-2xl border border-destructive/40 p-8 text-center">
+          <CircleAlert className="size-8 text-destructive" aria-hidden />
+          <p className="font-medium">{t('loadError')}</p>
+          <Button asChild variant="outline">
+            <Link href={shipmentListHref(BASE_PATH, filters, page)}>
+              <RotateCw aria-hidden />
+              {t('retry')}
+            </Link>
+          </Button>
+        </div>
+      ) : shipments.items.length === 0 && filtered ? (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed p-10 text-center">
           <PackageSearch className="size-8 text-muted-foreground" aria-hidden />
           {/* Name the status (e.g. from a dashboard card) so it's clear why the list is empty. */}
@@ -190,7 +208,9 @@ const DeliveriesPage = async ({
         </section>
       )}
 
-      <Pagination page={shipments.page} totalPages={shipments.totalPages} href={shipmentListHref(BASE_PATH, filters)} />
+      {shipments ? (
+        <Pagination page={shipments.page} totalPages={shipments.totalPages} href={shipmentListHref(BASE_PATH, filters)} />
+      ) : null}
     </main>
   );
 };

@@ -24,6 +24,7 @@
     "title": "My Deliveries",
     "emptyTitle": "No active deliveries",
     "emptyBody": "New assignments from dispatch will appear here.",
+    "loadError": "We couldn't load your deliveries. Please try again.",
     "filters": {
       "label": "Search and filter my deliveries",
       "search": "Search deliveries",
@@ -49,7 +50,9 @@
   "history": {
     "meta": "Delivery history · ParcelLink",
     "title": "Delivery History",
-    "empty": "No completed deliveries yet"
+    "empty": "No completed deliveries yet",
+    "loadError": "We couldn't load your delivery history. Please try again.",
+    "retry": "Try again"
   },
   "cod": {
     "meta": "Cash on delivery · ParcelLink",

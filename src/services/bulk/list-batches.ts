@@ -103,13 +103,14 @@ const toSummary = (row: BatchRow, stats: BatchStatsRow | undefined): BatchSummar
 const withStats = async (batches: BatchRow[]): Promise<BatchSummary[]> => {
   if (batches.length === 0) return [];
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('batch_shipment_stats')
     .select(STATS_SELECT)
     .in(
       'batch_id',
       batches.map((b) => b.id),
     );
+  if (error) throw new Error(error.message);
   const byBatch = new Map(((data ?? []) as BatchStatsRow[]).map((row) => [row.batch_id, row]));
   return batches.map((batch) => toSummary(batch, byBatch.get(batch.id)));
 };

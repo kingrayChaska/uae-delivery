@@ -51,11 +51,17 @@ const DriverDeliveriesPage = async ({
   if (filtered) {
     try {
       results = await searchDriverShipments(page, filters);
-    } catch {
+    } catch (error) {
+      console.error('Driver shipment search failed', error instanceof Error ? error.message : error);
       failed = true;
     }
   } else {
-    active = await listDriverActiveShipments(profile.id);
+    try {
+      active = await listDriverActiveShipments(profile.id);
+    } catch (error) {
+      console.error('Driver shipment list failed', error instanceof Error ? error.message : error);
+      failed = true;
+    }
   }
   // Past the last page of matches: back to the first.
   if (results && results.items.length === 0 && page > 1) redirect(shipmentListHref(BASE_PATH, filters));
@@ -76,7 +82,7 @@ const DriverDeliveriesPage = async ({
       {failed ? (
         <div role="alert" className="flex flex-col items-center gap-3 rounded-2xl border border-destructive/40 p-8 text-center">
           <CircleAlert className="size-8 text-destructive" aria-hidden />
-          <p className="font-medium">{t('filters.error')}</p>
+          <p className="font-medium">{t(filtered ? 'filters.error' : 'loadError')}</p>
           <Button asChild variant="outline">
             <Link href={shipmentListHref(BASE_PATH, filters, page)}>
               <RotateCw aria-hidden />

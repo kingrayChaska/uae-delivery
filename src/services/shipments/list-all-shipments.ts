@@ -25,7 +25,8 @@ export const listAllShipments = async (page: number, { batchId = null }: { batch
 
   let query = supabase.from('shipments').select(SHIPMENT_SELECT_COLUMNS, { count: 'exact' });
   if (batchId) query = query.eq('batch_id', batchId);
-  const { data, count } = await query.order('created_at', { ascending: false }).range(from, to);
+  const { data, count, error } = await query.order('created_at', { ascending: false }).range(from, to);
+  if (error) throw new Error(error.message);
 
   return toPaginated(((data ?? []) as ShipmentRow[]).map(mapRowToShipment), count ?? 0, page);
 };
@@ -33,13 +34,14 @@ export const listAllShipments = async (page: number, { batchId = null }: { batch
 export const listUnassignedShipments = async (): Promise<Shipment[]> => {
   const supabase = await createClient();
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('shipments')
     .select(SHIPMENT_SELECT_COLUMNS)
     .eq('status', 'confirmed')
     .is('driver_id', null)
     .order('created_at', { ascending: true })
     .limit(DISPATCH_QUEUE_LIMIT);
+  if (error) throw new Error(error.message);
 
   return ((data ?? []) as ShipmentRow[]).map(mapRowToShipment);
 };

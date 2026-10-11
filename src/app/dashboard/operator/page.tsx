@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CircleAlert, RotateCw } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 import Button from '@/components/ui/button';
@@ -18,14 +19,21 @@ import { getFormat } from '@/i18n/server';
 const OperatorDashboardPage = async () => {
   const profile = await getCurrentProfile();
   if (!profile) return null;
-  const [summary, unassigned, snapshot, recentBatches, t, format] = await Promise.all([
+  const [summary, unassignedResult, snapshot, recentBatches, t, tShipments, format] = await Promise.all([
     getOperationsSummary(),
-    listUnassignedShipments(),
+    listUnassignedShipments()
+      .then((data) => ({ data }))
+      .catch((error: unknown) => {
+        console.error('Operator dashboard shipment list failed', error instanceof Error ? error.message : error);
+        return { data: null };
+      }),
     getDriverLocationsSnapshot(),
     listRecentBatches(5),
     getTranslations('operator.home'),
+    getTranslations('operator.shipments'),
     getFormat(),
   ]);
+  const { data: unassigned } = unassignedResult;
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -56,11 +64,24 @@ const OperatorDashboardPage = async () => {
         <BatchList batches={recentBatches} hrefBase="/dashboard/operator/bulk" showSender emptyMessage={t('noLists')} />
       </div>
 
-      <DispatchBoard
-        unassignedShipments={unassigned}
-        initialDriverLocations={snapshot.locations}
-        driverLabels={snapshot.labels}
-      />
+      {unassigned === null ? (
+        <div role="alert" className="flex flex-col items-center gap-3 rounded-2xl border border-destructive/40 p-8 text-center">
+          <CircleAlert className="size-8 text-destructive" aria-hidden />
+          <p className="font-medium">{tShipments('loadError')}</p>
+          <Button asChild variant="outline">
+            <Link href="/dashboard/operator">
+              <RotateCw aria-hidden />
+              {tShipments('retry')}
+            </Link>
+          </Button>
+        </div>
+      ) : (
+        <DispatchBoard
+          unassignedShipments={unassigned}
+          initialDriverLocations={snapshot.locations}
+          driverLabels={snapshot.labels}
+        />
+      )}
     </main>
   );
 };

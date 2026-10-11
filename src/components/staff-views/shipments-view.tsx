@@ -110,20 +110,26 @@ const ShipmentsView = async ({ basePath, page, batchId = null, category = 'all',
       </>
     );
   } else if (batchId) {
-    const shipments = await listAllShipments(page, { batchId });
-    list = (
-      <>
-        <p className="text-sm text-muted-foreground">{t('total', { count: shipments.total })}</p>
-        {shipments.items.length === 0 ? (
-          <div className="rounded-md border border-dashed p-8 text-center">
-            <p className="font-medium">{t('empty')}</p>
-          </div>
-        ) : (
-          shipmentRows(shipments.items)
-        )}
-        <Pagination page={shipments.page} totalPages={shipments.totalPages} href={shipmentListHref(listPath, {}, 1, keep)} />
-      </>
-    );
+    const shipments = await listAllShipments(page, { batchId }).catch((error: unknown) => {
+      console.error('Staff batch shipment list failed', error instanceof Error ? error.message : error);
+      return null;
+    });
+    list =
+      shipments === null ? (
+        loadError(shipmentListHref(listPath, {}, page, keep), t('loadError'))
+      ) : (
+        <>
+          <p className="text-sm text-muted-foreground">{t('total', { count: shipments.total })}</p>
+          {shipments.items.length === 0 ? (
+            <div className="rounded-md border border-dashed p-8 text-center">
+              <p className="font-medium">{t('empty')}</p>
+            </div>
+          ) : (
+            shipmentRows(shipments.items)
+          )}
+          <Pagination page={shipments.page} totalPages={shipments.totalPages} href={shipmentListHref(listPath, {}, 1, keep)} />
+        </>
+      );
   } else {
     const feed = await listShipmentFeed(page, category).catch((error: unknown) => {
       console.error('Staff shipment list failed', error instanceof Error ? error.message : error);

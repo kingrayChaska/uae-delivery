@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, PackageSearch } from 'lucide-react';
+import { ArrowRight, CircleAlert, PackageSearch, RotateCw } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 import Button from '@/components/ui/button';
@@ -19,12 +19,18 @@ export const generateMetadata = async (): Promise<Metadata> => ({
 
 const TrackPage = async () => {
   const profile = await requireRoleOrRedirect('customer');
-  const [active, t, tTracking, format] = await Promise.all([
-    listCustomerActiveShipments(profile.id),
+  const [activeResult, t, tTracking, format] = await Promise.all([
+    listCustomerActiveShipments(profile.id)
+      .then((data) => ({ data }))
+      .catch((error: unknown) => {
+        console.error('Customer active shipment list failed', error instanceof Error ? error.message : error);
+        return { data: null };
+      }),
     getTranslations('customer.track'),
     getTranslations('tracking.milestones'),
     getFormat(),
   ]);
+  const { data: active } = activeResult;
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -41,10 +47,21 @@ const TrackPage = async () => {
 
       <section aria-labelledby="active-heading" className="flex flex-col gap-3">
         <h2 id="active-heading" className="text-lg font-medium">
-          {t('onTheWay')} <span className="text-muted-foreground">({format.number(active.length)})</span>
+          {t('onTheWay')} {active ? <span className="text-muted-foreground">({format.number(active.length)})</span> : null}
         </h2>
 
-        {active.length === 0 ? (
+        {active === null ? (
+          <div role="alert" className="flex flex-col items-center gap-3 rounded-2xl border border-destructive/40 p-8 text-center">
+            <CircleAlert className="size-8 text-destructive" aria-hidden />
+            <p className="font-medium">{t('loadError')}</p>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/customer/track">
+                <RotateCw aria-hidden />
+                {t('retry')}
+              </Link>
+            </Button>
+          </div>
+        ) : active.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed p-10 text-center">
             <PackageSearch className="size-8 text-muted-foreground" aria-hidden />
             <p className="text-sm text-muted-foreground">{t('empty')}</p>

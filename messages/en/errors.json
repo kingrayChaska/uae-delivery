@@ -1,5 +1,6 @@
 {
   "generic": "Something went wrong. Please try again.",
+  "retry": "Try again",
   "duplicate": "That record already exists.",
   "relatedMissing": "A related record could not be found.",
   "forbidden": "You are not allowed to do that.",

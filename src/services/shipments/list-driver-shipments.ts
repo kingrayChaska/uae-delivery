@@ -39,12 +39,13 @@ export type DriverDashboardSummary = {
 export const listDriverActiveShipments = async (driverId: string): Promise<Shipment[]> => {
   const supabase = await createClient();
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('shipments')
     .select(SHIPMENT_SELECT_COLUMNS)
     .eq('driver_id', driverId)
     .in('status', ACTIVE_DRIVER_STATUSES)
     .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
 
   return ((data ?? []) as ShipmentRow[]).map(mapRowToShipment);
 };
@@ -54,13 +55,14 @@ export const listDriverHistory = async (driverId: string, page: number): Promise
   const supabase = await createClient();
   const { from, to } = pageRange(page);
 
-  const { data, count } = await supabase
+  const { data, count, error } = await supabase
     .from('shipments')
     .select(SHIPMENT_SELECT_COLUMNS, { count: 'exact' })
     .eq('driver_id', driverId)
     .in('status', TERMINAL_STATUSES)
     .order('created_at', { ascending: false })
     .range(from, to);
+  if (error) throw new Error(error.message);
 
   return toPaginated(((data ?? []) as ShipmentRow[]).map(mapRowToShipment), count ?? 0, page);
 };
@@ -99,7 +101,7 @@ export const searchDriverShipments = async (page: number, filters: ShipmentFilte
 export const getDriverDashboardSummary = async (driverId: string): Promise<DriverDashboardSummary> => {
   const supabase = await createClient();
 
-  const [{ data: stats }, { data: cod }, { data: current }, { data: recentRows }] = await Promise.all([
+  const [statsResult, codResult, currentResult, recentResult] = await Promise.all([
     supabase
       .from('driver_shipment_stats')
       .select('today_count, delivered_count, active_count')
@@ -124,16 +126,20 @@ export const getDriverDashboardSummary = async (driverId: string): Promise<Drive
       .order('created_at', { ascending: false })
       .limit(5),
   ]);
+  if (statsResult.error) throw new Error(statsResult.error.message);
+  if (codResult.error) throw new Error(codResult.error.message);
+  if (currentResult.error) throw new Error(currentResult.error.message);
+  if (recentResult.error) throw new Error(recentResult.error.message);
 
-  const recent = ((recentRows ?? []) as ShipmentRow[]).map(mapRowToShipment);
+  const recent = ((recentResult.data ?? []) as ShipmentRow[]).map(mapRowToShipment);
 
   return {
-    todayCount: stats?.today_count ?? 0,
-    completedCount: stats?.delivered_count ?? 0,
-    pendingCount: stats?.active_count ?? 0,
-    codCollected: Number(cod?.collected_total ?? 0),
+    todayCount: statsResult.data?.today_count ?? 0,
+    completedCount: statsResult.data?.delivered_count ?? 0,
+    pendingCount: statsResult.data?.active_count ?? 0,
+    codCollected: Number(codResult.data?.collected_total ?? 0),
     currency: recent[0]?.currency ?? 'AED',
-    currentShipmentId: current?.id ?? null,
+    currentShipmentId: currentResult.data?.id ?? null,
     recent,
   };
 };
