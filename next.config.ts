@@ -36,6 +36,16 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // The statement PDF reads these fonts at runtime (lib/finance/pdf-text.ts);
+  // file tracing can't see a computed path, so include them explicitly.
+  outputFileTracingIncludes: {
+    "/api/statements/[id]/pdf": [
+      "./node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-400-normal.woff",
+      "./node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-600-normal.woff",
+      "./node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-400-normal.woff",
+      "./node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-600-normal.woff",
+    ],
+  },
   compress: true,
   images: {
     formats: ["image/avif", "image/webp"],

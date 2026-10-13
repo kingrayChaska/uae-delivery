@@ -93,6 +93,20 @@ When a customer — individual or merchant — books a shipment themselves, the 
 - **Monitoring:** every step logs one JSON line with `"scope":"operator_booking_email"`. The events are `notification_requested`, `provider_accepted` (with Resend's message id), `retry_scheduled`, `notification_failed`, `duplicate_ignored` and `recipient_missing`. The logs contain ids and tracking codes only: no names, phones, addresses or email addresses. The queue row records `status`, `attempts`, `last_error`, `provider_message_id` and `accepted_at`. `accepted` means Resend accepted the email. It does **not** mean the email was delivered (see Resend's dashboard for delivery).
 - **Don't email real inboxes from development:** point `OPERATOR_NOTIFICATION_EMAIL` at your own address, or at Resend's test address `delivered@resend.dev`.
 
+## Merchant statement emails
+
+When a manager publishes a merchant account statement with **Also email the merchant** ticked (the default), the merchant gets an email saying statement `STM-…` for the period is ready, with a **View statement** link to Account Reports. The email carries **no amounts** — the figures are only behind the sign-in.
+
+- **Deploy order:** apply `database/migrations/0044_financial_reporting.sql` and `0045_financial_reporting_rates_settlements_emails.sql` **before** deploying this code.
+- **Recipients** come from the database only: the business account's contact email and the account emails of its active members (up to 10). Nothing in a request can choose them.
+- **Environment variables:** the same `RESEND_API_KEY`, `EMAIL_FROM`, `NEXT_PUBLIC_APP_URL` and `CRON_SECRET` as above.
+- **How it's sent:** publishing queues one row in `merchant_statement_emails` in the same transaction; the app sends it straight after the response, with the same retries as operator emails (6 attempts). A queued email older than 7 days is never sent.
+- **Retry sweep:** schedule `GET /api/internal/statement-emails` with `Authorization: Bearer <CRON_SECRET>`, e.g. every 15 minutes:
+  ```json
+  "crons": [{ "path": "/api/internal/statement-emails", "schedule": "*/15 * * * *" }]
+  ```
+- **Monitoring:** JSON log lines with `"scope":"statement_email"` (ids only — no addresses, names or amounts).
+
 ## Supabase email templates
 
 Staff invitations and password resets use Supabase's server-side `token_hash` flow, handled by `/auth/confirm`. In the Supabase dashboard (Authentication → Email Templates), point these links at it:

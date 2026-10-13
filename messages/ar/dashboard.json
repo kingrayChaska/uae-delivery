@@ -27,7 +27,10 @@
       "reports": "التقارير",
       "settings": "الإعدادات",
       "bulkShipments": "الشحنات المجمّعة",
-      "cash": "نقدية السائقين"
+      "cash": "نقدية السائقين",
+      "statements": "تقارير الحساب",
+      "performance": "أداء الأعمال",
+      "expenses": "المصروفات"
     },
     "sections": {
       "account": "الحساب",
@@ -35,7 +38,8 @@
       "people": "الأشخاص",
       "customersMerchants": "العملاء والتجار",
       "team": "الفريق",
-      "business": "الأعمال"
+      "business": "الأعمال",
+      "finance": "المالية"
     },
     "roles": {
       "customer": "العميل",

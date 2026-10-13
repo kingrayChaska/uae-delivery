@@ -147,10 +147,58 @@ export const DATABASE_MESSAGES: Record<string, string> = {
   "A recorded collection can't be changed": "errors.db.collectionLocked",
   "A remittance can only be confirmed or rejected once": "errors.db.remittanceLocked",
   "Remittances can't be deleted": "errors.db.remittanceLocked",
+  // Financial reporting (0044)
+  "Only a manager can manage merchant statements": "errors.db.statementManagerOnly",
+  "Only a manager can view the performance report": "errors.db.performanceManagerOnly",
+  "Merchant not found": "errors.db.statementMerchantNotFound",
+  "Statement not found": "errors.db.statementNotFound",
+  "Choose a valid reporting period": "errors.db.statementPeriod",
+  "A reporting period can be at most 366 days": "errors.db.statementPeriodTooLong",
+  "A reporting period can't end in the future": "errors.db.statementPeriodFuture",
+  "A published statement already covers part of this period": "errors.db.statementOverlap",
+  "There are no completed deliveries or returns in this period": "errors.db.statementEmpty",
+  "This statement mixes currencies and cannot be generated": "errors.db.statementCurrencies",
+  "Statement total does not match its lines": "errors.db.statementInconsistent",
+  "Only a published statement can be corrected": "errors.db.statementCorrectPublished",
+  "A correction covers the same period as the statement it replaces": "errors.db.statementCorrectionPeriod",
+  "Give a reason for the correction (5 to 500 characters)": "errors.db.statementCorrectionReason",
+  "Only a draft statement can be published": "errors.db.statementNotDraft",
+  "Only a draft statement can be discarded": "errors.db.statementDiscardDraft",
+  "The statement this corrects has already been replaced": "errors.db.statementAlreadySuperseded",
+  "A shipment on this statement is already on another published statement": "errors.db.statementDuplicateShipment",
+  "Published statements cannot be changed": "errors.db.statementImmutable",
+  "Expenses cannot be deleted. Void the expense instead.": "errors.db.expenseNoDelete",
+  "Void expenses cannot be changed": "errors.db.expenseVoidLocked",
+  "Give a reason for voiding this expense": "errors.db.expenseVoidReason",
+  "Void an expense without changing it": "errors.db.expenseVoidUnchanged",
+  "Expense categories cannot be deleted. Deactivate the category instead.": "errors.db.expenseCategoryNoDelete",
+  "Built-in expense categories cannot be renamed, regrouped or deactivated": "errors.db.expenseCategoryLocked",
+  // Rates, settlements (0045)
+  "New rates can only take effect from today onwards": "errors.db.rateBackdated",
+  "The return charge rate must be between 0% and 100%": "errors.db.rateReturnRange",
+  "The cash-handling rate must be between 0% and 20%": "errors.db.rateHandlingRange",
+  "Rates already in force can't be changed": "errors.db.rateLocked",
+  "Payments are recorded against the current published statement": "errors.db.settlementCurrentOnly",
+  "Choose how the money was paid": "errors.db.settlementMethod",
+  "The payment date can't be in the future": "errors.db.settlementFutureDate",
+  "This statement is already settled": "errors.db.settlementAlreadySettled",
+  "This request was already used for a different settlement": "errors.db.settlementRequestReused",
+  "Settlements can't be deleted. Void the settlement instead.": "errors.db.settlementLocked",
+  "A settlement can only be voided": "errors.db.settlementLocked",
+  "Give a reason for voiding this payment (5 to 500 characters)": "errors.db.settlementVoidReason",
+  "Payment not found": "errors.db.settlementNotFound",
 };
 
 // Messages that carry values (RAISE EXCEPTION '... %', value).
 const DATABASE_PATTERNS: [RegExp, (match: RegExpMatchArray) => string][] = [
+  [
+    /^This is more than is outstanding on the statement \(AED ([\d.]+)\)$/,
+    ([, amount]) => msg("errors.db.settlementTooLarge", { amount }),
+  ],
+  [
+    /^This shipment's cash on delivery is paid out through statement (\S+)$/,
+    ([, number]) => msg("errors.db.codPaidThroughStatement", { number }),
+  ],
   [
     /^This delivery is ([\d.]+) km, beyond the ([\d.]+) km ParcelLink delivery limit$/,
     ([, distance, limit]) =>

@@ -191,13 +191,13 @@ export type Shipment = {
 export type NavIcon =
   | 'dashboard' | 'book' | 'deliveries' | 'track' | 'merchant' | 'payments' | 'notifications' | 'profile' | 'support'
   | 'current' | 'history' | 'cod' | 'cash' | 'shipments' | 'bulk' | 'bulkShipments' | 'dispatch' | 'drivers' | 'customers' | 'map' | 'activity'
-  | 'operators' | 'business' | 'merchants' | 'pricing' | 'reports' | 'settings';
+  | 'operators' | 'business' | 'merchants' | 'pricing' | 'reports' | 'settings' | 'statements' | 'performance' | 'expenses';
 
 // Labels live in the translations (dashboard.nav.items.<icon> and
 // dashboard.nav.sections.<heading>): each icon names one destination.
 // merchantOnly: shown only to approved merchants (account_type 'merchant').
 export type NavItem = { href: string; icon: NavIcon; merchantOnly?: boolean };
-export type NavSectionKey = 'account' | 'operations' | 'people' | 'customersMerchants' | 'team' | 'business';
+export type NavSectionKey = 'account' | 'operations' | 'people' | 'customersMerchants' | 'team' | 'finance' | 'business';
 export type NavSection = { heading: NavSectionKey | null; items: NavItem[] };
 
 export const NAV_SECTIONS: Record<Role, NavSection[]> = {
@@ -216,6 +216,7 @@ export const NAV_SECTIONS: Record<Role, NavSection[]> = {
       heading: 'account',
       items: [
         { href: '/dashboard/customer/merchant', icon: 'merchant' },
+        { href: '/dashboard/customer/statements', icon: 'statements', merchantOnly: true },
         { href: '/dashboard/customer/payments', icon: 'payments' },
         { href: '/dashboard/customer/notifications', icon: 'notifications' },
         { href: '/dashboard/customer/profile', icon: 'profile' },
@@ -298,6 +299,14 @@ export const NAV_SECTIONS: Record<Role, NavSection[]> = {
       items: [
         { href: '/dashboard/manager/operators', icon: 'operators' },
         { href: '/dashboard/manager/drivers', icon: 'drivers' },
+      ],
+    },
+    {
+      heading: 'finance',
+      items: [
+        { href: '/dashboard/manager/statements', icon: 'statements' },
+        { href: '/dashboard/manager/performance', icon: 'performance' },
+        { href: '/dashboard/manager/expenses', icon: 'expenses' },
       ],
     },
     {

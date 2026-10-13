@@ -1,0 +1,466 @@
+{
+  "profitGroups": {
+    "fuel": "Fuel",
+    "subscription": "Subscription",
+    "salary": "Salary",
+    "rent": "Rent",
+    "other": "Other operating"
+  },
+  "statements": {
+    "meta": "Merchant Account Reports",
+    "title": "Merchant Account Reports",
+    "subtitle": "Generate, review and publish account statements for merchants.",
+    "loadFailed": "This couldn’t be loaded. Refresh the page to try again.",
+    "generate": {
+      "heading": "Generate a statement",
+      "description": "Choose a merchant and a reporting period. The statement is saved as a draft that only managers can see — review it, then publish it to the merchant.",
+      "merchant": "Merchant",
+      "chooseMerchant": "Choose a merchant",
+      "inactive": "{name} (inactive)",
+      "period": "Reporting period",
+      "from": "From",
+      "to": "To",
+      "presets": {
+        "lastMonth": "Last month",
+        "lastWeek": "Last week",
+        "monthToDate": "This month to date"
+      },
+      "submit": "Generate preview",
+      "submitting": "Generating…",
+      "timezone": "UAE calendar days. A delivery counts on the day it was completed, a return on the day it was returned — not the booking date."
+    },
+    "list": {
+      "heading": "Statements",
+      "empty": "No statements yet. Generate one above.",
+      "emptyFiltered": "No statements match these filters.",
+      "merchant": "Merchant",
+      "allMerchants": "All merchants",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "apply": "Filter",
+      "draft": "Draft",
+      "version": "v{version}",
+      "col": {
+        "number": "Statement",
+        "merchant": "Merchant",
+        "period": "Period",
+        "type": "Type",
+        "date": "Date",
+        "status": "Status",
+        "amount": "Amount"
+      }
+    },
+    "status": {
+      "draft": "Draft",
+      "published": "Published",
+      "superseded": "Superseded"
+    },
+    "outcome": {
+      "payable_to_merchant": "Payable to merchant",
+      "due_from_merchant": "Due from merchant",
+      "settled": "Settled"
+    },
+    "kind": {
+      "cod_remittance": "COD remittance",
+      "service_charges": "Service charges"
+    },
+    "actions": {
+      "back": "All statements",
+      "print": "Print",
+      "downloadPdf": "Download PDF",
+      "cancel": "Cancel",
+      "publish": "Publish to merchant",
+      "publishTitle": "Publish this statement?",
+      "publishDescription": "{merchant} will be able to view and download it under Account Reports, and their account users are notified in the app. A published statement can’t be edited — only replaced by a correction.",
+      "publishConfirm": "Publish",
+      "publishing": "Publishing…",
+      "discard": "Discard draft",
+      "discardTitle": "Discard this draft?",
+      "discardDescription": "The draft is deleted. Nothing was shared with the merchant.",
+      "discardConfirm": "Discard",
+      "correct": "Issue a correction",
+      "correctTitle": "Correct this statement",
+      "correctDescription": "A new draft is generated from the current records for the same merchant and period. When you publish it, it replaces this statement, which stays on record marked as superseded.",
+      "correctReason": "Reason for the correction",
+      "correctConfirm": "Generate correction",
+      "generatedNotice": "Draft generated. Only managers can see it. Check the figures, then publish it to the merchant.",
+      "publishedNotice": "Published. The merchant can now view and download this statement.",
+      "emailMerchant": "Also email the merchant that it’s ready. The email links to their dashboard and contains no amounts."
+    },
+    "settlementStatus": {
+      "open": "Open",
+      "partially_settled": "Partly paid",
+      "settled": "Settled"
+    },
+    "settlement": {
+      "heading": "Payments",
+      "description": "Record money paid out to the merchant or received from them for this statement. Payments are never deleted; a wrong one is voided with a reason.",
+      "owedToMerchant": "{amount} still to pay the merchant",
+      "owedByMerchant": "{amount} still due from the merchant",
+      "settled": "Fully settled",
+      "to_merchant": "Paid to merchant",
+      "from_merchant": "Received from merchant",
+      "recordPayout": "Record a payment to the merchant",
+      "recordReceipt": "Record a payment received from the merchant",
+      "amount": "Amount (AED)",
+      "method": "Method",
+      "paidOn": "Date paid",
+      "reference": "Reference (optional)",
+      "notes": "Notes (optional)",
+      "submit": "Record payment",
+      "saving": "Recording…",
+      "onlyCurrent": "This statement was replaced. Record payments on the current statement — payments made here still count towards it.",
+      "void": "Void",
+      "voidTitle": "Void this payment?",
+      "voidDescription": "The payment stays on record, marked void, and no longer counts towards the balance. The merchant can see that it was voided.",
+      "voidReason": "Reason",
+      "voidConfirm": "Void payment",
+      "cancel": "Cancel"
+    }
+  },
+  "document": {
+    "title": "Merchant Account Statement",
+    "draftBadge": "Draft",
+    "supersededBadge": "Superseded",
+    "draftNumber": "DRAFT",
+    "number": "Statement no.",
+    "period": "Period",
+    "generated": "Generated",
+    "published": "Issued",
+    "currency": "Currency",
+    "statementFor": "Statement for",
+    "contactPerson": "Attn: {name}",
+    "trn": "TRN: {trn}",
+    "license": "Trade licence: {number}",
+    "accountId": "Account ID:",
+    "kind": {
+      "cod_remittance": "COD remittance statement",
+      "service_charges": "Service charge statement"
+    },
+    "draftNotice": "Draft for review — not yet issued to the merchant. Figures are fixed as generated; publish it to issue it.",
+    "supersededNotice": "This statement was replaced by statement {number} on {date}. It is kept for your records.",
+    "correctionNotice": "This statement corrects and replaces statement {number}. Reason: {reason}",
+    "overview": {
+      "delivered": "Deliveries completed",
+      "returned": "Returns",
+      "cod": "COD collected for you",
+      "charges": "ParcelLink charges"
+    },
+    "lines": {
+      "heading": "Deliveries and returns",
+      "delivered": "Delivered",
+      "returned": "Returned",
+      "codFlag": "COD not verified",
+      "totals": "Totals",
+      "col": {
+        "no": "No.",
+        "date": "Date",
+        "tracking": "Tracking ID",
+        "recipient": "Recipient",
+        "type": "Service",
+        "status": "Status",
+        "cod": "COD collected",
+        "service": "Service charge",
+        "return": "Return charge",
+        "handling": "Cash handling",
+        "paid": "Fee paid"
+      }
+    },
+    "summary": {
+      "heading": {
+        "cod_remittance": "Remittance calculation",
+        "service_charges": "Amount due"
+      },
+      "totalCod": "Total COD collected",
+      "codAlreadyRemitted": "Less: COD already paid out to you",
+      "serviceCharges": "ParcelLink service charges",
+      "returnCharges": "Return charges",
+      "cashHandlingFee": "Cash-handling fee ({rate} of {base})",
+      "paymentsReceived": "Add: delivery fees you already paid",
+      "paymentsReceivedDeducted": "Less: payments already received",
+      "cashHandlingFeeVaried": "Cash-handling fee (at the rate in force each day; {rate} now, of {base})"
+    },
+    "total": {
+      "netRemittance": "Total remittance",
+      "amountDue": "Total amount due",
+      "creditDue": "Credit due to you",
+      "settled": "Balance settled"
+    },
+    "words": "Amount in words:",
+    "notes": {
+      "heading": "How this statement is calculated",
+      "basis": "Lists every delivery completed and every return made in the period (UAE time), once each. Cancelled and in-progress shipments are not included. All amounts are in UAE Dirhams.",
+      "serviceRule": "Service charge: the delivery price recorded when the shipment was booked.",
+      "returnRule": "Return charge: {rate} of the original delivery service cost (the booked price without any cash-on-delivery fee), for returned shipments only.",
+      "handlingRule": "Cash-handling fee: {rate} of the cash on delivery collected for you, per shipment. It is not charged on delivery fees or prepaid shipments.",
+      "paidRule": "Delivery fees already paid — in cash to the driver or by card — are credited, so no fee is charged twice.",
+      "remittedRule": "Cash on delivery already paid out to you is deducted, so it isn’t paid twice.",
+      "unverified": "{amount} of cash on delivery was marked collected before collections were verified and is not included. ParcelLink will confirm it separately.",
+      "uncollected": "{amount} of cash on delivery on delivered shipments has no recorded collection yet and is not included.",
+      "feesUnverified": "{amount} of delivery fees marked paid before collections were verified is not credited here.",
+      "pdfCharacters": "Some text uses characters this PDF can’t display (shown as ?). The statement in your ParcelLink dashboard shows them in full.",
+      "ratesVary": "The rates changed during this period. Each shipment is charged at the rate in force on the day it was completed."
+    },
+    "footer": "This statement is generated from ParcelLink’s delivery, cash-on-delivery and payment records. Once issued it doesn’t change; any correction is issued as a new statement.",
+    "questions": "Questions about this statement? Contact {email} or {phone}.",
+    "settlements": {
+      "heading": "Payments recorded (as of {date})",
+      "none": "No payments have been recorded yet.",
+      "toMerchant": "Paid to you",
+      "fromMerchant": "Paid by you",
+      "void": "void",
+      "recordedOn": "Recorded on statement {number}",
+      "col": {
+        "date": "Date",
+        "direction": "Payment",
+        "method": "Method",
+        "reference": "Reference",
+        "amount": "Amount"
+      },
+      "methods": {
+        "bank_transfer": "Bank transfer",
+        "cash": "Cash",
+        "cheque": "Cheque",
+        "card": "Card",
+        "other": "Other"
+      },
+      "balance": {
+        "owedToMerchant": "Still to be paid to you",
+        "owedByMerchant": "Still owed by you",
+        "settled": "Fully settled"
+      }
+    }
+  },
+  "portal": {
+    "meta": "Account Reports",
+    "title": "Account Reports",
+    "subtitle": "Account statements ParcelLink has issued to your business.",
+    "empty": "No statements have been issued to your account yet. You’ll be notified when one is ready.",
+    "back": "All account reports",
+    "loadFailed": "Your account reports couldn’t be loaded. Refresh the page to try again."
+  },
+  "performance": {
+    "meta": "Business Performance",
+    "title": "Business Performance",
+    "from": "From",
+    "to": "To",
+    "apply": "Apply",
+    "print": "Print",
+    "export": "Download report (CSV)",
+    "loadFailed": "The report couldn’t be loaded. Refresh the page to try again.",
+    "basis": "Accrual basis: revenue is recognised on the day a delivery is completed (or a merchant shipment is returned) and expenses on the day they were incurred, in UAE calendar days. Cash collected on behalf of merchants (COD) is not ParcelLink revenue.",
+    "summary": {
+      "heading": "Summary",
+      "revenue": "Recognised revenue",
+      "expenditure": "Total expenditure",
+      "profit": "Operating profit",
+      "loss": "Operating loss",
+      "target": "Break-even revenue target",
+      "gap": "Revenue needed to break even"
+    },
+    "revenue": {
+      "heading": "Revenue",
+      "merchantService": "Merchant service revenue",
+      "merchantReturns": "Merchant return charges",
+      "merchantHandling": "Merchant cash-handling fees",
+      "individual": "Individual & walk-in revenue",
+      "other": "Other approved revenue",
+      "otherHint": "ParcelLink doesn’t record any other revenue source yet.",
+      "total": "Total revenue",
+      "counts": "{delivered, plural, one {# delivery} other {# deliveries}} completed ({merchant} merchant, {individual} individual & walk-in), {returned} returned.",
+      "codMemo": "Memo: COD collected for merchants",
+      "codMemoHint": "Held for merchants and paid out through their statements — not revenue."
+    },
+    "expenses": {
+      "heading": "Expenditure",
+      "manage": "Manage expenses",
+      "countsAs": "{group} · {count, plural, one {# entry} other {# entries}}",
+      "total": "Total expenditure"
+    },
+    "profit": {
+      "heading": "Profitability",
+      "description": "A management view: each line deducts one more expense group from the line above. These are cumulative steps, not separate definitions of profit.",
+      "col": {
+        "measure": "Measure",
+        "formula": "Formula",
+        "deducted": "Deducted",
+        "result": "Result"
+      },
+      "revenue": "Recognised revenue (R)",
+      "afterFuel": "Profit after fuel",
+      "afterSubscription": "Profit after fuel and subscription",
+      "afterSalary": "Profit after fuel, subscription, and salary",
+      "afterRent": "Profit after fuel, subscription, salary, and rent",
+      "net": "Net operating profit",
+      "formula": {
+        "revenue": "R",
+        "afterFuel": "R − Fuel",
+        "afterSubscription": "R − Fuel − Subscription",
+        "afterSalary": "R − Fuel − Subscription − Salary",
+        "afterRent": "R − Fuel − Subscription − Salary − Rent",
+        "net": "R − all operating expenses (incl. other)"
+      }
+    },
+    "breakEven": {
+      "heading": "Break-even",
+      "revenue": "Recognised revenue",
+      "expenditure": "Total operating expenditure",
+      "result": "Operating profit / loss",
+      "target": "Break-even revenue target",
+      "gap": "Additional revenue required",
+      "achieved": "Break-even achieved.",
+      "notAchieved": "ParcelLink needs {amount} more revenue in this period to cover its operating costs.",
+      "assumption": "Treats every recorded expense as a fixed cost of the period. A contribution-margin estimate isn’t shown because ParcelLink doesn’t record variable costs per delivery."
+    },
+    "details": {
+      "heading": "Supporting details",
+      "description": "The shipments behind the revenue figures. Open one to see its record; expense totals link to the expenses behind them.",
+      "none": "No deliveries or returns were completed in this period.",
+      "truncated": "Showing the first {shown}. Download the shipments CSV for all of them.",
+      "exportLines": "Download shipments (CSV)",
+      "merchant": "Merchant",
+      "individual": "Individual / walk-in",
+      "col": {
+        "date": "Completed",
+        "tracking": "Tracking ID",
+        "customer": "Customer",
+        "outcome": "Outcome",
+        "service": "Service",
+        "return": "Return charge",
+        "handling": "Cash handling"
+      }
+    }
+  },
+  "expenses": {
+    "meta": "Expenses",
+    "title": "Expenses",
+    "subtitle": "Operating costs counted in the business performance report.",
+    "loadFailed": "Expenses couldn’t be loaded. Refresh the page to try again.",
+    "openPerformance": "Open performance report",
+    "total": "Expenditure by category",
+    "totalCategory": "Expenditure: {category}",
+    "periodTotal": "Total for the period",
+    "filters": {
+      "from": "From",
+      "to": "To",
+      "category": "Category",
+      "allCategories": "All categories",
+      "includeVoid": "Show void expenses",
+      "apply": "Apply"
+    },
+    "form": {
+      "addHeading": "Record an expense",
+      "editHeading": "Edit expense",
+      "edit": "Edit",
+      "category": "Category",
+      "chooseCategory": "Choose a category",
+      "description": "Description",
+      "amount": "Amount (AED)",
+      "incurredOn": "Date incurred",
+      "paymentStatus": "Payment",
+      "paid": "Paid",
+      "unpaid": "Not paid yet",
+      "paidOn": "Date paid",
+      "vendor": "Vendor or payee",
+      "reference": "Reference or receipt no.",
+      "notes": "Notes",
+      "optional": "optional",
+      "submit": "Save expense",
+      "saving": "Saving…",
+      "saved": "Expense saved.",
+      "cancel": "Cancel"
+    },
+    "list": {
+      "heading": "Expenses",
+      "empty": "No expenses recorded for this period.",
+      "voidBadge": "Void",
+      "incurred": "Incurred {date}",
+      "paidOn": "paid {date}",
+      "reference": "ref. {reference}",
+      "recorded": "Recorded by {name} on {date}",
+      "edited": "last edited by {name} on {date}",
+      "voidReason": "Voided: {reason}"
+    },
+    "void": {
+      "button": "Void",
+      "title": "Void this expense?",
+      "description": "“{description}” stays on record but stops counting in every total. This can’t be undone.",
+      "reason": "Reason",
+      "confirm": "Void expense"
+    },
+    "categories": {
+      "heading": "Categories",
+      "description": "Each category counts toward one profit step. Add categories any time; they’re never deleted, only deactivated.",
+      "name": "Name",
+      "newName": "New category",
+      "group": "Counts as",
+      "countsAs": "counts as {group}",
+      "groupHint": "“Other operating” is deducted only in net operating profit.",
+      "add": "Add category",
+      "adding": "Adding…",
+      "edit": "Edit",
+      "save": "Save",
+      "builtIn": "Built-in",
+      "inactive": "Inactive",
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    }
+  },
+  "validation": {
+    "date": "Enter a valid date.",
+    "periodOrder": "The end date must be on or after the start date.",
+    "periodTooLong": "Choose a period of at most a year.",
+    "periodFuture": "The period can’t end after today.",
+    "merchant": "Choose a merchant.",
+    "correctionReason": "Give a reason of 5 to 500 characters.",
+    "category": "Choose a category.",
+    "description": "Describe the expense (2 to 200 characters).",
+    "amount": "Enter an amount greater than zero.",
+    "amountTooLarge": "That amount is too large.",
+    "twoDecimals": "Use at most two decimal places.",
+    "expenseFuture": "An expense can’t be dated after today.",
+    "paidOnUnpaid": "Remove the payment date or mark the expense paid.",
+    "vendorTooLong": "Keep the vendor under 120 characters.",
+    "referenceTooLong": "Keep the reference under 100 characters.",
+    "notesTooLong": "Keep the notes under 1,000 characters.",
+    "voidReason": "Give a reason of 5 to 500 characters.",
+    "categoryName": "Use 2 to 60 characters.",
+    "returnRate": "Enter a return charge between 0 and 100%.",
+    "handlingRate": "Enter a cash-handling rate between 0 and 20%.",
+    "rateDecimals": "Use at most two decimal places.",
+    "rateBackdated": "New rates can only start today or later.",
+    "method": "Choose how the money was paid.",
+    "paidOnFuture": "The payment date can’t be in the future.",
+    "moreThanOutstanding": "That’s more than is outstanding on this statement."
+  },
+  "errors": {
+    "generateFailed": "The statement couldn’t be generated. Try again.",
+    "publishFailed": "The statement couldn’t be published. Try again.",
+    "saveFailed": "That couldn’t be saved. Try again.",
+    "expenseNotEditable": "This expense can’t be changed — it may have been voided.",
+    "categoryExists": "A category with that name already exists."
+  },
+  "rates": {
+    "heading": "Statement rates",
+    "description": "The return charge and cash-handling rates used on statements and in the performance report.",
+    "current": "In force today: return charge {returnRate} of the original service cost, cash handling {handlingRate} of COD collected.",
+    "effectiveFrom": "Takes effect from",
+    "returnRate": "Return charge (%)",
+    "handlingRate": "Cash handling (%)",
+    "note": "Note (optional)",
+    "hint": "Each shipment is charged at the rate in force on the day it was completed, so a new rate never changes statements already issued or earlier periods of the performance report. Rates can start today or later; a rate scheduled for a future day can be replaced until then.",
+    "submit": "Save rates",
+    "saving": "Saving…",
+    "saved": "Rates saved.",
+    "history": "Rate history",
+    "fromStart": "From the start",
+    "inForce": "In force",
+    "scheduled": "Scheduled",
+    "col": {
+      "from": "From",
+      "returnRate": "Return charge",
+      "handlingRate": "Cash handling",
+      "note": "Note"
+    }
+  }
+}

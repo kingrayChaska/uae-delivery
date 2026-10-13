@@ -115,6 +115,18 @@
     "returnedStaff": {
       "title": "أرجع سائق شحنة",
       "body": "لم يتم توصيل الشحنة {code} ويجري إرجاعها إلى المُرسل."
+    },
+    "statementPublished": {
+      "title": "كشف حساب جديد متاح",
+      "body": "كشف الحساب {number} جاهز في تقارير الحساب."
+    },
+    "statementPaidOut": {
+      "title": "تم تسجيل دفعة على الكشف",
+      "body": "سُجّلت دفعة بقيمة {amount} لك على الكشف {number}."
+    },
+    "statementPaymentReceived": {
+      "title": "تم تسجيل دفعة على الكشف",
+      "body": "سُجّلت دفعتك بقيمة {amount} على الكشف {number}."
     }
   }
 }

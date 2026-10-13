@@ -27,7 +27,10 @@
       "reports": "Reports",
       "settings": "Settings",
       "bulkShipments": "Bulk Shipments",
-      "cash": "Driver Cash"
+      "cash": "Driver Cash",
+      "statements": "Account Reports",
+      "performance": "Business Performance",
+      "expenses": "Expenses"
     },
     "sections": {
       "account": "Account",
@@ -35,7 +38,8 @@
       "people": "People",
       "customersMerchants": "Customers & merchants",
       "team": "Team",
-      "business": "Business"
+      "business": "Business",
+      "finance": "Finance"
     },
     "roles": {
       "customer": "Customer",

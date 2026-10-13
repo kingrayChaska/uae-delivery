@@ -123,6 +123,26 @@ const RULES: Rule[] = [
     body: /^([\s\S]*?) ?You can edit and resubmit your application from the Merchant page\.$/,
     values: (match) => ({ note: match[1].trim() }),
   },
+  // Merchant account statements (migration 0044).
+  {
+    type: 'statement.published',
+    key: 'statementPublished',
+    body: /^Statement (\S+) is ready in Account Reports\.$/,
+    values: (match) => ({ number: match[1] }),
+  },
+  // Statement payments (migration 0045).
+  {
+    type: 'statement.settlement',
+    key: 'statementPaidOut',
+    body: /^A payment of (AED [\d,.]+) to you was recorded on statement (\S+)\.$/,
+    values: (match) => ({ amount: match[1], number: match[2] }),
+  },
+  {
+    type: 'statement.settlement',
+    key: 'statementPaymentReceived',
+    body: /^Your payment of (AED [\d,.]+) was recorded on statement (\S+)\.$/,
+    values: (match) => ({ amount: match[1], number: match[2] }),
+  },
 ];
 
 export const localizeNotification = (notification: StoredNotification): LocalizedNotification | null => {

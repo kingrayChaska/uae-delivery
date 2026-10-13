@@ -5,6 +5,9 @@ import {
   Boxes,
   Briefcase,
   FileSpreadsheet,
+  FileText,
+  Receipt,
+  TrendingUp,
   Building2,
   CircleUserRound,
   ClipboardList,
@@ -58,4 +61,7 @@ export const NAV_ICONS: Record<NavIcon, LucideIcon> = {
   pricing: Tag,
   reports: BarChart3,
   settings: Settings,
+  statements: FileText,
+  performance: TrendingUp,
+  expenses: Receipt,
 };

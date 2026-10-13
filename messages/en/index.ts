@@ -25,6 +25,7 @@ import serviceAreas from './serviceAreas.json';
 import legal from './legal.json';
 import bulk from './bulk.json';
 import invoices from './invoices.json';
+import finance from './finance.json';
 
 const messages = {
   common,
@@ -52,6 +53,7 @@ const messages = {
   legal,
   bulk,
   invoices,
+  finance,
 };
 
 export default messages;
