@@ -9,6 +9,7 @@ import Pagination from '@/components/dashboard/pagination';
 import CashFiltersForm from '@/components/operator/cash-filters-form';
 import RecordRemittanceForm from '@/components/operator/record-remittance-form';
 import RemittanceDecision from '@/components/operator/remittance-decision';
+import RemittanceReview from '@/components/cash/remittance-review';
 import { getCurrentProfile } from '@/lib/auth/session';
 import { todayInUae } from '@/lib/bulk/schemas';
 import { cashHref } from '@/lib/cash/schemas';
@@ -41,6 +42,7 @@ const REMITTANCE_VARIANT: Record<string, 'default' | 'secondary' | 'success' | '
   pending: 'secondary',
   confirmed: 'success',
   rejected: 'destructive',
+  disputed: 'destructive',
 };
 
 // One driver's cash: their position, the collections and remittances behind
@@ -113,7 +115,16 @@ const CashDriverView = async ({ basePath, driverId, filters, collectionsPage, re
       <Card>
         <CardContent className="flex flex-col gap-3 pt-6">
           <h2 className="text-lg font-medium">{t('recordAction')}</h2>
-          {available > 0 ? (
+          {!isManager ? (
+            // Operators confirm what drivers submit (migration 0048); recording
+            // cash here, without a submission, is a manager's step.
+            <p className="text-sm text-muted-foreground">
+              {t('operatorRecordNote')}{' '}
+              <Link href="/dashboard/operator/remittances" className="font-medium text-foreground underline">
+                {t('operatorRecordLink')}
+              </Link>
+            </p>
+          ) : available > 0 ? (
             <RecordRemittanceForm
               driverId={driverId}
               driverName={driver.fullName}
@@ -154,9 +165,20 @@ const CashDriverView = async ({ basePath, driverId, filters, collectionsPage, re
               <tbody>
                 {remittances.items.map((remittance) => (
                   <tr key={remittance.id} className="border-t align-top">
-                    <td className="px-3 py-2 whitespace-nowrap">{day(remittance.receivedOn)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {day(remittance.receivedOn)}
+                      <span dir="ltr" className="block font-brand-mono text-xs text-muted-foreground rtl:text-right">{remittance.number}</span>
+                    </td>
                     <td className="px-3 py-2 text-end font-brand-mono whitespace-nowrap">
                       {format.money(remittance.amount, remittance.currency)}
+                      {remittance.codAmount !== null && remittance.feeAmount !== null ? (
+                        <span className="block text-xs text-muted-foreground">
+                          {t('remittances.split', {
+                            cod: format.money(remittance.codAmount, remittance.currency),
+                            fee: format.money(remittance.feeAmount, remittance.currency),
+                          })}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-3 py-2">
                       {t(`methods.${remittance.method}`)}
@@ -184,7 +206,16 @@ const CashDriverView = async ({ basePath, driverId, filters, collectionsPage, re
                       {t('remittances.recordedBy', { name: remittance.recordedBy, date: format.dateTime(remittance.createdAt) })}
                     </td>
                     <td className="px-3 py-2 text-end">
-                      {isManager && remittance.status === 'pending' ? (
+                      {remittance.status === 'pending' && remittance.source === 'driver' && remittance.codAmount !== null && remittance.feeAmount !== null ? (
+                        <RemittanceReview
+                          kind="driver"
+                          remittanceId={remittance.id}
+                          number={remittance.number}
+                          fromName={driver.fullName}
+                          codAmount={remittance.codAmount}
+                          feeAmount={remittance.feeAmount}
+                        />
+                      ) : isManager && remittance.status === 'pending' ? (
                         <RemittanceDecision remittanceId={remittance.id} amount={remittance.amount} />
                       ) : null}
                     </td>

@@ -30,7 +30,8 @@
       "cash": "نقدية السائقين",
       "statements": "تقارير الحساب",
       "performance": "أداء الأعمال",
-      "expenses": "المصروفات"
+      "expenses": "المصروفات",
+      "remittances": "تسليمات النقد"
     },
     "sections": {
       "account": "الحساب",

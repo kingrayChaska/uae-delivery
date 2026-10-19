@@ -10,6 +10,8 @@ import ShipmentStatusBadge from '@/components/shipment/shipment-status-badge';
 import TrackingTimeline from '@/components/shipment/tracking-timeline';
 import TrackingCode from '@/components/shipment/tracking-code';
 import CancelShipmentButton from '@/components/shipment/cancel-shipment-button';
+import SwitchToCashButton from '@/components/shipment/switch-to-cash-button';
+import { awaitingCardPayment } from '@/lib/shipment/collection';
 import ProofOfDeliveryButton from '@/components/shipment/proof-of-delivery';
 import ShipmentChargesCard from '@/components/shipment/shipment-charges-card';
 import InvoiceButton from '@/components/invoices/invoice-button';
@@ -116,6 +118,7 @@ const ShipmentDetailPage = async ({
         </div>
       </div>
       {!ownShipment ? <p className="text-sm text-muted-foreground">{t('colleague')}</p> : null}
+      {ownShipment && awaitingCardPayment(shipment) ? <SwitchToCashButton shipmentId={shipment.id} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="flex flex-col gap-6 lg:col-span-3">

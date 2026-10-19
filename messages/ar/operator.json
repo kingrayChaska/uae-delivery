@@ -460,7 +460,8 @@
     "status": {
       "pending": "بانتظار التأكيد",
       "confirmed": "مؤكد",
-      "rejected": "مرفوض"
+      "rejected": "مرفوض",
+      "disputed": "معترض عليه"
     },
     "methods": {
       "cash": "نقداً",
@@ -501,7 +502,8 @@
         "recorded": "التسجيل"
       },
       "decidedBy": "بواسطة {name}، {date}",
-      "recordedBy": "بواسطة {name}، {date}"
+      "recordedBy": "بواسطة {name}، {date}",
+      "split": "الدفع عند الاستلام {cod} · الرسوم {fee}"
     },
     "collections": {
       "title": "التحصيلات النقدية",
@@ -528,6 +530,8 @@
       "notesTooLong": "اجعل الملاحظات أقل من 500 حرف",
       "rejectReason": "اذكر سبب الرفض",
       "moreThanOwed": "هذا المبلغ أكبر مما يمكن للسائق توريده حالياً"
-    }
+    },
+    "operatorRecordNote": "يسلّم السائقون نقدهم وتؤكده أنت عند عدّه.",
+    "operatorRecordLink": "فتح تسليمات النقد"
   }
 }

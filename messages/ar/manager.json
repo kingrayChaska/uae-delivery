@@ -294,7 +294,8 @@
       "number": "يجب أن تكون قيمة {column} رقمًا",
       "negative": "لا يمكن أن تكون قيمة {column} سالبة",
       "tooLarge": "قيمة {column} كبيرة جدًا",
-      "row": "صف غير صالح"
+      "row": "صف غير صالح",
+      "cardUnavailable": "الدفع بالبطاقة متوقف: استخدم payment_method cod."
     }
   },
   "pricing": {

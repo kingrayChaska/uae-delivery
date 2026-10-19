@@ -2,6 +2,11 @@
 -- happen; an ERROR on a block marked "ATTACK" is success (it was blocked),
 -- an ERROR on a block marked "LEGITIMATE" is a real bug.
 
+-- Written before card payments were turned off (migration 0048); its card
+-- fixtures stand for bookings made while they were on. cash-remittances.sql
+-- checks the cash-only rule itself.
+update payment_settings set card_payments_enabled = true;
+
 insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-000000000001', 'customer1@test.com', '{"full_name":"Cust One","phone":"0501111111"}'),
   ('00000000-0000-0000-0000-000000000002', 'customer2@test.com', '{"full_name":"Cust Two","phone":"0502222222"}'),

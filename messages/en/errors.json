@@ -167,6 +167,22 @@
     "cancelDelivered": "Delivered shipments can’t be cancelled.",
     "cancelReturned": "Returned shipments can’t be cancelled.",
     "cancelAlready": "This shipment is already cancelled.",
-    "cancelDirectUpdate": "Cancel shipments with the Cancel shipment action."
+    "cancelDirectUpdate": "Cancel shipments with the Cancel shipment action.",
+    "cardPaymentsOff": "Card payments are turned off. Choose cash.",
+    "switchNotWaiting": "Only a shipment still waiting for its card payment can switch to cash.",
+    "switchAlreadyPaid": "This shipment already has a card payment, so it can’t switch to cash.",
+    "cashAmount": "Enter an amount of AED 0 or more.",
+    "cashDriverOnly": "Only drivers can submit a cash remittance.",
+    "cashStaffRecorded": "A manager decides remittances recorded by staff.",
+    "cashAlreadyDisputed": "This remittance was already disputed.",
+    "cashMoreThanSubmitted": "You can’t confirm more than was submitted.",
+    "cashDiscrepancyReason": "Explain the difference (at least 5 characters).",
+    "cashDisputeReason": "Give a reason for the dispute (5 to 500 characters).",
+    "cashOperatorOnly": "Only operators can submit a remittance to the manager.",
+    "cashManagerOnly": "Only a manager can confirm an operator’s remittance.",
+    "cashMoreCod": "That is more COD than you hold: AED {amount} available.",
+    "cashMoreFee": "That is more in delivery fees than you hold: AED {amount} available.",
+    "cashMoreTotal": "That is more than you hold: AED {amount} available.",
+    "cashOperatorNowHolds": "That is more than the operator now holds (AED {amount})."
   }
 }

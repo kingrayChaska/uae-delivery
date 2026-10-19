@@ -127,18 +127,42 @@
     "statementPaymentReceived": {
       "title": "Statement payment recorded",
       "body": "Your payment of {amount} was recorded on statement {number}."
+    },
+    "priceAdjusted": {
+      "title": "Delivery price updated",
+      "body": "The delivery price for {code} changed from AED {from} to AED {to}."
+    },
+    "cancelledByOperations": {
+      "title": "Shipment cancelled",
+      "body": "{code} was cancelled by ParcelLink operations."
+    },
+    "cancelledByOperationsDriver": {
+      "title": "Delivery cancelled",
+      "body": "{code} was cancelled by operations and is no longer on your deliveries."
+    },
+    "switchedToCash": {
+      "title": "Paying in cash",
+      "body": "{code} will be paid in cash and is waiting for a driver."
+    },
+    "driverRemittanceSubmitted": {
+      "title": "Driver cash to confirm",
+      "body": "{name} submitted {number} (AED {amount}). Confirm it when you receive the cash."
+    },
+    "operatorRemittanceSubmitted": {
+      "title": "Operator cash to confirm",
+      "body": "{name} submitted {number} (AED {amount}). Confirm it when you receive the cash."
+    },
+    "remittanceConfirmed": {
+      "title": "Remittance confirmed",
+      "body": "{number} (AED {amount}) was confirmed by {name}."
+    },
+    "remittanceDiscrepancy": {
+      "title": "Remittance amount differs",
+      "body": "{number}: {name} counted AED {counted} of AED {submitted}. The difference stays on your balance."
+    },
+    "remittanceDisputed": {
+      "title": "Remittance disputed",
+      "body": "{number} was disputed by {name}. The amount stays on your balance."
     }
-  },
-  "priceAdjusted": {
-    "title": "Delivery price updated",
-    "body": "The delivery price for {code} changed from AED {from} to AED {to}."
-  },
-  "cancelledByOperations": {
-    "title": "Shipment cancelled",
-    "body": "{code} was cancelled by ParcelLink operations."
-  },
-  "cancelledByOperationsDriver": {
-    "title": "Delivery cancelled",
-    "body": "{code} was cancelled by operations and is no longer on your deliveries."
   }
 }

@@ -9,7 +9,7 @@ import { RATE_LIMIT_MESSAGE, checkRateLimit } from '@/lib/security/rate-limit';
 import { z } from '@/lib/zod';
 import { MAX_CELL_LENGTH, MERCHANT_BULK_COLUMNS, MERCHANT_BULK_MAX_FILE_BYTES } from '@/lib/bulk/merchant-csv';
 import { PAYMENT_METHODS } from '@/lib/types';
-import { cardPaymentsLive } from '@/lib/payments';
+import { cardPaymentsEnabled } from '@/lib/payments';
 import { startBulkWorker } from '@/lib/bulk/worker';
 import { scheduleOperatorBookingEmails } from '@/services/notifications/operator-booking-emails';
 import {
@@ -141,7 +141,7 @@ export const bookBulkDraftAction = async (
   const parsed = bookSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: 'validation.invalid' };
   // Card bookings would only wait for a payment that can't be taken yet.
-  if (parsed.data.paymentMethod === 'card' && !cardPaymentsLive()) return { success: false, error: 'bulk.errors.cardUnavailable' };
+  if (parsed.data.paymentMethod === 'card' && !cardPaymentsEnabled()) return { success: false, error: 'bulk.errors.cardUnavailable' };
   let merchant: MerchantContext;
   try {
     merchant = await asMerchant();

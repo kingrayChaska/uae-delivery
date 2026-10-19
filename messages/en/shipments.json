@@ -162,5 +162,12 @@
   "codLines": {
     "fromRecipient": "from recipient",
     "senderFee": "+ {fee} delivery fee paid in cash by the sender · {total} in total"
+  },
+  "switchToCash": {
+    "waiting": "This booking is waiting for a card payment, but card payments are turned off. Pay the delivery fee in cash instead to send it for dispatch.",
+    "button": "Pay in cash instead",
+    "title": "Pay the delivery fee in cash?",
+    "description": "The shipment is confirmed and sent for dispatch. The delivery fee is collected in cash — nothing is marked as paid until then.",
+    "confirm": "Switch to cash"
   }
 }

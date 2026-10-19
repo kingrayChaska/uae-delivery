@@ -127,18 +127,42 @@
     "statementPaymentReceived": {
       "title": "تم تسجيل دفعة على الكشف",
       "body": "سُجّلت دفعتك بقيمة {amount} على الكشف {number}."
+    },
+    "priceAdjusted": {
+      "title": "تم تحديث سعر التوصيل",
+      "body": "تغيّر سعر توصيل الشحنة {code} من {from} درهم إلى {to} درهم."
+    },
+    "cancelledByOperations": {
+      "title": "أُلغيت الشحنة",
+      "body": "ألغى فريق عمليات ParcelLink الشحنة {code}."
+    },
+    "cancelledByOperationsDriver": {
+      "title": "أُلغي التوصيل",
+      "body": "ألغى فريق العمليات الشحنة {code} ولم تعد ضمن توصيلاتك."
+    },
+    "switchedToCash": {
+      "title": "الدفع نقدًا",
+      "body": "ستُدفع الشحنة {code} نقدًا وهي بانتظار سائق."
+    },
+    "driverRemittanceSubmitted": {
+      "title": "نقد سائق للتأكيد",
+      "body": "سلّم {name} التسليم {number} ({amount} درهم). أكّده عند استلام النقد."
+    },
+    "operatorRemittanceSubmitted": {
+      "title": "نقد مشغّل للتأكيد",
+      "body": "سلّم {name} التسليم {number} ({amount} درهم). أكّده عند استلام النقد."
+    },
+    "remittanceConfirmed": {
+      "title": "تم تأكيد التسليم",
+      "body": "أكّد {name} التسليم {number} ({amount} درهم)."
+    },
+    "remittanceDiscrepancy": {
+      "title": "مبلغ التسليم مختلف",
+      "body": "{number}: عدّ {name} {counted} درهم من أصل {submitted} درهم. يبقى الفرق ضمن رصيدك."
+    },
+    "remittanceDisputed": {
+      "title": "تم الاعتراض على التسليم",
+      "body": "اعترض {name} على التسليم {number}. يبقى المبلغ ضمن رصيدك."
     }
-  },
-  "priceAdjusted": {
-    "title": "تم تحديث سعر التوصيل",
-    "body": "تغيّر سعر توصيل الشحنة {code} من {from} درهم إلى {to} درهم."
-  },
-  "cancelledByOperations": {
-    "title": "أُلغيت الشحنة",
-    "body": "ألغى فريق عمليات ParcelLink الشحنة {code}."
-  },
-  "cancelledByOperationsDriver": {
-    "title": "أُلغي التوصيل",
-    "body": "ألغى فريق العمليات الشحنة {code} ولم تعد ضمن توصيلاتك."
   }
 }

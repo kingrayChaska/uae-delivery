@@ -1,6 +1,7 @@
 import OperatorBookingWizard from '@/components/operator/operator-booking-wizard';
 import { getActivePricingRules } from '@/lib/pricing/get-active-rule';
 import { listCustomerOptions } from '@/services/customers/list-customers';
+import { availablePaymentMethods } from '@/lib/payments';
 
 import type { BookingFor } from '@/components/operator/operator-booking-wizard';
 import type { StaffActorViewProps } from '@/components/staff-views/types';
@@ -19,6 +20,7 @@ const NewShipmentView = async ({ basePath, actorId, initialFor }: StaffActorView
       rules={rules}
       customers={customers}
       initialFor={initialFor}
+      paymentMethods={availablePaymentMethods()}
     />
   );
 };

@@ -28,3 +28,8 @@ export const cashCollection = (shipment: CollectionFields): CashCollection => ({
   senderCashFee: shipment.paymentMethod === 'cod' ? Number(shipment.price) : 0,
   currency: shipment.currency,
 });
+
+// A card booking still waiting for its payment (made before card payments
+// were turned off, migration 0048): it can move to cash.
+export const awaitingCardPayment = (shipment: Pick<Shipment, 'status' | 'paymentMethod' | 'paymentStatus'>) =>
+  shipment.status === 'pending_payment' && shipment.paymentMethod === 'card' && shipment.paymentStatus === 'pending';

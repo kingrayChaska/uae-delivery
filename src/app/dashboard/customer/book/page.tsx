@@ -1,6 +1,7 @@
 import CustomerBookingWizard from '@/components/shipment/booking/customer-booking-wizard';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { getActivePricingRules } from '@/lib/pricing/get-active-rule';
+import { availablePaymentMethods } from '@/lib/payments';
 
 import { getTranslations } from 'next-intl/server';
 
@@ -21,6 +22,7 @@ const BookDeliveryPage = async () => {
       customerId={profile.id}
       accountType={profile.accountType}
       rules={rules[profile.accountType]}
+      paymentMethods={availablePaymentMethods()}
     />
   );
 };

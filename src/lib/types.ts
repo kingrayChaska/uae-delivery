@@ -193,7 +193,7 @@ export type Shipment = {
 // file stays free of UI imports.
 export type NavIcon =
   | 'dashboard' | 'book' | 'deliveries' | 'track' | 'merchant' | 'payments' | 'notifications' | 'profile' | 'support'
-  | 'current' | 'history' | 'cod' | 'cash' | 'shipments' | 'bulk' | 'bulkShipments' | 'dispatch' | 'drivers' | 'customers' | 'map' | 'activity'
+  | 'current' | 'history' | 'cod' | 'cash' | 'remittances' | 'shipments' | 'bulk' | 'bulkShipments' | 'dispatch' | 'drivers' | 'customers' | 'map' | 'activity'
   | 'operators' | 'business' | 'merchants' | 'pricing' | 'reports' | 'settings' | 'statements' | 'performance' | 'expenses';
 
 // Labels live in the translations (dashboard.nav.items.<icon> and
@@ -236,6 +236,7 @@ export const NAV_SECTIONS: Record<Role, NavSection[]> = {
         { href: '/dashboard/driver/deliveries', icon: 'deliveries' },
         { href: '/dashboard/driver/history', icon: 'history' },
         { href: '/dashboard/driver/cod', icon: 'cod' },
+        { href: '/dashboard/driver/cash', icon: 'remittances' },
       ],
     },
     {
@@ -260,6 +261,7 @@ export const NAV_SECTIONS: Record<Role, NavSection[]> = {
         { href: '/dashboard/operator/live-map', icon: 'map' },
         { href: '/dashboard/operator/cod', icon: 'cod' },
         { href: '/dashboard/operator/cash', icon: 'cash' },
+        { href: '/dashboard/operator/remittances', icon: 'remittances' },
       ],
     },
     {
@@ -286,6 +288,7 @@ export const NAV_SECTIONS: Record<Role, NavSection[]> = {
         { href: '/dashboard/manager/live-map', icon: 'map' },
         { href: '/dashboard/manager/cod', icon: 'cod' },
         { href: '/dashboard/manager/cash', icon: 'cash' },
+        { href: '/dashboard/manager/remittances', icon: 'remittances' },
         { href: '/dashboard/manager/payments', icon: 'payments' },
       ],
     },

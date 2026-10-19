@@ -460,7 +460,8 @@
     "status": {
       "pending": "Awaiting confirmation",
       "confirmed": "Confirmed",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "disputed": "Disputed"
     },
     "methods": {
       "cash": "Cash",
@@ -501,7 +502,8 @@
         "recorded": "Recorded"
       },
       "decidedBy": "By {name}, {date}",
-      "recordedBy": "By {name}, {date}"
+      "recordedBy": "By {name}, {date}",
+      "split": "COD {cod} · fees {fee}"
     },
     "collections": {
       "title": "Cash collections",
@@ -528,6 +530,8 @@
       "notesTooLong": "Keep the notes under 500 characters",
       "rejectReason": "Give a reason for rejecting it",
       "moreThanOwed": "That’s more than the driver can remit right now"
-    }
+    },
+    "operatorRecordNote": "Drivers submit their cash and you confirm it when you count it.",
+    "operatorRecordLink": "Open Cash Remittances"
   }
 }

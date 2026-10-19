@@ -139,7 +139,8 @@
     "removeTitle": "Remove this shipment?",
     "removeDescription": "{pickup} → {dropoff} will be taken out of this booking.",
     "keepIt": "Keep it",
-    "removeShipment": "Remove shipment"
+    "removeShipment": "Remove shipment",
+    "cashOnly": "Card payments are unavailable for now. The delivery fee is paid in cash."
   },
   "errors": {
     "sameLocation": "Pickup and delivery are the same place. Choose a different delivery address.",
@@ -160,7 +161,8 @@
     "cannotCancel": "This delivery can no longer be cancelled",
     "invalidRow": "Invalid row",
     "guestDetailsFirst": "Enter the customer’s name and phone number first.",
-    "guestCashOnly": "Bookings for customers without an account are paid in cash."
+    "guestCashOnly": "Bookings for customers without an account are paid in cash.",
+    "cardUnavailable": "Card payments are turned off. Choose cash."
   },
   "validation": {
     "chooseLocation": "Please select a valid pickup or delivery location.",

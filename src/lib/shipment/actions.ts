@@ -9,6 +9,7 @@ import { verifyTurnstile } from '@/lib/security/turnstile';
 import { RATE_LIMIT_MESSAGE, checkIpRateLimit, checkRateLimit } from '@/lib/security/rate-limit';
 import { getShipmentTracking } from '@/services/tracking/get-shipment-tracking';
 import { createBooking, createGuestBooking } from '@/services/shipments/create-booking';
+import { assertPaymentMethodAllowed } from '@/lib/payments';
 import { scheduleOperatorBookingEmails } from '@/services/notifications/operator-booking-emails';
 import {
   guestCustomerSchema,
@@ -80,6 +81,11 @@ const runBooking = async (
           : message,
     };
   }
+
+  // Cash only while card payments are off (lib/payments), whatever the
+  // browser offered; the database refuses it again (migration 0048).
+  const paymentError = assertPaymentMethodAllowed(parsed.data.paymentMethod);
+  if (paymentError) return { success: false, error: paymentError };
 
   try {
     const outcome = await book(parsed.data);
@@ -208,6 +214,20 @@ export const findMyShipmentByCodeAction = async (input: TrackingLookupInput): Pr
 
   if (!data) return { success: false, error: 'tracking.errors.notYours' };
   return { success: true, shipmentId: data.id };
+};
+
+// A card shipment still waiting for a payment that can't be taken (card
+// payments are off) moves to cash and is confirmed for dispatch.
+// switch_shipment_to_cash() (migration 0048) re-checks that the caller is
+// its customer or staff, that it is still waiting and that no card payment
+// exists; the fee stays unpaid until the driver collects it in cash.
+export const switchToCashAction = async (shipmentId: string): Promise<{ success: true } | { success: false; error: string }> => {
+  await requireRole('customer', 'operator', 'manager');
+  if (!isUuid(shipmentId)) return { success: false, error: 'booking.errors.cancelNotFound' };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('switch_shipment_to_cash', { p_shipment_id: shipmentId });
+  if (error) return { success: false, error: safeErrorMessage(error) };
+  return { success: true };
 };
 
 const CANCELLABLE_STATUSES: Shipment['status'][] = ['pending_payment', 'confirmed', 'assigned', 'driver_accepted'];

@@ -75,6 +75,34 @@ const RULES: Rule[] = [
     body: /^The delivery price for (\S+) changed from AED ([\d.]+) to AED ([\d.]+)\.$/,
     values: (match) => ({ code: match[1], from: match[2], to: match[3] }),
   },
+  // Cash only and weekly remittances (migration 0048).
+  { type: 'shipment.switched_to_cash', key: 'switchedToCash', body: /^(\S+) will be paid in cash and is waiting for a driver\.$/, values: code },
+  ...(['driver', 'operator'] as const).flatMap((level): Rule[] => [
+    {
+      type: `cash.${level}_remittance_submitted`,
+      key: level === 'driver' ? 'driverRemittanceSubmitted' : 'operatorRemittanceSubmitted',
+      body: /^([\s\S]+) submitted (\S+) \(AED ([\d.]+)\) — confirm it when you receive the cash\.$/,
+      values: (match) => ({ name: match[1], number: match[2], amount: match[3] }),
+    },
+    {
+      type: `cash.${level}_remittance_confirmed`,
+      key: 'remittanceConfirmed',
+      body: /^(\S+) \(AED ([\d.]+)\) was confirmed by ([\s\S]+)\.$/,
+      values: (match) => ({ number: match[1], amount: match[2], name: match[3] }),
+    },
+    {
+      type: `cash.${level}_remittance_discrepancy`,
+      key: 'remittanceDiscrepancy',
+      body: /^(\S+): ([\s\S]+) counted AED ([\d.]+) of AED ([\d.]+)\. The difference stays on your balance\.$/,
+      values: (match) => ({ number: match[1], name: match[2], counted: match[3], submitted: match[4] }),
+    },
+    {
+      type: `cash.${level}_remittance_disputed`,
+      key: 'remittanceDisputed',
+      body: /^(\S+) was disputed by ([\s\S]+)\. The amount stays on your balance\.$/,
+      values: (match) => ({ number: match[1], name: match[2] }),
+    },
+  ]),
   { type: 'shipment.returned', key: 'returned', body: /^(\S+) is being returned to the sender\.$/, values: code },
   {
     type: 'shipment.returned',
@@ -163,6 +191,10 @@ const RULES: Rule[] = [
     values: (match) => ({ amount: match[1], number: match[2] }),
   },
 ];
+
+// Every key a stored notification can map to: each needs a title and a
+// body under notifications.types in every language (checked in the tests).
+export const NOTIFICATION_KEYS: readonly string[] = [...new Set(RULES.map((rule) => rule.key))];
 
 export const localizeNotification = (notification: StoredNotification): LocalizedNotification | null => {
   for (const rule of RULES) {

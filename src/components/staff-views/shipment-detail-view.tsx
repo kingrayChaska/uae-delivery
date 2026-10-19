@@ -11,6 +11,8 @@ import MarkReturnedButton from '@/components/operator/mark-returned-button';
 import CorrectStatusButton from '@/components/operator/correct-status-button';
 import EditPriceButton from '@/components/operator/edit-price-button';
 import StaffCancelShipmentButton from '@/components/operator/staff-cancel-shipment-button';
+import SwitchToCashButton from '@/components/shipment/switch-to-cash-button';
+import { awaitingCardPayment } from '@/lib/shipment/collection';
 import RealtimeRefresh from '@/components/dashboard/realtime-refresh';
 import Badge from '@/components/ui/badge';
 import ReassignDriverSection from '@/components/operator/reassign-driver-section';
@@ -120,6 +122,8 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
           ) : null}
         </div>
       </div>
+
+      {awaitingCardPayment(shipment) ? <SwitchToCashButton shipmentId={shipment.id} /> : null}
 
       {refundOutstanding ? (
         <p role="status" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">

@@ -27,7 +27,7 @@ import {
   validateBookingLocations,
 } from "@/lib/shipment/booking-guards";
 import { tripKey } from "@/lib/shipment/trip-key";
-import { DELIVERY_TYPES, PAYMENT_METHODS } from "@/lib/types";
+import { DELIVERY_TYPES } from "@/lib/types";
 
 import type {
   BookingShipmentInput,
@@ -131,10 +131,13 @@ type UseBookingWizardOptions = {
   paymentMethods?: readonly PaymentMethod[];
 };
 
+const CASH_ONLY: readonly PaymentMethod[] = ["cod"];
+
 export const useBookingWizard = ({
   rules,
   accountType,
-  paymentMethods = PAYMENT_METHODS,
+  // Cash unless the page says card payments are on (lib/payments).
+  paymentMethods = CASH_ONLY,
   onSubmit,
   getSuccessPath,
   validateBeforeSubmit,
@@ -166,7 +169,7 @@ export const useBookingWizard = ({
     Record<string, ServiceArea>
   >({});
   const coverageRequested = useRef(new Set<string>());
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(paymentMethods[0] ?? "card");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(paymentMethods[0] ?? "cod");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastAddedKey, setLastAddedKey] = useState<string | null>(null);

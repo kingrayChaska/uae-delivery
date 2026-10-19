@@ -206,6 +206,20 @@ export const DATABASE_MESSAGES: Record<string, string> = {
   "Returned shipments can't be cancelled": "errors.db.cancelReturned",
   "This shipment is already cancelled": "errors.db.cancelAlready",
   "Cancel shipments with the Cancel shipment action": "errors.db.cancelDirectUpdate",
+  // Cash only and weekly remittances (0048)
+  "Card payments are turned off. Choose cash.": "errors.db.cardPaymentsOff",
+  "Only a shipment still waiting for its card payment can switch to cash": "errors.db.switchNotWaiting",
+  "This shipment already has a card payment, so it can't switch to cash": "errors.db.switchAlreadyPaid",
+  "Enter an amount of AED 0 or more": "errors.db.cashAmount",
+  "Only drivers can submit a cash remittance": "errors.db.cashDriverOnly",
+  "A manager decides remittances recorded by staff": "errors.db.cashStaffRecorded",
+  "This remittance was already disputed": "errors.db.cashAlreadyDisputed",
+  "You can't confirm more than the driver submitted": "errors.db.cashMoreThanSubmitted",
+  "You can't confirm more than the operator submitted": "errors.db.cashMoreThanSubmitted",
+  "Explain the difference (at least 5 characters)": "errors.db.cashDiscrepancyReason",
+  "Give a reason for the dispute (5 to 500 characters)": "errors.db.cashDisputeReason",
+  "Only operators can submit a remittance to the manager": "errors.db.cashOperatorOnly",
+  "Only a manager can confirm an operator's remittance": "errors.db.cashManagerOnly",
 };
 
 // Messages that carry values (RAISE EXCEPTION '... %', value).
@@ -252,11 +266,27 @@ const DATABASE_PATTERNS: [RegExp, (match: RegExpMatchArray) => string][] = [
       msg("errors.db.remittanceTooLarge", { outstanding, pending }),
   ],
   [
+    /^This is more COD than you hold: AED ([\d.]+) available$/,
+    ([, amount]) => msg("errors.db.cashMoreCod", { amount }),
+  ],
+  [
+    /^This is more in delivery fees than you hold: AED ([\d.]+) available$/,
+    ([, amount]) => msg("errors.db.cashMoreFee", { amount }),
+  ],
+  [
+    /^This is more than you hold: AED ([\d.]+) available$/,
+    ([, amount]) => msg("errors.db.cashMoreTotal", { amount }),
+  ],
+  [
+    /^This is more than the operator now holds \(AED ([\d.]+)\)$/,
+    ([, amount]) => msg("errors.db.cashOperatorNowHolds", { amount }),
+  ],
+  [
     /^This is more than the driver now owes \(AED ([\d.]+)\)$/,
     ([, outstanding]) => msg("errors.db.remittanceTooLargeNow", { outstanding }),
   ],
   [
-    /^This remittance was already (confirmed|rejected)$/,
+    /^This remittance was already (confirmed|rejected|disputed)$/,
     ([, status]) =>
       msg("errors.db.remittanceAlreadyDecided", {
         status: ref(`operator.cash.status.${status}`),

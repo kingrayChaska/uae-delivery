@@ -263,7 +263,15 @@ export const listDriverCollections = async (
 
 export type RemittanceRecord = {
   id: string;
+  // DRM-YYYY-NNNNNN (migration 0048).
+  number: string;
+  // 'driver' = the driver submitted it (an operator counts it); 'staff' =
+  // recorded by staff (0042, a manager decides).
+  source: 'driver' | 'staff';
   amount: number;
+  // The COD / delivery-fee split; null on staff-recorded remittances.
+  codAmount: number | null;
+  feeAmount: number | null;
   currency: string;
   method: RemittanceMethod;
   reference: string | null;
@@ -279,7 +287,11 @@ export type RemittanceRecord = {
 
 type RemittanceRow = {
   id: string;
+  remittance_number: string;
+  source: 'driver' | 'staff';
   amount: number | string;
+  cod_amount: number | string | null;
+  fee_amount: number | string | null;
   currency: string;
   method: RemittanceMethod;
   reference: string | null;
@@ -306,7 +318,7 @@ export const listDriverRemittances = async (
   let query = supabase
     .from('driver_cash_remittances')
     .select(
-      'id, amount, currency, method, reference, notes, received_on, status, decided_at, decision_note, created_at, recorder:profiles!driver_cash_remittances_recorded_by_fkey(full_name), decider:profiles!driver_cash_remittances_decided_by_fkey(full_name)',
+      'id, remittance_number, source, amount, cod_amount, fee_amount, currency, method, reference, notes, received_on, status, decided_at, decision_note, created_at, recorder:profiles!driver_cash_remittances_recorded_by_fkey(full_name), decider:profiles!driver_cash_remittances_decided_by_fkey(full_name)',
       { count: 'exact' },
     )
     .eq('driver_id', driverId);
@@ -323,7 +335,11 @@ export const listDriverRemittances = async (
   const items = ((data ?? []) as RemittanceRow[]).map(
     (row): RemittanceRecord => ({
       id: row.id,
+      number: row.remittance_number,
+      source: row.source,
       amount: money(row.amount),
+      codAmount: row.cod_amount === null ? null : money(row.cod_amount),
+      feeAmount: row.fee_amount === null ? null : money(row.fee_amount),
       currency: row.currency,
       method: row.method,
       reference: row.reference,

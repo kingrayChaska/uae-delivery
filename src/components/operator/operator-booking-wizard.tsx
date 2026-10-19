@@ -25,6 +25,8 @@ type OperatorBookingWizardProps = {
   customers: CustomerOption[];
   basePath?: string;
   initialFor?: BookingFor;
+  // From the server (lib/payments): cash only while card payments are off.
+  paymentMethods?: readonly PaymentMethod[];
 };
 
 // A customer with no account has nowhere to pay by card.
@@ -36,6 +38,7 @@ const OperatorBookingWizard = ({
   customers,
   basePath = '/dashboard/operator',
   initialFor = 'registered',
+  paymentMethods = GUEST_PAYMENT_METHODS,
 }: OperatorBookingWizardProps) => {
   const t = useTranslations('operator.booking');
   const ids = useId();
@@ -150,7 +153,7 @@ const OperatorBookingWizard = ({
       accountType={accountType}
       header={header}
       showPrices
-      paymentMethods={isGuest ? GUEST_PAYMENT_METHODS : undefined}
+      paymentMethods={isGuest ? GUEST_PAYMENT_METHODS : paymentMethods}
       validateBeforeSubmit={() =>
         isGuest ? validateGuest() : customerId ? null : 'booking.errors.selectCustomerFirst'
       }

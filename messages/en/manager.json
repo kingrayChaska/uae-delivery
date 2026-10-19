@@ -294,7 +294,8 @@
       "number": "{column} must be a number",
       "negative": "{column} cannot be negative",
       "tooLarge": "{column} is too large",
-      "row": "Invalid row"
+      "row": "Invalid row",
+      "cardUnavailable": "Card payments are turned off: use payment_method cod."
     }
   },
   "pricing": {

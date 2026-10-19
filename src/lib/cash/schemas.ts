@@ -8,7 +8,10 @@ import { COD_STATUSES } from '@/lib/types';
 export const REMITTANCE_METHODS = ['cash', 'bank_transfer', 'other'] as const;
 export type RemittanceMethod = (typeof REMITTANCE_METHODS)[number];
 
-export const REMITTANCE_STATUSES = ['pending', 'confirmed', 'rejected'] as const;
+// 'disputed' (migration 0048): a driver's submission an operator didn't
+// confirm as submitted. It never counts; what was counted, if anything, is
+// its own confirmed remittance.
+export const REMITTANCE_STATUSES = ['pending', 'confirmed', 'rejected', 'disputed'] as const;
 export type RemittanceStatus = (typeof REMITTANCE_STATUSES)[number];
 
 export const MAX_REMITTANCE_AMOUNT = 1_000_000;

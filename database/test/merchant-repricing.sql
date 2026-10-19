@@ -17,6 +17,11 @@ begin
   raise notice 'ok  %  -> %', label, actual;
 end $$;
 
+-- Written before card payments were turned off (migration 0048); its card
+-- fixtures stand for bookings made while they were on. cash-remittances.sql
+-- checks the cash-only rule itself.
+update payment_settings set card_payments_enabled = true;
+
 insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-0000000000f1', 'merchant-r@test.com', '{"full_name":"Merchant R","phone":"0501010101"}'),
   ('00000000-0000-0000-0000-0000000000f2', 'person-r@test.com', '{"full_name":"Person R","phone":"0502020202"}'),

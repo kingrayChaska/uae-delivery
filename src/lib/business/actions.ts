@@ -7,6 +7,7 @@ import { safeErrorMessage } from '@/lib/security/errors';
 import { msg } from '@/i18n/message';
 import { logAuditEvent } from '@/lib/audit/log';
 import { RATE_LIMIT_MESSAGE, checkRateLimit } from '@/lib/security/rate-limit';
+import { cardPaymentsEnabled } from '@/lib/payments';
 import { parseCsvWithHeaders } from '@/lib/csv/parse';
 import { createBatchShipments, finalizeBatch, openBatch } from '@/services/bulk/create-batch';
 import {
@@ -188,7 +189,13 @@ export const bulkCreateShipmentsAction = async (
     return { success: false, error: msg('manager.bulk.errors.tooMany', { max: BULK_MAX_ROWS, count: records.length }) };
   }
 
-  const validations = validateBulkRecords(records);
+  // Card rows fail on their own while card payments are off (lib/payments).
+  const cardOn = cardPaymentsEnabled();
+  const validations = validateBulkRecords(records).map((validation) =>
+    !cardOn && validation.row?.payment_method === 'card'
+      ? { ...validation, row: null, error: 'manager.bulk.validation.cardUnavailable' }
+      : validation,
+  );
 
   let batch;
   try {

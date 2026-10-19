@@ -66,8 +66,28 @@ The end-to-end suite found four bugs that every other check had passed — most 
 - Merchants upload a CSV at **Bulk Shipments** (`/dashboard/customer/bulk`). The server checks every row (address, coverage, route, price), the merchant reviews and fixes rows, then books them in one all-or-nothing step. Staff see the batches under **Bulk Shipments**, and can filter **Shipments** by batch (`?batch=<id>`).
 - **Background checking:** set `BULK_WORKER_SECRET` (a random string of 16+ characters, e.g. `openssl rand -hex 32`). Rows are then checked by `/api/internal/bulk-worker` even after the merchant closes the tab. Each run restarts itself until the batch is done. On Vercel, `CRON_SECRET` works too. You can also add a cron that GETs that route with `Authorization: Bearer <secret>` (for example every 5 minutes on plans that allow it) to resume a run that was cut short. Without a secret, the merchant's open review screen does all the checking, so they need to keep it open until it finishes. The worker calls the app at `NEXT_PUBLIC_APP_URL` (or Vercel's URL).
 - Google lookups for uploads are cached in `maps_cache` for a day and shared by every server instance. Driving routes are cached there for an hour, which also helps single bookings.
-- Card payment is not offered for bulk bookings until a real payment provider replaces the stub in `lib/payments` (see `cardPaymentsLive()`).
+- Card payment is not offered for bulk bookings (or anywhere else) while card payments are off — see **Payments: cash only** below.
 
+## Payments: cash only
+
+Card payments are **off** (migration `0048`). Customers, staff and merchant bulk bookings can only pay the delivery fee in cash. COD, prepaid and postpaid are unchanged.
+
+- **What exists:** no card gateway was ever live — `lib/payments` holds a stub provider that throws, and there is no checkout page, payment link, redirect or webhook route. Nothing to unplug; nothing new can be created.
+- **Two switches, both off:**
+  1. App: `CARD_PAYMENTS_ENABLED` (server-only; absent = off). `cardPaymentsEnabled()` in `lib/payments` is true only when it is `true` **and** a real provider replaces `stubProvider`. Every booking action (customer, staff on a customer's behalf, merchant bulk, manager CSV upload) refuses card while it is false, and the booking forms offer only Cash.
+  2. Database: `payment_settings.card_payments_enabled` (one row, default `false`, no client can write it). While false, the `shipments_enforce_cash_only` trigger refuses any client session — staff included — creating a card shipment or switching one to card, so a request that skips the app is refused too.
+- **Existing records are untouched:** `payments` rows, paid shipments, COD amounts, invoices and statements. A card booking made earlier and still `pending_payment` shows **Pay in cash instead** to its customer and to staff (`switch_shipment_to_cash()`): it becomes cash and is confirmed for dispatch; its fee stays unpaid until the driver collects it. A shipment with a card payment can't switch.
+- **Turning card payments back on (deliberately):** implement a provider in `lib/payments/providers/<name>.ts` and export it from `lib/payments/index.ts` (with its webhook route verifying the provider's signature — never trust a return URL or a client-sent status); set `PAYMENT_PROVIDER_API_KEY` / `PAYMENT_PROVIDER_WEBHOOK_SECRET` and `CARD_PAYMENTS_ENABLED=true` in the deployment; then, as an administrator in the Supabase SQL editor, `update payment_settings set card_payments_enabled = true;`. Configure the webhook URL in the provider's dashboard before enabling.
+
+## Weekly cash remittances
+
+Cash moves driver → operator → manager, and each step only counts once the receiver has counted the cash (migration `0048`).
+
+- **Drivers** (**Cash Remittance**, `/dashboard/driver/cash`): this week's collections (delivery fees and COD apart), what they submitted, what was confirmed, and what they still hold. **Submit remittance** reserves an amount (COD and fees separately, never more than they hold); it does not reduce the balance.
+- **Operators** (**Cash Remittances**, `/dashboard/operator/remittances`): count a driver's submission and **Confirm receipt** (the driver's balance goes down; the cash is now the operator's), or **Dispute** it. Counting less than submitted is recorded as a discrepancy — the submission stays as submitted, the counted cash is its own record, the difference stays with the driver. Operators then **Submit remittance to manager** the same way.
+- **Managers** (**Cash Remittances**, `/dashboard/manager/remittances`): confirm or dispute operators' submissions, see each operator's balance, and where all collected cash is (with drivers, with operators, with the manager).
+- Weeks run Monday–Sunday, Asia/Dubai. A new week starts a new summary; balances carry over. Nothing is ever edited or deleted.
+- Notifications are in-app only (no email/WhatsApp is configured for these).
 ## Staff shipment and cash dashboards
 
 - **Deploy order:** apply all pending files in `database/migrations/` in numeric order through `0043` before deploying the matching app code. The staff shipment list requires the guest-aware `staff_shipment_feed` and guest shipment columns from migration `0040`; the driver cash dashboard requires `driver_cash_summary`, `driver_cash_totals`, and the cash reconciliation schema from migration `0042`. If those migrations are missing, these pages show load errors instead of shipment rows or driver balances.

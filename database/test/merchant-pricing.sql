@@ -20,6 +20,11 @@ begin
 end $$;
 grant execute on function t_check(text, text, text) to authenticated;
 
+-- Written before card payments were turned off (migration 0048); its card
+-- fixtures stand for bookings made while they were on. cash-remittances.sql
+-- checks the cash-only rule itself.
+update payment_settings set card_payments_enabled = true;
+
 insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-0000000000e1', 'merchant@test.com', '{"full_name":"Merchant M","phone":"0501010101"}'),
   ('00000000-0000-0000-0000-0000000000e2', 'person@test.com', '{"full_name":"Person P","phone":"0502020202"}');

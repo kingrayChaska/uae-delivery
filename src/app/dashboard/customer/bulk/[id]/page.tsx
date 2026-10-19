@@ -12,8 +12,7 @@ import InvoiceButton from '@/components/invoices/invoice-button';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { isUuid } from '@/lib/security/validate';
 import { parsePage } from '@/lib/pagination';
-import { cardPaymentsLive } from '@/lib/payments';
-import { PAYMENT_METHODS } from '@/lib/types';
+import { availablePaymentMethods } from '@/lib/payments';
 import { getBatchDetail } from '@/services/bulk/list-batches';
 import { getMerchantBatch, listBatchRows, reconcileStaleBooking } from '@/services/bulk/merchant-bulk';
 import { getInvoiceNumberFor } from '@/services/invoices/get-invoice';
@@ -69,7 +68,7 @@ const MerchantBatchPage = async ({
           // Only the merchant who uploaded it can change or book it (the
           // server enforces this too); business colleagues can look.
           readOnly={batch.customerId !== profile.id}
-          paymentMethods={cardPaymentsLive() ? [...PAYMENT_METHODS] : ['cod']}
+          paymentMethods={availablePaymentMethods()}
         />
       </main>
     );

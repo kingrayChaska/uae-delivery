@@ -30,7 +30,8 @@
       "cash": "Driver Cash",
       "statements": "Account Reports",
       "performance": "Business Performance",
-      "expenses": "Expenses"
+      "expenses": "Expenses",
+      "remittances": "Cash Remittances"
     },
     "sections": {
       "account": "Account",

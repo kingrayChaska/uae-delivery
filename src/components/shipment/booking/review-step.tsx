@@ -24,6 +24,9 @@ import type { ShipmentDraft } from '@/lib/hooks/use-booking-wizard';
 import type { PaymentMethod } from '@/lib/types';
 
 const PAYMENT_METHOD_ICONS: Record<PaymentMethod, typeof CreditCard> = { card: CreditCard, cod: Banknote };
+// What a booking may use when the page doesn't say: card payments are off
+// unless the server turns them on (lib/payments).
+const CASH_ONLY: readonly PaymentMethod[] = ['cod'];
 
 const sr = (chunks: ReactNode) => <span className="sr-only">{chunks}</span>;
 
@@ -156,7 +159,7 @@ const ReviewStep = ({
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-1 text-lg font-semibold">{t('paymentTitle')}</legend>
         <div className="grid gap-3 sm:grid-cols-2">
-          {(paymentMethods ?? (Object.keys(PAYMENT_METHOD_ICONS) as PaymentMethod[])).map((method) => {
+          {(paymentMethods ?? CASH_ONLY).map((method) => {
             const Icon = PAYMENT_METHOD_ICONS[method];
             const selected = paymentMethod === method;
             return (
@@ -186,6 +189,7 @@ const ReviewStep = ({
           })}
         </div>
         {paymentMethod === 'card' ? <p className="text-sm text-muted-foreground">{t('cardNotLive')}</p> : null}
+        {!(paymentMethods ?? CASH_ONLY).includes('card') ? <p className="text-sm text-muted-foreground">{t('cashOnly')}</p> : null}
       </fieldset>
 
       <div className="rounded-2xl border-2 border-primary/20 bg-secondary/40 p-4 sm:p-5">
