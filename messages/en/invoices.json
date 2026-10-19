@@ -64,7 +64,8 @@
     "service": "Delivery service charge",
     "weight": "Weight charge",
     "cod": "Cash-on-delivery handling",
-    "deliveryServices": "Delivery services"
+    "deliveryServices": "Delivery services",
+    "adjustment": "Price adjustment"
   },
   "totals": {
     "subtotal": "Subtotal",

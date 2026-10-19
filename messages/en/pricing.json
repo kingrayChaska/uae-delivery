@@ -6,7 +6,8 @@
     "weight": "Weight (+{weight} over allowance)",
     "weightCharge": "Weight charge",
     "cod": "Cash-on-delivery handling",
-    "deliveryFee": "Delivery fee"
+    "deliveryFee": "Delivery fee",
+    "adjustment": "Price adjustment"
   },
   "calculator": {
     "service": "Delivery service",

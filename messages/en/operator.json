@@ -146,7 +146,101 @@
     "correctReason": "Reason for the correction",
     "correctReasonPlaceholder": "e.g. Driver marked In Transit before pickup",
     "correctAudit": "Your name, the reason and the time are recorded. The driver is notified.",
-    "correctConfirm": "Correct status"
+    "correctConfirm": "Correct status",
+    "refundOutstanding": "This shipment was cancelled after its {amount} delivery fee was paid. Cancelling doesn’t refund it — arrange the refund with the customer. The payment record is kept.",
+    "staffEvents": "Price changes and cancellation",
+    "priceChanged": "Price changed: {from} → {to}",
+    "cancelledEntry": "Cancelled by operations (was {status})",
+    "byStaff": "By {name}",
+    "invoicesVoided": "Invoice voided: {numbers}",
+    "refundFlag": "The delivery fee had been paid — refund not recorded here.",
+    "cashFlag": "The driver had collected {amount}; it stays in their cash balance.",
+    "editPrice": {
+      "button": "Edit price",
+      "title": "Edit delivery price",
+      "description": "Change the delivery service charge for this shipment. Weight and cash-on-delivery handling charges stay as calculated.",
+      "shipment": "Shipment ID",
+      "customer": "Customer",
+      "recipient": "Recipient",
+      "service": "Delivery service",
+      "accountType": {
+        "individual": "Individual",
+        "merchant": "Merchant",
+        "guest": "No account"
+      },
+      "serviceCharge": "Delivery service charge",
+      "weightCharge": "Weight charge",
+      "codCharge": "Cash-on-delivery handling",
+      "currentPrice": "Current delivery price",
+      "codAmount": "Collected from the recipient for the goods (not changed)",
+      "newServiceCharge": "New delivery service charge (AED)",
+      "hint": "Between AED 0 and {max}, up to two decimals.",
+      "to": "changes to",
+      "enterAmount": "Enter the new charge to see the new delivery price.",
+      "impact": {
+        "customer": "The customer sees the new price and is notified.",
+        "cashFee": "The driver will collect {amount} for the delivery fee from the sender.",
+        "codUnchanged": "The {amount} collected from the recipient for the goods doesn’t change.",
+        "invoice": "Invoice {number} is voided; the customer can issue a corrected one.",
+        "bulk": "Only this shipment changes — not the rest of its bulk booking."
+      },
+      "reason": "Reason for the change",
+      "reasonPlaceholder": "e.g. Agreed corporate rate",
+      "audit": "The old and new price, the reason, your name and the time are recorded.",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "saved": "Delivery price updated to {price}.",
+      "blockedTitle": "This price can’t be changed here",
+      "close": "Close",
+      "blocked": {
+        "closed": "Delivered, cancelled and returned shipments keep the price they were completed at.",
+        "fee_paid": "The delivery fee has already been paid. Changing it would need a refund or an extra charge, which ParcelLink can’t record yet.",
+        "fee_collected": "The driver has already collected the delivery fee in cash. Changing it would leave their cash records wrong.",
+        "on_statement": "This shipment is on a merchant statement. Correct the statement instead."
+      }
+    },
+    "cancel": {
+      "button": "Cancel shipment",
+      "title": "Cancel this shipment?",
+      "description": "Check the details below. Cancelling can’t be undone by an operator.",
+      "shipment": "Shipment ID",
+      "customer": "Customer",
+      "recipient": "Recipient",
+      "status": "Current status",
+      "driver": "Driver",
+      "noDriver": "Not assigned",
+      "consequences": {
+        "final": "The shipment is marked Cancelled. Only a manager can re-open it.",
+        "driver": "It leaves the driver’s deliveries and the driver is notified. Their assignment stays in the history.",
+        "noDriver": "It is removed from the dispatch queue.",
+        "customer": "The customer is notified that operations cancelled it.",
+        "bulk": "Only this shipment is cancelled — not the rest of its bulk booking."
+      },
+      "money": {
+        "feePaid": "The delivery fee was paid. Cancelling doesn’t refund it — arrange the refund separately. The payment record is kept.",
+        "cashCollected": "The driver has recorded collecting {amount} for this shipment. It stays in their cash balance until reconciled.",
+        "cashExpected": "The {amount} the driver was due to collect is no longer expected.",
+        "invoice": "Invoice {number} stays on record."
+      },
+      "reason": "Reason for cancelling",
+      "reasonPlaceholder": "e.g. Customer called to cancel",
+      "audit": "The reason, your name, the previous status and the time are recorded.",
+      "keep": "Keep shipment",
+      "confirm": "Confirm cancellation",
+      "cancelling": "Cancelling…",
+      "cancelled": "Shipment cancelled.",
+      "cancelledRefund": "Shipment cancelled. Its delivery fee was paid — arrange the refund.",
+      "blockedTitle": "This shipment can’t be cancelled",
+      "close": "Close",
+      "blocked": {
+        "picked_up": "The parcel has been picked up and is with the driver. The driver must return it to the sender instead.",
+        "delivery_failed": "This delivery failed. Mark it returned instead.",
+        "delivered": "Delivered shipments can’t be cancelled.",
+        "returned": "Returned shipments can’t be cancelled.",
+        "cancelled": "This shipment is already cancelled."
+      }
+    }
   },
   "customers": {
     "meta": "Customers · ParcelLink",
@@ -260,7 +354,13 @@
     "reason": "Enter a reason",
     "reasonTooLong": "Keep the reason under 500 characters.",
     "correctionStatus": "Choose the correct status",
-    "correctionReason": "Give a reason for the correction (at least 5 characters)"
+    "correctionReason": "Give a reason for the correction (at least 5 characters)",
+    "priceRequired": "Enter the new delivery service charge.",
+    "priceFormat": "Enter an amount like 25 or 25.50 — numbers only, up to two decimals.",
+    "priceRange": "Enter a charge between AED 0 and AED 10,000.",
+    "priceUnchanged": "That’s the current price. Enter a different amount.",
+    "priceReason": "Give a reason for the price change (at least 5 characters).",
+    "cancelReason": "Give a reason for cancelling (at least 5 characters)."
   },
   "errors": {
     "notFound": "Not found",

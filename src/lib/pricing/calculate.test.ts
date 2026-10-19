@@ -169,6 +169,13 @@ describe('calculateShipmentPrice — rounding', () => {
     expect(result.totalPrice).toBe(31.76);
   });
 
+  it('treats non-finite distance and weight as zero to prevent NaN/Infinity prices', () => {
+    const result = calculateShipmentPrice({ rule: SAME_DAY, distanceKm: Number.POSITIVE_INFINITY, weightKg: Number.NaN });
+    expect(result.distanceKm).toBe(0);
+    expect(result.weightKg).toBeNull();
+    expect(result.totalPrice).toBe(12);
+  });
+
   it('rounds half-fils up exactly like Postgres decimal math, without float drift', () => {
     // 5.03 extra km x 1.25 = 6.2875 -> 6.29 (float math gives 6.28749999...)
     expect(calculateShipmentPrice({ rule: { ...SAME_DAY, additionalPricePerKm: 1.25 }, distanceKm: 10.03 }).distanceCharge).toBe(6.29);

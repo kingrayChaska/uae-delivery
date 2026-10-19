@@ -6,7 +6,8 @@
     "weight": "الوزن (+{weight} فوق الحد المسموح)",
     "weightCharge": "رسوم الوزن",
     "cod": "رسوم الدفع عند الاستلام",
-    "deliveryFee": "رسوم التوصيل"
+    "deliveryFee": "رسوم التوصيل",
+    "adjustment": "تعديل السعر"
   },
   "calculator": {
     "service": "خدمة التوصيل",

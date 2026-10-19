@@ -64,7 +64,8 @@
     "service": "رسوم خدمة التوصيل",
     "weight": "رسوم الوزن",
     "cod": "رسوم الدفع عند الاستلام",
-    "deliveryServices": "خدمات التوصيل"
+    "deliveryServices": "خدمات التوصيل",
+    "adjustment": "تعديل السعر"
   },
   "totals": {
     "subtotal": "المجموع الفرعي",

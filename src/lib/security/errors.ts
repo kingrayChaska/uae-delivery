@@ -187,6 +187,25 @@ export const DATABASE_MESSAGES: Record<string, string> = {
   "A settlement can only be voided": "errors.db.settlementLocked",
   "Give a reason for voiding this payment (5 to 500 characters)": "errors.db.settlementVoidReason",
   "Payment not found": "errors.db.settlementNotFound",
+  // Staff price changes and cancellation (0046)
+  "Only operators and managers can change a shipment's price": "errors.db.priceStaffOnly",
+  "Enter a delivery charge between AED 0 and AED 10,000": "errors.db.priceRange",
+  "Give a reason for the price change (5 to 500 characters)": "errors.db.priceReason",
+  "The price is unchanged": "errors.db.priceUnchanged",
+  "This shipment changed since you opened it — reload and try again": "errors.db.staffChangedSinceOpened",
+  "A delivered, cancelled or returned shipment's price can't be changed": "errors.db.priceClosed",
+  "The delivery fee has already been paid, so the price can't be changed here": "errors.db.priceFeePaid",
+  "The driver has already collected the delivery fee, so the price can't be changed here": "errors.db.priceFeeCollected",
+  "This shipment is on a merchant statement, so the price can't be changed here": "errors.db.priceOnStatement",
+  "Prices can only be changed with the Edit price action": "errors.db.priceDirectUpdate",
+  "Only operators and managers can cancel a shipment here": "errors.db.cancelStaffOnly",
+  "Give a reason for the cancellation (5 to 500 characters)": "errors.db.cancelReason",
+  "This parcel has been picked up. The driver must return it to the sender instead": "errors.db.cancelPickedUp",
+  "This delivery failed. Mark it returned instead of cancelling it": "errors.db.cancelFailed",
+  "Delivered shipments can't be cancelled": "errors.db.cancelDelivered",
+  "Returned shipments can't be cancelled": "errors.db.cancelReturned",
+  "This shipment is already cancelled": "errors.db.cancelAlready",
+  "Cancel shipments with the Cancel shipment action": "errors.db.cancelDirectUpdate",
 };
 
 // Messages that carry values (RAISE EXCEPTION '... %', value).

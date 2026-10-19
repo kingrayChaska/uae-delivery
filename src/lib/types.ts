@@ -164,6 +164,9 @@ export type Shipment = {
   distanceCharge: number | null;
   weightCharge: number | null;
   codCharge: number | null;
+  // What operations changed the calculated price by (migration 0046):
+  // price = calculated charges + priceAdjustment. 0 when never changed.
+  priceAdjustment: number;
   businessAccountId: string | null;
   batchId: string | null;
   // The bulk batch it was booked in (BLK-…), when the viewer may see it.

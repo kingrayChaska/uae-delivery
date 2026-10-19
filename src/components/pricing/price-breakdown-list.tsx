@@ -10,6 +10,9 @@ type PriceBreakdownListProps = {
   distanceCharge: number | null;
   weightCharge: number | null;
   codCharge: number | null;
+  // A change operations made to the calculated price (migration 0046);
+  // negative for a discount.
+  adjustment?: number;
   // Optional detail for the labels ("Distance (+9.6 km)").
   additionalDistanceKm?: number;
   additionalWeightKg?: number;
@@ -27,6 +30,7 @@ const PriceBreakdownList = ({
   distanceCharge,
   weightCharge,
   codCharge,
+  adjustment = 0,
   additionalDistanceKm,
   additionalWeightKg,
   totalLabel,
@@ -43,6 +47,7 @@ const PriceBreakdownList = ({
     rows.push([additionalWeightKg ? t('weight', { weight: format.kg(additionalWeightKg, 1) }) : t('weightCharge'), weightCharge]);
   }
   if (codCharge) rows.push([t('cod'), codCharge]);
+  if (adjustment) rows.push([t('adjustment'), adjustment]);
 
   return (
     <dl className={cn('flex flex-col gap-1.5 font-brand-mono text-sm', className)}>

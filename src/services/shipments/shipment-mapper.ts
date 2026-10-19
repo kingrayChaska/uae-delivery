@@ -44,6 +44,8 @@ export type ShipmentRow = {
   distance_charge: number | string | null;
   weight_charge: number | string | null;
   cod_charge: number | string | null;
+  // Staff price change on top of the calculated charges (migration 0046).
+  price_adjustment?: number | string | null;
   business_account_id: string | null;
   batch_id: string | null;
   delivery_date: string | null;
@@ -116,6 +118,7 @@ export const mapRowToShipment = (row: ShipmentRow): Shipment => ({
   distanceCharge: numOrNull(row.distance_charge),
   weightCharge: numOrNull(row.weight_charge),
   codCharge: numOrNull(row.cod_charge),
+  priceAdjustment: num(row.price_adjustment ?? 0),
   businessAccountId: row.business_account_id,
   batchId: row.batch_id,
   batchReference: (Array.isArray(row.batch) ? row.batch[0]?.reference : row.batch?.reference) ?? null,
@@ -135,4 +138,4 @@ export const mapRowToShipment = (row: ShipmentRow): Shipment => ({
 });
 
 export const SHIPMENT_SELECT_COLUMNS =
-  'id, tracking_number, customer_id, booked_by, guest_customer_name, guest_customer_phone, driver_id, status, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone, dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone, pickup_building, pickup_unit, pickup_floor, pickup_instructions, pickup_place, dropoff_building, dropoff_unit, dropoff_floor, dropoff_instructions, dropoff_place, distance_km, duration_minutes, price, currency, payment_method, payment_status, delivery_type, recipient_payment_type, cod_amount, product_value, base_charge, distance_charge, weight_charge, cod_charge, business_account_id, batch_id, delivery_date, batch:shipment_batches(reference), package_type, package_description, package_quantity, package_weight_kg, package_length_cm, package_width_cm, package_height_cm, is_fragile, package_image_url, cancelled_reason, delivery_failed_reason, created_at, updated_at';
+  'id, tracking_number, customer_id, booked_by, guest_customer_name, guest_customer_phone, driver_id, status, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone, dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone, pickup_building, pickup_unit, pickup_floor, pickup_instructions, pickup_place, dropoff_building, dropoff_unit, dropoff_floor, dropoff_instructions, dropoff_place, distance_km, duration_minutes, price, currency, payment_method, payment_status, delivery_type, recipient_payment_type, cod_amount, product_value, base_charge, distance_charge, weight_charge, cod_charge, price_adjustment, business_account_id, batch_id, delivery_date, batch:shipment_batches(reference), package_type, package_description, package_quantity, package_weight_kg, package_length_cm, package_width_cm, package_height_cm, is_fragile, package_image_url, cancelled_reason, delivery_failed_reason, created_at, updated_at';

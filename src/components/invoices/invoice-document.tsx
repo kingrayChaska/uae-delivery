@@ -93,6 +93,13 @@ const ShipmentCharges = ({ line, format }: { line: InvoiceLine; format: Format }
           [t('distance'), line.distanceCharge],
         ]
       : [[t('service'), line.serviceCharge]];
+  // A price changed by operations (migration 0046) bills a service charge
+  // that differs from base + distance; the difference is its own line.
+  if (line.baseCharge !== null && line.distanceCharge !== null) {
+    const adjustmentFils =
+      Math.round(line.serviceCharge * 100) - Math.round(line.baseCharge * 100) - Math.round(line.distanceCharge * 100);
+    if (adjustmentFils !== 0) rows.push([t('adjustment'), adjustmentFils / 100]);
+  }
   if (line.weightCharge > 0) rows.push([t('weight'), line.weightCharge]);
   if (line.codCharge > 0) rows.push([t('cod'), line.codCharge]);
 

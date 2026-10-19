@@ -128,5 +128,17 @@
       "title": "تم تسجيل دفعة على الكشف",
       "body": "سُجّلت دفعتك بقيمة {amount} على الكشف {number}."
     }
+  },
+  "priceAdjusted": {
+    "title": "تم تحديث سعر التوصيل",
+    "body": "تغيّر سعر توصيل الشحنة {code} من {from} درهم إلى {to} درهم."
+  },
+  "cancelledByOperations": {
+    "title": "أُلغيت الشحنة",
+    "body": "ألغى فريق عمليات ParcelLink الشحنة {code}."
+  },
+  "cancelledByOperationsDriver": {
+    "title": "أُلغي التوصيل",
+    "body": "ألغى فريق العمليات الشحنة {code} ولم تعد ضمن توصيلاتك."
   }
 }

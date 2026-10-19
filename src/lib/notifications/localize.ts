@@ -56,6 +56,25 @@ const RULES: Rule[] = [
     body: /^(\S+) was cancelled by the driver before pickup\.$/,
     values: code,
   },
+  // Cancelled and repriced by operations (migration 0046).
+  {
+    type: 'shipment.cancelled_by_operations',
+    key: 'cancelledByOperations',
+    body: /^(\S+) was cancelled by ParcelLink operations\.$/,
+    values: code,
+  },
+  {
+    type: 'shipment.cancelled_by_operations',
+    key: 'cancelledByOperationsDriver',
+    body: /^(\S+) was cancelled by operations and is no longer on your deliveries\.$/,
+    values: code,
+  },
+  {
+    type: 'shipment.price_adjusted',
+    key: 'priceAdjusted',
+    body: /^The delivery price for (\S+) changed from AED ([\d.]+) to AED ([\d.]+)\.$/,
+    values: (match) => ({ code: match[1], from: match[2], to: match[3] }),
+  },
   { type: 'shipment.returned', key: 'returned', body: /^(\S+) is being returned to the sender\.$/, values: code },
   {
     type: 'shipment.returned',

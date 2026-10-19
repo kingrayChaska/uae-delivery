@@ -38,6 +38,7 @@ const ShipmentChargesCard = ({ shipment }: { shipment: Shipment }) => {
           distanceCharge={shipment.distanceCharge}
           weightCharge={shipment.weightCharge}
           codCharge={shipment.codCharge}
+          adjustment={shipment.priceAdjustment}
         />
 
         <dl className="grid gap-3 border-t pt-4 sm:grid-cols-2">

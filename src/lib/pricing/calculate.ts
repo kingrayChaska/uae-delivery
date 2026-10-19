@@ -19,9 +19,10 @@ import type { PriceBreakdown, PricingRule, RecipientPaymentType } from '@/lib/ty
 // (numeric(7,2) / numeric(8,2)), because the database re-derives it from
 // the stored values — pricing an unrounded 24.7639 km while storing 24.76
 // once made those disagree and every booking was rejected (Phase 13).
-const toHundredths = (value: number) => Math.round(value * 100);
+const toHundredths = (value: number) => (Number.isFinite(value) ? Math.round(value * 100) : 0);
 
-export const billableDistanceKm = (distanceKm: number) => toHundredths(Math.max(0, distanceKm)) / 100;
+export const billableDistanceKm = (distanceKm: number) =>
+  Number.isFinite(distanceKm) ? toHundredths(Math.max(0, distanceKm)) / 100 : 0;
 
 // Rounded the way the numeric(8,2) weight column stores it.
 export const billableWeightKg = (weightKg: number | null | undefined) =>
@@ -29,8 +30,10 @@ export const billableWeightKg = (weightKg: number | null | undefined) =>
 
 // hundredths x hundredths = ten-thousandths; +50 then integer-divide by 100
 // rounds half up to fils.
-const chargeFils = (excessHundredths: number, ratePerUnit: number) =>
-  Math.floor((excessHundredths * toHundredths(ratePerUnit) + 50) / 100);
+const chargeFils = (excessHundredths: number, ratePerUnit: number) => {
+  if (!Number.isFinite(excessHundredths) || !Number.isFinite(ratePerUnit)) return 0;
+  return Math.floor((excessHundredths * toHundredths(ratePerUnit) + 50) / 100);
+};
 
 export type PriceInput = {
   rule: PricingRule;

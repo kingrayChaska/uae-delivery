@@ -9,6 +9,8 @@ import ShipmentStatusBadge from '@/components/shipment/shipment-status-badge';
 import RouteMap from '@/components/maps/lazy-route-map';
 import MarkReturnedButton from '@/components/operator/mark-returned-button';
 import CorrectStatusButton from '@/components/operator/correct-status-button';
+import EditPriceButton from '@/components/operator/edit-price-button';
+import StaffCancelShipmentButton from '@/components/operator/staff-cancel-shipment-button';
 import RealtimeRefresh from '@/components/dashboard/realtime-refresh';
 import Badge from '@/components/ui/badge';
 import ReassignDriverSection from '@/components/operator/reassign-driver-section';
@@ -18,7 +20,8 @@ import TrackingCode from '@/components/shipment/tracking-code';
 import { getShipmentDetail } from '@/services/shipments/get-shipment';
 import { getProofOfDelivery } from '@/services/shipments/get-proof-of-delivery';
 import { getOutcomeProof } from '@/services/shipments/get-outcome-proof';
-import { getProfileName } from '@/services/profiles/get-profile-name';
+import { getProfileAccountType, getProfileName } from '@/services/profiles/get-profile-name';
+import { getStaffActionContext, listStaffShipmentEvents } from '@/services/shipments/get-staff-actions';
 import { getBatchLabel } from '@/services/bulk/list-batches';
 import { getInvoiceNumberFor } from '@/services/invoices/get-invoice';
 import { getCurrentProfile } from '@/lib/auth/session';
@@ -32,7 +35,10 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
   if (!detail) notFound();
 
   const { shipment, history } = detail;
-  const [viewer, driverName, customerName, bookedByName, batch, proof, outcomeProof, t, tShipments, tInvoices, format, invoiceNumber] = await Promise.all([
+  const [
+    viewer, driverName, customerName, bookedByName, batch, proof, outcomeProof, t, tShipments, tInvoices, format, invoiceNumber,
+    actionContext, staffEvents, accountType,
+  ] = await Promise.all([
     getCurrentProfile(),
     getProfileName(shipment.driverId),
     getProfileName(shipment.customerId),
@@ -48,6 +54,10 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
     getFormat(),
     // Staff can read invoices but never issue them (migration 0031).
     getInvoiceNumberFor({ shipmentId: shipment.id }),
+    // Price changes and cancellation by operations (migration 0046).
+    getStaffActionContext(shipment.id),
+    listStaffShipmentEvents(shipment.id),
+    getProfileAccountType(shipment.customerId),
   ]);
 
   // Why it ended without a delivery: cancelled (by the customer, staff or —
@@ -65,6 +75,12 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
     isManager: viewer?.role === 'manager',
     hasDriver: shipment.driverId !== null,
   });
+  // Delivered, cancelled and returned shipments offer neither; a paid or
+  // collected fee and a picked-up parcel offer the button, which explains why not.
+  const canOfferPriceEdit = actionContext !== null && actionContext.priceEditBlock !== 'closed';
+  const canOfferCancel = actionContext !== null && (actionContext.cancelBlock === null || actionContext.cancelBlock === 'picked_up');
+  // Cancelling never refunds: a paid fee on a cancelled shipment is still owed back.
+  const refundOutstanding = shipment.status === 'cancelled' && shipment.paymentStatus === 'paid';
   const packageDetails = [
     t('packageLine', { quantity: format.number(shipment.packageQuantity), description: shipment.packageDescription }),
     shipment.packageWeightKg ? format.kg(shipment.packageWeightKg) : null,
@@ -96,8 +112,20 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
           {correctTo.length > 0 ? (
             <CorrectStatusButton shipmentId={shipment.id} currentStatus={shipment.status} targets={correctTo} />
           ) : null}
+          {canOfferPriceEdit && actionContext ? (
+            <EditPriceButton shipment={shipment} customerName={customerName} accountType={accountType} context={actionContext} />
+          ) : null}
+          {canOfferCancel && actionContext ? (
+            <StaffCancelShipmentButton shipment={shipment} customerName={customerName} driverName={driverName} context={actionContext} />
+          ) : null}
         </div>
       </div>
+
+      {refundOutstanding ? (
+        <p role="status" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
+          {t('refundOutstanding', { amount: format.money(shipment.price, shipment.currency) })}
+        </p>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="flex flex-col gap-4">
@@ -193,6 +221,44 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
                   mode={canAssign ? 'assign' : 'reassign'}
                   currentDriverId={shipment.driverId}
                 />
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {staffEvents.length > 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="mb-2 text-sm font-medium">{t('staffEvents')}</p>
+                <ul className="flex flex-col gap-2 text-sm">
+                  {staffEvents.map((event, index) => (
+                    <li key={`${index}-${event.createdAt}`} className="flex flex-col gap-0.5 rounded-md bg-secondary/60 px-2 py-1.5">
+                      <span className="flex flex-wrap justify-between gap-x-4">
+                        <span>
+                          {event.kind === 'price'
+                            ? t('priceChanged', {
+                                from: format.money(event.previousPrice, shipment.currency),
+                                to: format.money(event.newPrice, shipment.currency),
+                              })
+                            : t('cancelledEntry', { status: tShipments(`status.${event.previousStatus}`) })}
+                        </span>
+                        <span className="font-brand-mono">{format.dateTime(event.createdAt)}</span>
+                      </span>
+                      <span className="text-muted-foreground">{t('byStaff', { name: event.actorName ?? '—' })}</span>
+                      {event.reason ? <span className="wrap-break-word">{event.reason}</span> : null}
+                      {event.kind === 'price' && event.voidedInvoices.length > 0 ? (
+                        <span className="text-muted-foreground">{t('invoicesVoided', { numbers: event.voidedInvoices.join(', ') })}</span>
+                      ) : null}
+                      {event.kind === 'cancel' && event.refundRequired ? (
+                        <span className="text-destructive">{t('refundFlag')}</span>
+                      ) : null}
+                      {event.kind === 'cancel' && event.cashCollected > 0 ? (
+                        <span className="text-muted-foreground">
+                          {t('cashFlag', { amount: format.money(event.cashCollected, shipment.currency) })}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
               </CardContent>
             </Card>
           ) : null}

@@ -9,8 +9,10 @@ import { safeErrorMessage } from '@/lib/security/errors';
 import { logAuditEvent } from '@/lib/audit/log';
 import { listAvailableDrivers } from '@/services/drivers/list-available-drivers';
 import { statusCorrectionSchema } from '@/lib/shipment/status-corrections';
+import { priceEditSchema, staffCancelSchema } from '@/lib/shipment/staff-actions';
 
 import type { StatusCorrectionInput } from '@/lib/shipment/status-corrections';
+import type { PriceEditInput, PriceEditResult, StaffCancelInput, StaffCancelResult } from '@/lib/shipment/staff-actions';
 
 export type DispatchActionResult = { success: true } | { success: false; error: string };
 
@@ -186,6 +188,63 @@ export const correctShipmentStatusAction = async (input: StatusCorrectionInput):
   if (error) return { success: false, error: safeErrorMessage(error) };
 
   return { success: true };
+};
+
+// Changes a booked shipment's delivery service charge (migration 0046).
+// staff_adjust_shipment_price() is the real gate: it re-checks the caller's
+// role from the session, refuses a status or price the operator didn't see,
+// shipments whose fee was paid, collected or reported, and a repeat of the
+// same request; then updates the driver's expected cash, voids a stale
+// invoice, notifies the customer and audits — in one transaction. Only the
+// service charge travels; the new total is worked out in the database.
+export const adjustShipmentPriceAction = async (
+  input: PriceEditInput,
+): Promise<{ success: true; data: PriceEditResult } | { success: false; error: string }> => {
+  await requireRole('operator', 'manager');
+  const parsed = priceEditSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('staff_adjust_shipment_price', {
+    p_shipment_id: parsed.data.shipmentId,
+    p_expected_status: parsed.data.expectedStatus,
+    p_expected_price: parsed.data.expectedPrice,
+    p_new_service_charge: parsed.data.serviceCharge,
+    p_reason: parsed.data.reason,
+    p_request_id: parsed.data.requestId,
+  });
+  if (error) return { success: false, error: safeErrorMessage(error) };
+
+  const result = (data ?? {}) as { price?: number | string; voidedInvoices?: string[] };
+  return { success: true, data: { price: Number(result.price), voidedInvoices: result.voidedInvoices ?? [] } };
+};
+
+// Cancels a shipment on operations' authority (migration 0046). The status
+// the operator saw goes with the request; staff_cancel_shipment() refuses
+// anything that has moved on (a driver picking it up meanwhile), picked-up,
+// failed and closed shipments, and returns the first result for a repeated
+// request — so a double submit can't notify anyone twice.
+export const staffCancelShipmentAction = async (
+  input: StaffCancelInput,
+): Promise<{ success: true; data: StaffCancelResult } | { success: false; error: string }> => {
+  await requireRole('operator', 'manager');
+  const parsed = staffCancelSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('staff_cancel_shipment', {
+    p_shipment_id: parsed.data.shipmentId,
+    p_expected_status: parsed.data.expectedStatus,
+    p_reason: parsed.data.reason,
+    p_request_id: parsed.data.requestId,
+  });
+  if (error) return { success: false, error: safeErrorMessage(error) };
+
+  const result = (data ?? {}) as { refundRequired?: boolean; cashCollected?: number | string };
+  return {
+    success: true,
+    data: { refundRequired: result.refundRequired === true, cashCollected: Number(result.cashCollected ?? 0) },
+  };
 };
 
 export const getAvailableDriversAction = async (pickup: { lat: number; lng: number }) => {

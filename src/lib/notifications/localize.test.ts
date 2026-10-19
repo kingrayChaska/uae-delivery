@@ -48,6 +48,24 @@ describe('localizeNotification', () => {
     ).toBe('returnedStaff');
   });
 
+  it('reads cancellations and price changes by operations (0046)', () => {
+    const read = (type: string, title: string, body: string) => localizeNotification({ type, title, body });
+    expect(read('shipment.cancelled_by_operations', 'Shipment cancelled', 'PL7K29X4 was cancelled by ParcelLink operations.')).toEqual({
+      key: 'cancelledByOperations',
+      values: { code: 'PL7K29X4' },
+    });
+    expect(
+      read(
+        'shipment.cancelled_by_operations',
+        'Delivery cancelled',
+        'PL7K29X4 was cancelled by operations and is no longer on your deliveries.',
+      )?.key,
+    ).toBe('cancelledByOperationsDriver');
+    expect(
+      read('shipment.price_adjusted', 'Delivery price updated', 'The delivery price for PL7K29X4 changed from AED 21.60 to AED 30.00.'),
+    ).toEqual({ key: 'priceAdjusted', values: { code: 'PL7K29X4', from: '21.60', to: '30.00' } });
+  });
+
   it('keeps the delivery code', () => {
     expect(
       localizeNotification({

@@ -128,5 +128,17 @@
       "title": "Statement payment recorded",
       "body": "Your payment of {amount} was recorded on statement {number}."
     }
+  },
+  "priceAdjusted": {
+    "title": "Delivery price updated",
+    "body": "The delivery price for {code} changed from AED {from} to AED {to}."
+  },
+  "cancelledByOperations": {
+    "title": "Shipment cancelled",
+    "body": "{code} was cancelled by ParcelLink operations."
+  },
+  "cancelledByOperationsDriver": {
+    "title": "Delivery cancelled",
+    "body": "{code} was cancelled by operations and is no longer on your deliveries."
   }
 }
