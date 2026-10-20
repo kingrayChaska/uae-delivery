@@ -6,7 +6,8 @@
       "today": "Today’s Deliveries",
       "completed": "Completed",
       "pending": "Pending",
-      "cod": "COD Collected"
+      "cod": "COD Collected",
+      "cash": "Cash to hand over"
     },
     "current": "Current assignment",
     "continue": "Continue your active delivery",

@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Third-party files copied in by scripts/copy-vendor-assets.mjs.
     "public/vendor/**",
+    // The Expo app has its own toolchain and lint config (mobile/).
+    "mobile/**",
   ]),
 ]);
 

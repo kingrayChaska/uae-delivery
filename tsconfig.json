@@ -38,6 +38,7 @@
   ],
   "exclude": [
     "database",
+    "mobile",
     "e2e/.bin",
     "e2e/.results",
     "node_modules"

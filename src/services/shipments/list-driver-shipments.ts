@@ -25,7 +25,12 @@ export type DriverDashboardSummary = {
   todayCount: number;
   completedCount: number;
   pendingCount: number;
+  // Verified COD (goods money) collected, all time (driver_cod_stats, 0049).
   codCollected: number;
+  // Cash the driver holds now and still has to hand over: verified
+  // collections less confirmed remittances (driver_cash_overview, 0048). A
+  // remittance lowers it only once an operator or manager confirms it.
+  cashOutstanding: number;
   currency: string;
   currentShipmentId: string | null;
   recent: Shipment[];
@@ -96,18 +101,19 @@ export const searchDriverShipments = async (page: number, filters: ShipmentFilte
 };
 
 // Counts come from driver_shipment_stats / driver_cod_stats (migration
-// 0021) instead of loading the driver's whole delivery history, and the
-// four reads run in parallel.
+// 0021) instead of loading the driver's whole delivery history, the cash
+// balance from driver_cash_overview (0048), and the reads run in parallel.
 export const getDriverDashboardSummary = async (driverId: string): Promise<DriverDashboardSummary> => {
   const supabase = await createClient();
 
-  const [statsResult, codResult, currentResult, recentResult] = await Promise.all([
+  const [statsResult, codResult, cashResult, currentResult, recentResult] = await Promise.all([
     supabase
       .from('driver_shipment_stats')
       .select('today_count, delivered_count, active_count')
       .eq('driver_id', driverId)
       .maybeSingle(),
-    supabase.from('driver_cod_stats').select('collected_total').eq('driver_id', driverId).maybeSingle(),
+    supabase.from('driver_cod_stats').select('cod_collected').eq('driver_id', driverId).maybeSingle(),
+    supabase.rpc('driver_cash_overview', { p_driver_id: driverId }),
     // "Current" is the oldest non-terminal shipment — the one the driver
     // should act on next, whether that's accepting a new assignment or
     // continuing one already in progress.
@@ -128,6 +134,7 @@ export const getDriverDashboardSummary = async (driverId: string): Promise<Drive
   ]);
   if (statsResult.error) throw new Error(statsResult.error.message);
   if (codResult.error) throw new Error(codResult.error.message);
+  if (cashResult.error) throw new Error(cashResult.error.message);
   if (currentResult.error) throw new Error(currentResult.error.message);
   if (recentResult.error) throw new Error(recentResult.error.message);
 
@@ -137,7 +144,8 @@ export const getDriverDashboardSummary = async (driverId: string): Promise<Drive
     todayCount: statsResult.data?.today_count ?? 0,
     completedCount: statsResult.data?.delivered_count ?? 0,
     pendingCount: statsResult.data?.active_count ?? 0,
-    codCollected: Number(codResult.data?.collected_total ?? 0),
+    codCollected: Number(codResult.data?.cod_collected ?? 0),
+    cashOutstanding: Number((cashResult.data as { outstanding?: number | string } | null)?.outstanding ?? 0),
     currency: recent[0]?.currency ?? 'AED',
     currentShipmentId: currentResult.data?.id ?? null,
     recent,

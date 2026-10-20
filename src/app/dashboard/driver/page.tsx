@@ -29,7 +29,8 @@ const DriverDashboardPage = async () => {
         <StatCard label={t('stats.today')} value={format.number(summary.todayCount)} />
         <StatCard label={t('stats.completed')} value={format.number(summary.completedCount)} />
         <StatCard label={t('stats.pending')} value={format.number(summary.pendingCount)} />
-        <StatCard label={t('stats.cod')} value={format.money(summary.codCollected, summary.currency)} />
+        {/* What they still hold: falls only when an operator confirms a remittance. */}
+        <StatCard label={t('stats.cash')} value={format.money(summary.cashOutstanding, summary.currency)} href="/dashboard/driver/cash" />
       </div>
 
       {summary.currentShipmentId ? (

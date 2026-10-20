@@ -25,6 +25,11 @@ describe('decideRoute — signed out', () => {
     '/vendor/dotlottie-player.wasm',
     // Background jobs authenticate with their own secret.
     '/api/internal/bulk-worker',
+    // The mobile API checks its own bearer token.
+    '/api/mobile/v1/me',
+    // The phone's OS checks the app's link association files.
+    '/.well-known/assetlinks.json',
+    '/.well-known/apple-app-site-association',
   ])(
     'allows public route %s',
     (pathname) => {

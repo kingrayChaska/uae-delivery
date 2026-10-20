@@ -20,6 +20,11 @@ export const isPublicRoute = (pathname: string) =>
   // Server-to-server jobs (the bulk shipment worker, cron): no session;
   // each handler checks its own secret and answers 404 without it.
   pathname.startsWith('/api/internal/') ||
+  // The mobile app's API: no cookies, so the proxy can't see a session.
+  // Every handler verifies the bearer token and role itself (lib/mobile-api).
+  pathname.startsWith('/api/mobile/') ||
+  // App Links / Universal Links files the phone's OS fetches (no session).
+  pathname.startsWith('/.well-known/') ||
   pathname.startsWith('/tracking/');
 
 export type RouteProfile = { role: Role; active: boolean } | null;

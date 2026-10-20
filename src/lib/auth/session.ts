@@ -3,6 +3,7 @@ import 'server-only';
 import { cache } from 'react';
 
 import { createClient } from '@/lib/supabase/server';
+import { getMobileAccessToken } from '@/lib/supabase/mobile-auth-context';
 
 import type { Profile } from '@/lib/types';
 
@@ -23,8 +24,10 @@ export const getSession = cache(async (): Promise<Session> => {
   // getClaims() verifies the JWT signature locally (asymmetric signing
   // keys), saving an Auth server round trip on every request. The profile
   // query below still hits the DB, so a deactivated account is rejected
-  // immediately rather than when its token expires.
-  const { data: claimsData } = await supabase.auth.getClaims();
+  // immediately rather than when its token expires. A mobile request has
+  // no stored session, so its bearer token is passed in to be verified the
+  // same way (signature and expiry); for the website this is undefined.
+  const { data: claimsData } = await supabase.auth.getClaims(getMobileAccessToken());
   const userId = claimsData?.claims.sub;
 
   if (!userId) return { signedIn: false, profile: null };

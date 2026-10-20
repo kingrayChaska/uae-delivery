@@ -18,7 +18,12 @@ export type DriverSummary = {
   monthDeliveries: number;
   successfulDeliveries: number;
   failedDeliveries: number;
+  // Verified COD (goods money) collected, all time — never the delivery fee,
+  // never cash still to collect (driver_cod_stats.cod_collected, 0049).
   codCollected: number;
+  // Cash the driver holds now: verified collections less confirmed
+  // remittances (driver_cash_summary, 0042) — the balance the cash pages show.
+  cashOutstanding: number;
 };
 
 type DriverStatsRow = {
@@ -37,20 +42,22 @@ type DriverStatsRow = {
 export const listAllDrivers = async (): Promise<DriverSummary[]> => {
   const supabase = await createClient();
 
-  const [{ data: driverRows }, { data: statsRows }, { data: codRows }] = await Promise.all([
+  const [{ data: driverRows }, { data: statsRows }, { data: codRows }, { data: cashRows }] = await Promise.all([
     supabase
       .from('driver_profiles')
       .select('profile_id, driver_code, availability, profiles(full_name, phone, email, active), vehicles(make, model)'),
     supabase
       .from('driver_shipment_stats')
       .select('driver_id, today_count, week_count, month_count, delivered_count, failed_count'),
-    supabase.from('driver_cod_stats').select('driver_id, collected_total'),
+    supabase.from('driver_cod_stats').select('driver_id, cod_collected'),
+    supabase.rpc('driver_cash_summary', { p_from: null, p_to: null, p_query: null }).select('driver_id, outstanding'),
   ]);
 
   if (!driverRows || driverRows.length === 0) return [];
 
   const stats = new Map(((statsRows ?? []) as DriverStatsRow[]).map((row) => [row.driver_id, row]));
-  const cod = new Map((codRows ?? []).map((row) => [row.driver_id, Number(row.collected_total)]));
+  const cod = new Map((codRows ?? []).map((row) => [row.driver_id, Number(row.cod_collected)]));
+  const cash = new Map(((cashRows ?? []) as { driver_id: string; outstanding: number | string }[]).map((row) => [row.driver_id, Number(row.outstanding)]));
 
   return driverRows.map((row) => {
     const profile = row.profiles as unknown as { full_name: string; phone: string; email: string; active: boolean } | null;
@@ -72,6 +79,7 @@ export const listAllDrivers = async (): Promise<DriverSummary[]> => {
       successfulDeliveries: counts?.delivered_count ?? 0,
       failedDeliveries: counts?.failed_count ?? 0,
       codCollected: cod.get(row.profile_id) ?? 0,
+      cashOutstanding: cash.get(row.profile_id) ?? 0,
     };
   });
 };

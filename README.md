@@ -127,6 +127,10 @@ When a manager publishes a merchant account statement with **Also email the merc
   ```
 - **Monitoring:** JSON log lines with `"scope":"statement_email"` (ids only — no addresses, names or amounts).
 
+## Mobile app
+
+The Driver, Operator and Manager dashboards are also an Android/iOS app in [`mobile/`](mobile/README.md) (Expo, its own dependencies — not an npm workspace). It has no backend of its own: it calls `/api/mobile/v1` (`src/lib/mobile-api/`), which runs this app's own server actions and services as the signed-in user via a bearer-token scope (`src/lib/supabase/mobile-auth-context.ts`); website requests are unaffected. Push notifications use migration 0047 and `/api/internal/push-worker`. Setup: [`mobile/docs/CONFIGURATION.md`](mobile/docs/CONFIGURATION.md).
+
 ## Supabase email templates
 
 Staff invitations and password resets use Supabase's server-side `token_hash` flow, handled by `/auth/confirm`. In the Supabase dashboard (Authentication → Email Templates), point these links at it:
