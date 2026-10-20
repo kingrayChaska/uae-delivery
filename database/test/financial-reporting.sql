@@ -18,11 +18,11 @@
 --   a9  in transit                                → not on the statement
 --   a10 delivered  postpaid COD 300 (verified, already paid out to the merchant)
 --   a11 delivered  postpaid COD 250, never recorded as collected → excluded, flagged
---   COD 3,300 − paid out 300 − service 92 − returns 17.50 − cash handling 49.50
---   (1.5% of 1,000 / 2,000 / 300) + fee already paid 17 = 2,858.00 to the merchant.
+--   COD 3,300 − paid out 300 − service 92 − returns 17.50 + fee already paid
+--   17 = 2,907.50 to the merchant. (No cash-handling charge since 0051.)
 --
--- Merchant B — the brief's example: COD 10,000, service 1,500, return 200,
---   cash handling 1.5% × 10,000 = 150 → remittance 8,150.00.
+-- Merchant B — the brief's example: COD 10,000, service 1,500, return 200
+--   → remittance 8,300.00 (the 1.5% cash-handling charge was removed, 0051).
 -- Merchant C — no COD: service 2,000 + 450 + 100, of which 100 paid by card
 --   (plus a failed attempt that must not count) → 2,450.00 due from the merchant.
 --
@@ -254,16 +254,16 @@ select t_check('individual returns carry no return charge',
 select set_config('t.sa', generate_merchant_statement('00000000-0000-0000-0000-00000000b0a0', '2026-01-01', '2026-01-31')::text, false);
 select t_check('A lines',
   t_lines(current_setting('t.sa')::uuid),
-  'a01:delivered:1000.00/15.00/0.00/15.00/0.00/0.00 a02:delivered:2000.00/17.00/0.00/30.00/17.00/0.00 '
+  'a01:delivered:1000.00/15.00/0.00/0.00/0.00/0.00 a02:delivered:2000.00/17.00/0.00/0.00/17.00/0.00 '
   || 'a03:delivered:0.00/15.00/0.00/0.00/0.00/0.00 a04:returned:0.00/0.00/10.00/0.00/0.00/0.00 '
   || 'a05:returned:0.00/0.00/7.50/0.00/0.00/0.00 a08:delivered:0.00/15.00/0.00/0.00/0.00/0.00 '
-  || 'a10:delivered:300.00/15.00/0.00/4.50/0.00/300.00 a11:delivered:0.00/15.00/0.00/0.00/0.00/0.00');
+  || 'a10:delivered:300.00/15.00/0.00/0.00/0.00/300.00 a11:delivered:0.00/15.00/0.00/0.00/0.00/0.00');
 select t_check('A totals',
   t_totals(current_setting('t.sa')::uuid),
-  '3300.00/300.00/92.00/17.50/3300.00/49.50/17.00 = 2858.00 payable_to_merchant cod_remittance');
+  '3300.00/300.00/92.00/17.50/3300.00/0.00/17.00 = 2907.50 payable_to_merchant cod_remittance');
 select t_check('A draft: no number, still a draft, rates recorded',
   (select coalesce(statement_number, 'none') || ' ' || status || ' ' || return_charge_rate || ' ' || cash_handling_rate
-   from merchant_statements where id = current_setting('t.sa')::uuid), 'none draft 0.5000 0.0150');
+   from merchant_statements where id = current_setting('t.sa')::uuid), 'none draft 0.5000 0.0000');
 select t_check('A merchant snapshot', (select merchant ->> 'name' from merchant_statements where id = current_setting('t.sa')::uuid), 'Alpha Trading LLC');
 reset role;
 
@@ -343,7 +343,7 @@ insert into payments (shipment_id, customer_id, amount, method, status)
 values ((select id from ship where label = 'a01'), '00000000-0000-0000-0000-0000000000a3', 15, 'card', 'paid');
 select t_check('the published statement keeps its figures',
   t_totals(current_setting('t.sa')::uuid),
-  '3300.00/300.00/92.00/17.50/3300.00/49.50/17.00 = 2858.00 payable_to_merchant cod_remittance');
+  '3300.00/300.00/92.00/17.50/3300.00/0.00/17.00 = 2907.50 payable_to_merchant cod_remittance');
 
 \echo '── Corrections ──'
 set role authenticated;
@@ -356,10 +356,10 @@ select t_fails('a correction covers the same period',
     current_setting('t.sa')), '%same period%');
 select set_config('t.sa2', generate_merchant_statement(
   '00000000-0000-0000-0000-00000000b0a0', '2026-01-01', '2026-01-31', current_setting('t.sa')::uuid, 'a03 fee corrected to AED 20')::text, false);
--- service +5 (a03), paid +15 (a01 card): 2858 − 5 + 15
+-- service +5 (a03), paid +15 (a01 card): 2907.50 − 5 + 15
 select t_check('correction draft totals',
   t_totals(current_setting('t.sa2')::uuid),
-  '3300.00/300.00/97.00/17.50/3300.00/49.50/32.00 = 2868.00 payable_to_merchant cod_remittance');
+  '3300.00/300.00/97.00/17.50/3300.00/0.00/32.00 = 2917.50 payable_to_merchant cod_remittance');
 select t_check('correction is version 2 and still a draft',
   (select version || ' ' || status from merchant_statements where id = current_setting('t.sa2')::uuid), '2 draft');
 reset role;
@@ -372,7 +372,7 @@ set request.jwt.uid = '00000000-0000-0000-0000-0000000000a1';
 select set_config('t.na2', publish_merchant_statement(current_setting('t.sa2')::uuid), false);
 select t_check('original is superseded, keeps its number and figures',
   (select status || ' ' || (statement_number = current_setting('t.na')) || ' ' || net_amount || ' ' || (superseded_by_id = current_setting('t.sa2')::uuid)
-   from merchant_statements where id = current_setting('t.sa')::uuid), 'superseded true 2858.00 true');
+   from merchant_statements where id = current_setting('t.sa')::uuid), 'superseded true 2907.50 true');
 select t_check('correction is published under a new number',
   (select status || ' ' || (statement_number <> current_setting('t.na')) from merchant_statements where id = current_setting('t.sa2')::uuid), 'published true');
 select t_fails('a superseded statement can''t be corrected again',
@@ -388,9 +388,9 @@ reset role;
 set role authenticated;
 set request.jwt.uid = '00000000-0000-0000-0000-0000000000a1';
 select set_config('t.sb', generate_merchant_statement('00000000-0000-0000-0000-00000000b0b0', '2026-01-01', '2026-01-31')::text, false);
-select t_check('B: 10,000 − 1,500 − 200 − 150 = 8,150',
+select t_check('B: 10,000 − 1,500 − 200 = 8,300 (no cash-handling charge)',
   t_totals(current_setting('t.sb')::uuid),
-  '10000.00/0.00/1500.00/200.00/10000.00/150.00/0.00 = 8150.00 payable_to_merchant cod_remittance');
+  '10000.00/0.00/1500.00/200.00/10000.00/0.00/0.00 = 8300.00 payable_to_merchant cod_remittance');
 select set_config('t.sc', generate_merchant_statement('00000000-0000-0000-0000-00000000b0c0', '2026-01-01', '2026-01-31')::text, false);
 select t_check('C: 2,550 service − 100 paid = 2,450 due, no COD remittance',
   t_totals(current_setting('t.sc')::uuid),
@@ -474,13 +474,13 @@ reset role;
 set role authenticated;
 set request.jwt.uid = '00000000-0000-0000-0000-0000000000a1';
 -- Revenue: merchant service A 97 (a03 now 20) + B 1,500 + C 2,550 = 4,147;
--- returns A 17.50 + B 200; cash handling A 49.50 + B 150; individual
+-- returns A 17.50 + B 200; no cash handling (0051); individual
 -- i1 30 + guest g1 21.60. COD goods money (A 3,300 + B 10,000) is not revenue.
 select t_check('revenue',
   (select merchant_service_revenue || '/' || merchant_return_revenue || '/' || merchant_cash_handling_revenue || '/'
      || individual_revenue || '/' || other_revenue || ' = ' || total_revenue || ' (COD memo ' || merchant_cod_collected || ')'
    from business_performance_summary('2026-01-01', '2026-01-31')),
-  '4147.00/217.50/199.50/51.60/0.00 = 4615.60 (COD memo 13300.00)');
+  '4147.00/217.50/0.00/51.60/0.00 = 4416.10 (COD memo 13300.00)');
 select t_check('counts',
   (select delivered_count || '/' || merchant_delivered_count || '/' || individual_delivered_count || '/' || returned_count
    from business_performance_summary('2026-01-01', '2026-01-31')), '13/11/2/4');
@@ -488,14 +488,14 @@ select t_check('expenses by group (void and February excluded)',
   (select fuel || '/' || subscription || '/' || salary || '/' || rent || '/' || other_expenses || ' = ' || total_expenditure || ' (' || expense_count || ')'
    from business_performance_summary('2026-01-01', '2026-01-31')),
   '500.00/100.00/3000.00/2000.00/50.00 = 5650.00 (5)');
--- 4,615.60 − 500 = 4,115.60; − 100 = 4,015.60; − 3,000 = 1,015.60;
--- − 2,000 = −984.40; − 50 = −1,034.40.
+-- 4,416.10 − 500 = 3,916.10; − 100 = 3,816.10; − 3,000 = 816.10;
+-- − 2,000 = −1,183.90; − 50 = −1,233.90.
 select t_check('the four stepwise profits and net operating profit',
   (select profit_after_fuel || '/' || profit_after_subscription || '/' || profit_after_salary || '/' || profit_after_rent || '/' || net_operating_profit
    from business_performance_summary('2026-01-01', '2026-01-31')),
-  '4115.60/4015.60/1015.60/-984.40/-1034.40');
+  '3916.10/3816.10/816.10/-1183.90/-1233.90');
 select t_check('break-even',
-  (select break_even_revenue || '/' || break_even_gap from business_performance_summary('2026-01-01', '2026-01-31')), '5650.00/1034.40');
+  (select break_even_revenue || '/' || break_even_gap from business_performance_summary('2026-01-01', '2026-01-31')), '5650.00/1233.90');
 select t_check('break-even achieved when revenue covers costs',
   (select break_even_gap::text from business_performance_summary('2026-01-02', '2026-01-09')), '0.00');
 select t_check('category totals',
@@ -509,23 +509,26 @@ reset role;
 set role authenticated;
 set request.jwt.uid = '00000000-0000-0000-0000-0000000000a2';
 select t_fails('ATTACK: operator changes the rates',
-  $$select set_financial_rates((now() at time zone 'Asia/Dubai')::date, 0.1, 0.001)$$, '%Only a manager%');
+  $$select set_financial_rates((now() at time zone 'Asia/Dubai')::date, 0.1, 0)$$, '%Only a manager%');
 select t_check('operator can''t read the rates', (select count(*)::text from financial_rates), '0');
 set request.jwt.uid = '00000000-0000-0000-0000-0000000000a1';
 select t_fails('rates can''t be backdated',
-  $$select set_financial_rates((now() at time zone 'Asia/Dubai')::date - 1, 0.4, 0.02)$$, '%from today onwards%');
+  $$select set_financial_rates((now() at time zone 'Asia/Dubai')::date - 1, 0.4, 0)$$, '%from today onwards%');
 select t_fails('rates are bounded',
-  $$select set_financial_rates((now() at time zone 'Asia/Dubai')::date, 0.4, 0.5)$$, '%between 0%% and 20%%');
-select set_financial_rates((now() at time zone 'Asia/Dubai')::date, 0.40, 0.02, 'New contract terms');
-select t_check('today''s rates', (select return_charge_rate || '/' || cash_handling_rate from financial_policy()), '0.4000/0.0200');
-select t_check('January''s rates are unchanged', (select return_charge_rate || '/' || cash_handling_rate from financial_policy('2026-01-15')), '0.5000/0.0150');
+  $$select set_financial_rates((now() at time zone 'Asia/Dubai')::date, 1.5, 0)$$, '%between 0%% and 100%%');
+select t_fails('0051: no cash-handling charge can be set again',
+  $$select set_financial_rates((now() at time zone 'Asia/Dubai')::date, 0.4, 0.015)$$, '%cash-handling charge has been removed%');
+select set_financial_rates((now() at time zone 'Asia/Dubai')::date, 0.40, 0, 'New contract terms');
+select t_check('today''s rates', (select return_charge_rate || '/' || cash_handling_rate from financial_policy()), '0.4000/0');
+select t_check('January''s rates are unchanged (and carry no cash handling)',
+  (select return_charge_rate || '/' || cash_handling_rate from financial_policy('2026-01-15')), '0.5000/0');
 select t_check('January''s revenue is unchanged by the new rates',
-  (select total_revenue::text from business_performance_summary('2026-01-01', '2026-01-31')), '4615.60');
+  (select total_revenue::text from business_performance_summary('2026-01-01', '2026-01-31')), '4416.10');
 -- Replacing a rate scheduled for today is allowed; it's the same row.
-select set_financial_rates((now() at time zone 'Asia/Dubai')::date, 0.40, 0.02, 'New contract terms (confirmed)');
+select set_financial_rates((now() at time zone 'Asia/Dubai')::date, 0.40, null, 'New contract terms (confirmed)');
 select t_check('one rate per day', (select count(*)::text from financial_rates), '2');
-select t_check('published lines keep the rate they were charged at',
-  (select string_agg(distinct cash_handling_rate::text, ',') from merchant_statement_lines where statement_id = current_setting('t.sa')::uuid), '0.0150');
+select t_check('statement lines carry no cash-handling rate',
+  (select string_agg(distinct cash_handling_rate::text, ',') from merchant_statement_lines where statement_id = current_setting('t.sa')::uuid), '0.0000');
 reset role;
 select t_fails('ATTACK: rewrite a rate already in force (even the service role)',
   $$update financial_rates set cash_handling_rate = 0.1 where effective_from = '2000-01-01'$$, '%already in force%');
@@ -547,10 +550,10 @@ set request.jwt.uid = '00000000-0000-0000-0000-0000000000a1';
 select set_config('t.sd', generate_merchant_statement('00000000-0000-0000-0000-00000000b0d0',
   (now() at time zone 'Asia/Dubai')::date - 1, (now() at time zone 'Asia/Dubai')::date)::text, false);
 select t_check('each delivery at the rate of its own day',
-  t_lines(current_setting('t.sd')::uuid), 'd1:delivered:1000.00/15.00/0.00/15.00/0.00/0.00 d2:delivered:1000.00/15.00/0.00/20.00/0.00/0.00');
-select t_check('header: today''s rates, flagged as varying',
+  t_lines(current_setting('t.sd')::uuid), 'd1:delivered:1000.00/15.00/0.00/0.00/0.00/0.00 d2:delivered:1000.00/15.00/0.00/0.00/0.00/0.00');
+select t_check('header: today''s rates, flagged as varying (the return rate changed), COD paid out in full',
   (select cash_handling_rate || ' ' || rates_vary || ' ' || net_amount from merchant_statements where id = current_setting('t.sd')::uuid),
-  '0.0200 true 1935.00');
+  '0.0000 true 1970.00');
 reset role;
 
 \echo '── Statement emails ──'
@@ -570,16 +573,16 @@ reset role;
 \echo '── Settlements ──'
 set role authenticated;
 set request.jwt.uid = '00000000-0000-0000-0000-0000000000a1';
-select t_check('B opens with 8,150 owed to the merchant',
-  (select balance || ' ' || settlement_status from merchant_statement_balance(current_setting('t.sb')::uuid)), '8150.00 open');
+select t_check('B opens with 8,300 owed to the merchant',
+  (select balance || ' ' || settlement_status from merchant_statement_balance(current_setting('t.sb')::uuid)), '8300.00 open');
 select set_config('t.p1', record_statement_settlement(current_setting('t.sb')::uuid, 5000, 'bank_transfer',
   (now() at time zone 'Asia/Dubai')::date, 'TRF-1', null, '22222222-0000-4000-8000-000000000001')::text, false);
 select t_check('a retry returns the same payment',
   record_statement_settlement(current_setting('t.sb')::uuid, 5000, 'bank_transfer',
     (now() at time zone 'Asia/Dubai')::date, 'TRF-1', null, '22222222-0000-4000-8000-000000000001')::text, current_setting('t.p1'));
-select t_check('paid out to the merchant; 3,150 left',
+select t_check('paid out to the merchant; 3,300 left',
   (select paid_to_merchant || '/' || paid_by_merchant || ' ' || balance || ' ' || settlement_status
-   from merchant_statement_balance(current_setting('t.sb')::uuid)), '5000.00/0.00 3150.00 partially_settled');
+   from merchant_statement_balance(current_setting('t.sb')::uuid)), '5000.00/0.00 3300.00 partially_settled');
 select t_check('direction comes from the balance', (select direction from merchant_statement_settlements where id = current_setting('t.p1')::uuid), 'to_merchant');
 select t_fails('can''t pay more than is outstanding',
   format('select record_statement_settlement(%L, 4000, %L, current_date, null, null, gen_random_uuid())', current_setting('t.sb'), 'cash'),
@@ -604,7 +607,7 @@ set role authenticated;
 set request.jwt.uid = '00000000-0000-0000-0000-0000000000a4';
 select t_check('merchant B sees the payment and the balance',
   (select count(*) || ' ' || (select balance from merchant_statement_balance(current_setting('t.sb')::uuid)) from merchant_statement_settlements),
-  '1 3150.00');
+  '1 3300.00');
 select t_check('merchant B was told', (select count(*)::text from notifications where type = 'statement.settlement'), '1');
 select t_fails('ATTACK: merchant records a payment',
   format('select record_statement_settlement(%L, 3150, %L, current_date, null, null, gen_random_uuid())', current_setting('t.sb'), 'cash'),
@@ -623,14 +626,14 @@ select set_config('t.sb2', generate_merchant_statement('00000000-0000-0000-0000-
 select publish_merchant_statement(current_setting('t.sb2')::uuid);
 select t_check('the correction''s balance counts the earlier payment',
   (select net_amount || ' ' || paid_to_merchant || ' ' || balance from merchant_statement_balance(current_setting('t.sb2')::uuid)),
-  '8150.00 5000.00 3150.00');
+  '8300.00 5000.00 3300.00');
 select t_fails('payments go on the current statement, not the replaced one',
   format('select record_statement_settlement(%L, 10, %L, current_date, null, null, gen_random_uuid())', current_setting('t.sb'), 'cash'),
   '%current published statement%');
 select void_statement_settlement(current_setting('t.p1')::uuid, 'Transfer bounced');
 select t_check('a voided payment no longer counts',
-  (select balance || ' ' || settlement_status from merchant_statement_balance(current_setting('t.sb2')::uuid)), '8150.00 open');
-select record_statement_settlement(current_setting('t.sb2')::uuid, 8150, 'bank_transfer', (now() at time zone 'Asia/Dubai')::date,
+  (select balance || ' ' || settlement_status from merchant_statement_balance(current_setting('t.sb2')::uuid)), '8300.00 open');
+select record_statement_settlement(current_setting('t.sb2')::uuid, 8300, 'bank_transfer', (now() at time zone 'Asia/Dubai')::date,
   'TRF-2', 'Full remittance', '22222222-0000-4000-8000-000000000002');
 select t_check('settled in full', (select balance || ' ' || settlement_status from merchant_statement_balance(current_setting('t.sb2')::uuid)), '0.00 settled');
 select t_fails('nothing more can be paid on a settled statement',

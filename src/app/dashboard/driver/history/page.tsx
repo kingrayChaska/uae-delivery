@@ -52,7 +52,7 @@ const DriverHistoryPage = async ({ searchParams }: { searchParams: PageSearchPar
       ) : (
         <div className="flex flex-col gap-2">
           {history.items.map((shipment) => (
-            <ShipmentListItem key={shipment.id} shipment={shipment} basePath="/dashboard/driver/deliveries" showRecipientName />
+            <ShipmentListItem key={shipment.id} shipment={shipment} basePath="/dashboard/driver/deliveries" showRecipientName showPrice={false} />
           ))}
         </div>
       )}

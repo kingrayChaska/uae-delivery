@@ -189,6 +189,10 @@ export const useBookingWizard = ({
   const isMerchant = accountType === "merchant";
   const isEditingExisting = drafts.some((draft) => draft.key === editingKey);
 
+  // Shipments in this booking once the one being edited is added: a
+  // merchant's fee tier depends on it (lib/pricing/merchant-fees.ts).
+  const orderCount = drafts.length + (isEditingExisting ? 0 : 1);
+
   // Live quote for every delivery type, so the package step can show both
   // prices side by side. Same engine the server uses.
   const quoteFor = (
@@ -206,6 +210,7 @@ export const useBookingWizard = ({
           recipientPaymentType: values.recipientPaymentType,
           shipmentQuantity: values.packageQuantity,
           codAmount: values.codAmount,
+          orderCount,
         })
       : null;
 
@@ -460,7 +465,26 @@ export const useBookingWizard = ({
     }
   };
 
-  const total = sumPrices(drafts.map((d) => d.price.totalPrice));
+  // A merchant's added shipments, re-priced at the booking's current size —
+  // adding or removing one can move every fee to another tier. The server
+  // (and the database, at the final size) prices them the same way.
+  const pricedDrafts: ShipmentDraft[] = isMerchant
+    ? drafts.map((d) => ({
+        ...d,
+        price: calculateShipmentPrice({
+          rule: rules[d.values.deliveryType],
+          distanceKm: d.route.distanceKm,
+          durationMinutes: d.route.durationMinutes,
+          weightKg: Number.isFinite(d.values.packageWeightKg) ? d.values.packageWeightKg : null,
+          recipientPaymentType: d.values.recipientPaymentType,
+          shipmentQuantity: d.values.packageQuantity,
+          codAmount: d.values.codAmount,
+          orderCount: drafts.length,
+        }),
+      }))
+    : drafts;
+
+  const total = sumPrices(pricedDrafts.map((d) => d.price.totalPrice));
   const collectTotal = sumPrices(
     drafts.map((d) =>
       d.values.recipientPaymentType === "postpaid"
@@ -506,7 +530,7 @@ export const useBookingWizard = ({
     form,
     step,
     stepIndex: BOOKING_STEPS.indexOf(step),
-    drafts,
+    drafts: pricedDrafts,
     editingKey,
     isEditingExisting,
     lastAddedKey,

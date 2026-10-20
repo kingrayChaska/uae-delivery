@@ -85,7 +85,8 @@ export const createBooking = async ({
   // most MAX_SHIPMENTS_PER_BOOKING shipments.
   for (const { index, ...shipment } of shipments) {
     try {
-      quotes.push(await quoteShipment(customer, shipment, rules));
+      // Booked together: the booking's size sets a merchant's fee tier.
+      quotes.push(await quoteShipment(customer, shipment, rules, shipments.length));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'booking.errors.cannotBook';
       throw new Error(shipments.length > 1 ? msg('booking.errors.shipmentPrefix', { number: index + 1, message }) : message);
@@ -126,7 +127,11 @@ export const createBooking = async ({
   }
   await finalizeBatch(batch.id, results);
 
-  return { ...toOutcome(created, batch.id, batch.reference), failed };
+  // Finalizing sets each merchant shipment's fee at the booking's final
+  // size (migration 0050): read them back rather than show the prices
+  // they were inserted at.
+  const finalized = created.length > 0 ? await listBatchShipments(batch.id) : created;
+  return { ...toOutcome(finalized, batch.id, batch.reference), failed };
 };
 
 // Validates, routes and prices every shipment with the same rules as any
@@ -137,7 +142,8 @@ const quoteAll = async (customer: BookingCustomer, shipments: (MultiBookingInput
   const quotes: ShipmentQuote[] = [];
   for (const { index, ...shipment } of shipments) {
     try {
-      quotes.push(await quoteShipment(customer, shipment, rules));
+      // Booked together: the booking's size sets a merchant's fee tier.
+      quotes.push(await quoteShipment(customer, shipment, rules, shipments.length));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'booking.errors.cannotBook';
       throw new Error(shipments.length > 1 ? msg('booking.errors.shipmentPrefix', { number: index + 1, message }) : message);

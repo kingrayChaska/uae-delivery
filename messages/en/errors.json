@@ -183,6 +183,7 @@
     "cashMoreCod": "That is more COD than you hold: AED {amount} available.",
     "cashMoreFee": "That is more in delivery fees than you hold: AED {amount} available.",
     "cashMoreTotal": "That is more than you hold: AED {amount} available.",
-    "cashOperatorNowHolds": "That is more than the operator now holds (AED {amount})."
+    "cashOperatorNowHolds": "That is more than the operator now holds (AED {amount}).",
+    "cashHandlingRemoved": "The cash-handling charge has been removed: merchants are billed the flat delivery rates."
   }
 }

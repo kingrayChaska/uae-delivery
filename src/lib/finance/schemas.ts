@@ -157,11 +157,6 @@ export const financialRatesSchema = z
       .min(0, 'finance.validation.returnRate')
       .max(100, 'finance.validation.returnRate')
       .refine(hasAtMostTwoDecimals, 'finance.validation.rateDecimals'),
-    cashHandlingPercent: z
-      .number({ error: 'finance.validation.handlingRate' })
-      .min(0, 'finance.validation.handlingRate')
-      .max(20, 'finance.validation.handlingRate')
-      .refine(hasAtMostTwoDecimals, 'finance.validation.rateDecimals'),
     note: z.string().trim().max(500, 'finance.validation.notesTooLong').optional(),
   })
   .superRefine((value, ctx) => {

@@ -60,6 +60,9 @@ const Lines = ({ statement, format, shipmentHref }: { statement: Statement; form
   const t = useTranslations('finance.document.lines');
   const tShipments = useTranslations('shipments');
   const cod = statement.kind === 'cod_remittance';
+  // No cash-handling charge since migration 0051: its column appears only on
+  // a statement issued before then that carries one.
+  const handling = cod && statement.cashHandlingFee > 0;
   const secondary = 'hidden md:table-cell print:table-cell';
   const totals = statement.lines.reduce(
     (sum, line) => ({
@@ -88,7 +91,7 @@ const Lines = ({ statement, format, shipmentHref }: { statement: Statement; form
             {cod ? <th scope="col" className="py-2 ps-2 text-end font-medium">{t('col.cod')}</th> : null}
             <th scope="col" className="py-2 ps-2 text-end font-medium">{t('col.service')}</th>
             <th scope="col" className="py-2 ps-2 text-end font-medium">{t('col.return')}</th>
-            {cod ? <th scope="col" className="py-2 ps-2 text-end font-medium">{t('col.handling')}</th> : null}
+            {handling ? <th scope="col" className="py-2 ps-2 text-end font-medium">{t('col.handling')}</th> : null}
             <th scope="col" className="py-2 ps-2 text-end font-medium">{t('col.paid')}</th>
           </tr>
         </thead>
@@ -125,7 +128,7 @@ const Lines = ({ statement, format, shipmentHref }: { statement: Statement; form
               <td className="py-1.5 ps-2 text-end">
                 <Money amount={line.returnCharge} currency={line.currency} format={format} />
               </td>
-              {cod ? (
+              {handling ? (
                 <td className="py-1.5 ps-2 text-end">
                   <Money amount={line.cashHandlingFee} currency={line.currency} format={format} />
                 </td>
@@ -148,7 +151,7 @@ const Lines = ({ statement, format, shipmentHref }: { statement: Statement; form
             {cod ? <td className="py-2 ps-2 text-end">{money(totals.cod)}</td> : null}
             <td className="py-2 ps-2 text-end">{money(totals.service)}</td>
             <td className="py-2 ps-2 text-end">{money(totals.returns)}</td>
-            {cod ? <td className="py-2 ps-2 text-end">{money(totals.handling)}</td> : null}
+            {handling ? <td className="py-2 ps-2 text-end">{money(totals.handling)}</td> : null}
             <td className="py-2 ps-2 text-end">{money(totals.paid)}</td>
           </tr>
         </tfoot>
@@ -263,7 +266,9 @@ const Notes = ({ statement, format }: { statement: Statement; format: Format }) 
       <p>{t('basis')}</p>
       <p>{t('serviceRule')}</p>
       <p>{t('returnRule', { rate: percent(statement.returnChargeRate) })}</p>
-      {statement.kind === 'cod_remittance' ? <p>{t('handlingRule', { rate: percent(statement.cashHandlingRate) })}</p> : null}
+      {statement.kind === 'cod_remittance' && statement.cashHandlingFee > 0 ? (
+        <p>{t('handlingRule', { rate: percent(statement.cashHandlingRate) })}</p>
+      ) : null}
       {statement.ratesVary ? <p>{t('ratesVary')}</p> : null}
       <p>{t('paidRule')}</p>
       {statement.codAlreadyRemitted > 0 ? <p>{t('remittedRule')}</p> : null}

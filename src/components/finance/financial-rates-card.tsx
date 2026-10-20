@@ -20,7 +20,8 @@ type FinancialRatesCardProps = {
 
 const pct = (rate: number) => `${Math.round(rate * 10000) / 100}%`;
 
-// The return-charge and cash-handling rates (migration 0045). A new rate
+// The return-charge rate (migration 0045; the cash-handling charge was
+// removed in 0051). A new rate
 // takes effect from a chosen day (today or later); every shipment is
 // charged at the rate in force on the day it was completed, so nothing
 // already earned or issued changes.
@@ -32,7 +33,6 @@ const FinancialRatesCard = ({ rates, today }: FinancialRatesCardProps) => {
   const current = rates.find((r) => r.effectiveFrom <= today);
   const [effectiveFrom, setEffectiveFrom] = useState(today);
   const [returnPercent, setReturnPercent] = useState(current ? String(Math.round(current.returnChargeRate * 10000) / 100) : '50');
-  const [handlingPercent, setHandlingPercent] = useState(current ? String(Math.round(current.cashHandlingRate * 10000) / 100) : '1.5');
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -42,7 +42,7 @@ const FinancialRatesCard = ({ rates, today }: FinancialRatesCardProps) => {
     <div className="flex flex-col gap-4">
       {current ? (
         <p className="text-sm">
-          {t('current', { returnRate: pct(current.returnChargeRate), handlingRate: pct(current.cashHandlingRate) })}
+          {t('current', { returnRate: pct(current.returnChargeRate) })}
         </p>
       ) : null}
       <form
@@ -56,7 +56,6 @@ const FinancialRatesCard = ({ rates, today }: FinancialRatesCardProps) => {
           const result = await setFinancialRatesAction({
             effectiveFrom,
             returnChargePercent: Number(returnPercent),
-            cashHandlingPercent: Number(handlingPercent),
             note: note || undefined,
           }).catch(() => ({ success: false as const, error: 'errors.generic' }));
           setIsPending(false);
@@ -69,7 +68,7 @@ const FinancialRatesCard = ({ rates, today }: FinancialRatesCardProps) => {
           router.refresh();
         }}
       >
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`${ids}-from`}>{t('effectiveFrom')}</Label>
             <Input id={`${ids}-from`} type="date" min={today} value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} />
@@ -78,16 +77,13 @@ const FinancialRatesCard = ({ rates, today }: FinancialRatesCardProps) => {
             <Label htmlFor={`${ids}-return`}>{t('returnRate')}</Label>
             <Input id={`${ids}-return`} inputMode="decimal" dir="ltr" value={returnPercent} onChange={(e) => setReturnPercent(e.target.value)} />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${ids}-handling`}>{t('handlingRate')}</Label>
-            <Input id={`${ids}-handling`} inputMode="decimal" dir="ltr" value={handlingPercent} onChange={(e) => setHandlingPercent(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5 sm:col-span-3">
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
             <Label htmlFor={`${ids}-note`}>{t('note')}</Label>
             <Input id={`${ids}-note`} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
         </div>
         <p className="text-xs text-muted-foreground">{t('hint')}</p>
+        <p className="text-xs text-muted-foreground">{t('noHandling')}</p>
         <FieldError message={error} />
         {saved ? (
           <p role="status" className="text-sm font-medium text-primary">
@@ -108,7 +104,6 @@ const FinancialRatesCard = ({ rates, today }: FinancialRatesCardProps) => {
             <tr>
               <th scope="col" className="px-3 py-2 text-start font-medium">{t('col.from')}</th>
               <th scope="col" className="px-3 py-2 text-end font-medium">{t('col.returnRate')}</th>
-              <th scope="col" className="px-3 py-2 text-end font-medium">{t('col.handlingRate')}</th>
               <th scope="col" className="px-3 py-2 text-start font-medium">{t('col.note')}</th>
             </tr>
           </thead>
@@ -121,7 +116,6 @@ const FinancialRatesCard = ({ rates, today }: FinancialRatesCardProps) => {
                   {rate.effectiveFrom > today ? <span className="ms-2 text-xs text-muted-foreground">{t('scheduled')}</span> : null}
                 </td>
                 <td dir="ltr" className="px-3 py-2 text-end font-brand-mono rtl:text-left">{pct(rate.returnChargeRate)}</td>
-                <td dir="ltr" className="px-3 py-2 text-end font-brand-mono rtl:text-left">{pct(rate.cashHandlingRate)}</td>
                 <td className="px-3 py-2 wrap-break-word">{rate.note ?? '—'}</td>
               </tr>
             ))}

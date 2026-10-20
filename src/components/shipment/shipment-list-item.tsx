@@ -15,6 +15,9 @@ type ShipmentListItemProps = {
   // Merchants, staff and drivers use the recipient (the drop-off contact,
   // never the merchant's company) to identify each shipment.
   showRecipientName?: boolean;
+  // Drivers never see what a shipment costs: they're told only the cash to
+  // collect, on the shipment itself (lib/shipment/collection.ts).
+  showPrice?: boolean;
 };
 
 const ShipmentListItem = ({
@@ -22,6 +25,7 @@ const ShipmentListItem = ({
   basePath = '/dashboard/customer/deliveries',
   showBookedAt = false,
   showRecipientName = false,
+  showPrice = true,
 }: ShipmentListItemProps) => {
   const t = useTranslations('shipments');
   const format = useFormat();
@@ -67,7 +71,7 @@ const ShipmentListItem = ({
         </p>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-        <span className="font-brand-mono text-sm font-medium">{format.money(shipment.price, shipment.currency)}</span>
+        {showPrice ? <span className="font-brand-mono text-sm font-medium">{format.money(shipment.price, shipment.currency)}</span> : null}
         <ShipmentStatusBadge status={shipment.status} />
       </div>
       <ChevronRight

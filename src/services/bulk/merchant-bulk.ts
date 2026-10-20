@@ -340,6 +340,9 @@ type ValidationContext = {
   pickupAddress: string;
   rules: PricingRuleSet;
   today: string;
+  // Rows in the draft: the provisional size of the booking for the
+  // merchant fee tier. Booking re-prices at the rows actually booked.
+  orderCount: number;
   // The first row number holding each input hash, for duplicate warnings.
   firstByHash: Map<string, number>;
   // One resolution per distinct address per request (on top of the
@@ -487,7 +490,7 @@ const validateRow = async (context: ValidationContext, row: RowRecord): Promise<
   // ── Coverage, route, distance limit and price: exactly quoteShipment ──
   let shipmentQuote: ShipmentQuote;
   try {
-    shipmentQuote = await quoteShipment(context.merchant, checked.data, context.rules);
+    shipmentQuote = await quoteShipment(context.merchant, checked.data, context.rules, context.orderCount);
   } catch (error) {
     const { issue, coverage } = fromQuoteError(error instanceof Error ? error.message : 'booking.errors.cannotBook');
     issues.push(issue);
@@ -533,6 +536,16 @@ const firstRowsByHash = async (batchId: string, hashes: string[]) => {
   return firstByHash;
 };
 
+// Rows that may still be booked (everything not already found invalid).
+const countBatchRows = async (batchId: string) => {
+  const { count } = await createAdminClient()
+    .from('shipment_batch_rows')
+    .select('id', { count: 'exact', head: true })
+    .eq('batch_id', batchId)
+    .neq('status', 'invalid');
+  return Math.max(count ?? 0, 1);
+};
+
 const getBatchPickup = async (batchId: string) => {
   const { data } = await createAdminClient().from('shipment_batches').select('pickup_address').eq('id', batchId).maybeSingle();
   return (data?.pickup_address as string | null | undefined) ?? null;
@@ -563,6 +576,7 @@ const validateAndStore = async (
     pickupAddress,
     rules,
     today: todayInUae(),
+    orderCount: await countBatchRows(batchId),
     firstByHash: await firstRowsByHash(batchId, rows.map((row) => row.input_hash)),
     resolutions: new Map(),
   };
@@ -841,7 +855,15 @@ const finishBooking = async (batchId: string, rows: RowRecord[]) => {
 
 // Re-checks a stored quote against today's rules before it's booked.
 // Returns null when it still stands, or the row's new state when not.
-const recheck = (row: RowRecord, rules: PricingRuleSet, accountType: RegisteredBookingCustomer['accountType'], today: string): Partial<RowUpdate> | null => {
+// orderCount: the rows being booked together, which set the merchant fee
+// tier — a row quoted at the draft's size is re-priced when fewer get booked.
+const recheck = (
+  row: RowRecord,
+  rules: PricingRuleSet,
+  accountType: RegisteredBookingCustomer['accountType'],
+  today: string,
+  orderCount: number,
+): Partial<RowUpdate> | null => {
   const booking = row.quote?.booking;
   if (!booking) return { status: 'pending' };
   const fail = (issue: RowIssue): Partial<RowUpdate> => ({ status: 'invalid', issues: [...(row.issues ?? []), issue] });
@@ -872,6 +894,7 @@ const recheck = (row: RowRecord, rules: PricingRuleSet, accountType: RegisteredB
     durationMinutes: booking.breakdown.durationMinutes,
     weightKg: booking.input.packageWeightKg,
     recipientPaymentType: booking.input.recipientPaymentType,
+    orderCount,
   });
   if (breakdown.exceedsDistanceLimit) {
     return fail({ field: 'distance', message: distanceLimitMessage(breakdown.distanceKm, breakdown.maxDistanceKm!), severity: 'error' });
@@ -943,7 +966,7 @@ export const bookMerchantDraft = async (
     // against the current pricing rules, coverage and date.
     const [rules, today] = [await getActivePricingRules(), todayInUae()];
     const changes = bookable
-      .map((row) => ({ row, change: recheck(row, rules, merchant.accountType, today) }))
+      .map((row) => ({ row, change: recheck(row, rules, merchant.accountType, today, bookable.length) }))
       .filter((entry): entry is { row: RowRecord; change: Partial<RowUpdate> } => entry.change !== null);
     if (changes.length > 0) {
       for (const { row, change } of changes) await admin.from('shipment_batch_rows').update(change).eq('id', row.id);

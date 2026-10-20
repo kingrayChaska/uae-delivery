@@ -170,10 +170,15 @@ export type ShipmentQuote = {
 // Validates one shipment and prices it from a route this server computed —
 // distance, duration and price are never read from the request. Throws a
 // customer-readable message when the shipment can't be booked.
+// orderCount: the shipments booked together with this one (one booking or
+// bulk upload) — it sets a merchant's fee tier (lib/pricing/merchant-fees.ts).
+// The database prices merchant shipments itself from the same policy
+// (migration 0050), at the booking's final size; this is the price shown first.
 export const quoteShipment = async (
   customer: BookingCustomer,
   input: BookingInput,
   rules?: PricingRuleSet,
+  orderCount = 1,
 ): Promise<ShipmentQuote> => {
   const pickup = { lat: input.pickup.lat, lng: input.pickup.lng };
   const dropoff = { lat: input.dropoff.lat, lng: input.dropoff.lng };
@@ -226,6 +231,7 @@ export const quoteShipment = async (
     recipientPaymentType: input.recipientPaymentType,
     shipmentQuantity: input.packageQuantity,
     codAmount: input.codAmount,
+    orderCount,
   });
 
   // How this shipment was priced, alongside the maps:route line for its
@@ -244,6 +250,8 @@ export const quoteShipment = async (
     weightCharge: breakdown.weightCharge,
     codCharge: breakdown.codCharge,
     deliveryFee: breakdown.totalPrice,
+    merchantFeeTier: breakdown.merchantFeeTier ?? null,
+    orderCount,
     maxDistanceKm: breakdown.maxDistanceKm,
     exceedsDistanceLimit: breakdown.exceedsDistanceLimit,
   });

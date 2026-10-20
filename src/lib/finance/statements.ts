@@ -183,7 +183,8 @@ export const statementSummary = (s: SummaryInput): SummaryRow[] => {
     if (s.codAlreadyRemitted > 0) rows.push({ key: 'codAlreadyRemitted', amount: s.codAlreadyRemitted, sign: '-' });
     rows.push({ key: 'serviceCharges', amount: s.serviceCharges, sign: '-' });
     rows.push({ key: 'returnCharges', amount: s.returnCharges, sign: '-' });
-    rows.push({ key: 'cashHandlingFee', amount: s.cashHandlingFee, sign: '-' });
+    // Removed by migration 0051; only statements issued before it carry one.
+    if (s.cashHandlingFee > 0) rows.push({ key: 'cashHandlingFee', amount: s.cashHandlingFee, sign: '-' });
     if (s.paymentsReceived > 0) rows.push({ key: 'paymentsReceived', amount: s.paymentsReceived, sign: '+' });
     return rows;
   }

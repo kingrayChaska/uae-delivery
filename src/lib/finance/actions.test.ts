@@ -278,13 +278,14 @@ describe('settlements', () => {
 });
 
 describe('rates', () => {
-  it('sends percentages as exact fractions', async () => {
+  // Migration 0051: there is no cash-handling charge, so none is ever sent.
+  it('sends the return rate as an exact fraction, and no cash-handling charge', async () => {
     rpc.mockResolvedValue({ data: EXPENSE, error: null });
-    await actions.setFinancialRatesAction({ effectiveFrom: todayInDubai(), returnChargePercent: 40, cashHandlingPercent: 1.75 });
+    await actions.setFinancialRatesAction({ effectiveFrom: todayInDubai(), returnChargePercent: 40 });
     expect(rpc).toHaveBeenCalledWith('set_financial_rates', {
       p_effective_from: todayInDubai(),
       p_return_charge_rate: 0.4,
-      p_cash_handling_rate: 0.0175,
+      p_cash_handling_rate: 0,
       p_note: null,
     });
   });
@@ -292,10 +293,9 @@ describe('rates', () => {
   it.each([
     [{ effectiveFrom: addDays(todayInDubai(), -1) }, 'finance.validation.rateBackdated'],
     [{ returnChargePercent: 120 }, 'finance.validation.returnRate'],
-    [{ cashHandlingPercent: 25 }, 'finance.validation.handlingRate'],
-    [{ cashHandlingPercent: 1.555 }, 'finance.validation.rateDecimals'],
+    [{ returnChargePercent: 40.555 }, 'finance.validation.rateDecimals'],
   ])('validates %o', async (change, error) => {
-    expect(await actions.setFinancialRatesAction({ effectiveFrom: todayInDubai(), returnChargePercent: 50, cashHandlingPercent: 1.5, ...change })).toEqual({
+    expect(await actions.setFinancialRatesAction({ effectiveFrom: todayInDubai(), returnChargePercent: 50, ...change })).toEqual({
       success: false,
       error,
     });
@@ -304,7 +304,7 @@ describe('rates', () => {
 
   it('only managers set rates', async () => {
     role.current = 'operator';
-    await expect(actions.setFinancialRatesAction({ effectiveFrom: todayInDubai(), returnChargePercent: 50, cashHandlingPercent: 1.5 })).rejects.toThrow('Forbidden');
+    await expect(actions.setFinancialRatesAction({ effectiveFrom: todayInDubai(), returnChargePercent: 50 })).rejects.toThrow('Forbidden');
   });
 });
 

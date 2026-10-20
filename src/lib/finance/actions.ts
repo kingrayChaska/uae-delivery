@@ -155,7 +155,8 @@ export const setFinancialRatesAction = async (input: FinancialRatesInput): Promi
   const { data, error } = await supabase.rpc('set_financial_rates', {
     p_effective_from: parsed.data.effectiveFrom,
     p_return_charge_rate: percentToRate(parsed.data.returnChargePercent),
-    p_cash_handling_rate: percentToRate(parsed.data.cashHandlingPercent),
+    // The cash-handling charge was removed (migration 0051).
+    p_cash_handling_rate: 0,
     p_note: parsed.data.note || null,
   });
   if (error || !isUuid(data)) return { success: false, error: safeErrorMessage(error, 'finance.errors.saveFailed') };

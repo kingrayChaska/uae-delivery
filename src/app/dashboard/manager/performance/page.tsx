@@ -146,7 +146,6 @@ const PerformancePage = async ({ searchParams }: { searchParams: SearchParams })
           <dl className="text-sm">
             {row(t('performance.revenue.merchantService'), summary.merchantServiceRevenue)}
             {row(t('performance.revenue.merchantReturns'), summary.merchantReturnRevenue)}
-            {row(t('performance.revenue.merchantHandling'), summary.merchantCashHandlingRevenue)}
             {row(t('performance.revenue.individual'), summary.individualRevenue)}
             {row(t('performance.revenue.other'), summary.otherRevenue, { hint: t('performance.revenue.otherHint') })}
             {row(t('performance.revenue.total'), summary.totalRevenue, { strong: true })}
@@ -304,7 +303,6 @@ const PerformancePage = async ({ searchParams }: { searchParams: SearchParams })
                     <th scope="col" className="px-3 py-2 text-start font-medium">{t('performance.details.col.outcome')}</th>
                     <th scope="col" className="px-3 py-2 text-end font-medium">{t('performance.details.col.service')}</th>
                     <th scope="col" className="px-3 py-2 text-end font-medium">{t('performance.details.col.return')}</th>
-                    <th scope="col" className="px-3 py-2 text-end font-medium">{t('performance.details.col.handling')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -320,7 +318,6 @@ const PerformancePage = async ({ searchParams }: { searchParams: SearchParams })
                       <td className="px-3 py-2">{t(`document.lines.${line.event}`)}</td>
                       <td dir="ltr" className="px-3 py-2 text-end font-brand-mono whitespace-nowrap">{aed(line.serviceCharge)}</td>
                       <td dir="ltr" className="px-3 py-2 text-end font-brand-mono whitespace-nowrap">{aed(line.returnCharge)}</td>
-                      <td dir="ltr" className="px-3 py-2 text-end font-brand-mono whitespace-nowrap">{aed(line.cashHandlingFee)}</td>
                     </tr>
                   ))}
                 </tbody>

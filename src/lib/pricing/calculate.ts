@@ -1,3 +1,5 @@
+import { merchantFeeTier, merchantTierFee } from '@/lib/pricing/merchant-fees';
+
 import type { PriceBreakdown, PricingRule, RecipientPaymentType } from '@/lib/types';
 
 // THE pricing engine. Pure, no DB access: the active PricingRule for the
@@ -12,6 +14,11 @@ import type { PriceBreakdown, PricingRule, RecipientPaymentType } from '@/lib/ty
 // + weight charge                   max(weight - includedWeightKg, 0) x perKg
 // + COD charge                      rule.codFee, only when the recipient pays on delivery
 // = total
+//
+// Merchant rules follow the merchant fee policy (lib/pricing/merchant-fees.ts,
+// migration 0050) first: a COD shipment has no fee, and a Next-Day booking
+// of 2–4 or 5+ orders a flat fee with nothing on top. Only the cases the
+// policy doesn't price use the rule as above.
 //
 // Each component is rounded to fils (half up) separately, in integer
 // hundredths, so it matches Postgres's exact decimal math. The price MUST
@@ -46,6 +53,9 @@ export type PriceInput = {
   // amounts are collected, not charged.
   shipmentQuantity?: number;
   codAmount?: number;
+  // Shipments booked together (one booking or bulk upload); merchant
+  // rules only. One when it's booked alone.
+  orderCount?: number;
 };
 
 export const calculateShipmentPrice = ({
@@ -54,6 +64,7 @@ export const calculateShipmentPrice = ({
   durationMinutes = 0,
   weightKg = null,
   recipientPaymentType = 'prepaid',
+  orderCount = 1,
 }: PriceInput): PriceBreakdown => {
   const distanceHundredths = toHundredths(billableDistanceKm(distanceKm));
   const extraDistanceHundredths = Math.max(0, distanceHundredths - toHundredths(rule.baseDistanceKm));
@@ -61,10 +72,14 @@ export const calculateShipmentPrice = ({
   const weight = billableWeightKg(weightKg);
   const extraWeightHundredths = Math.max(0, toHundredths(weight ?? 0) - toHundredths(rule.includedWeightKg));
 
-  const baseFils = toHundredths(rule.basePrice);
-  const distanceFils = chargeFils(extraDistanceHundredths, rule.additionalPricePerKm);
-  const weightFils = chargeFils(extraWeightHundredths, rule.additionalPricePerKg);
-  const codFils = recipientPaymentType === 'postpaid' ? toHundredths(rule.codFee) : 0;
+  const tier =
+    rule.accountType === 'merchant' ? merchantFeeTier({ deliveryType: rule.deliveryType, recipientPaymentType, orderCount }) : null;
+  const flatFee = tier ? merchantTierFee(tier) : null;
+
+  const baseFils = toHundredths(flatFee ?? rule.basePrice);
+  const distanceFils = flatFee !== null ? 0 : chargeFils(extraDistanceHundredths, rule.additionalPricePerKm);
+  const weightFils = flatFee !== null ? 0 : chargeFils(extraWeightHundredths, rule.additionalPricePerKg);
+  const codFils = flatFee === null && recipientPaymentType === 'postpaid' ? toHundredths(rule.codFee) : 0;
 
   return {
     deliveryType: rule.deliveryType,
@@ -86,6 +101,7 @@ export const calculateShipmentPrice = ({
     currency: rule.currency,
     maxDistanceKm: rule.maxDistanceKm,
     exceedsDistanceLimit: rule.maxDistanceKm !== null && distanceHundredths > toHundredths(rule.maxDistanceKm),
+    merchantFeeTier: tier,
   };
 };
 

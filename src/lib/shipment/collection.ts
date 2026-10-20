@@ -10,6 +10,9 @@ import type { Shipment } from '@/lib/types';
 //   senderCashFee  the delivery fee when the sender chose to pay it in
 //                  cash. It's the sender's charge, already part of the
 //                  shipment price, and is never added to fromRecipient.
+//                  Never for a merchant: their fee is billed to the
+//                  account (feeBilled, migration 0050), not handed to the
+//                  driver.
 //
 // The database mirrors this split: complete_delivery() (0028) asks for COD
 // confirmation exactly when fromRecipient > 0, and the COD record
@@ -21,11 +24,11 @@ export type CashCollection = {
   currency: string;
 };
 
-type CollectionFields = Pick<Shipment, 'recipientPaymentType' | 'codAmount' | 'paymentMethod' | 'price' | 'currency'>;
+type CollectionFields = Pick<Shipment, 'recipientPaymentType' | 'codAmount' | 'paymentMethod' | 'price' | 'currency' | 'feeBilled'>;
 
 export const cashCollection = (shipment: CollectionFields): CashCollection => ({
   fromRecipient: shipment.recipientPaymentType === 'postpaid' ? Number(shipment.codAmount) : 0,
-  senderCashFee: shipment.paymentMethod === 'cod' ? Number(shipment.price) : 0,
+  senderCashFee: shipment.paymentMethod === 'cod' && !shipment.feeBilled ? Number(shipment.price) : 0,
   currency: shipment.currency,
 });
 

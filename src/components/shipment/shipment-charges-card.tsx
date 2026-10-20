@@ -41,15 +41,25 @@ const ShipmentChargesCard = ({ shipment }: { shipment: Shipment }) => {
           adjustment={shipment.priceAdjustment}
         />
 
+        {shipment.merchantFeeTier ? (
+          <p
+            className={shipment.merchantFeeTier === 'unconfirmed' ? 'rounded-md border border-warning/50 bg-warning/10 p-2 text-xs' : 'text-xs text-muted-foreground'}
+          >
+            {t(`merchantFeeTier.${shipment.merchantFeeTier}`, { count: shipment.merchantOrderCount ?? 1 })}
+          </p>
+        ) : null}
+
         <dl className="grid gap-3 border-t pt-4 sm:grid-cols-2">
           <div>
             <dt className="text-xs text-muted-foreground">{t('charges.feePaidBy')}</dt>
             <dd className="flex items-center gap-1.5 font-medium">
               {shipment.paymentMethod === 'card' ? <CreditCard className="size-4" aria-hidden /> : <Banknote className="size-4" aria-hidden />}
-              {t('charges.paidWith', {
-                method: shipment.paymentMethod === 'card' ? t('charges.card') : t('charges.cash'),
-                status: t(`paymentStatus.${shipment.paymentStatus}`),
-              })}
+              {shipment.feeBilled
+                ? t('charges.billed', { status: t(`paymentStatus.${shipment.paymentStatus}`) })
+                : t('charges.paidWith', {
+                    method: shipment.paymentMethod === 'card' ? t('charges.card') : t('charges.cash'),
+                    status: t(`paymentStatus.${shipment.paymentStatus}`),
+                  })}
             </dd>
           </div>
           <div>

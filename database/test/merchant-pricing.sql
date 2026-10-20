@@ -95,24 +95,27 @@ select id as person_rule from pricing_rules where is_active and account_type = '
 set role authenticated;
 set request.jwt.uid = '00000000-0000-0000-0000-0000000000e1';
 
-\echo 'LEGITIMATE: merchant books Next-Day at AED 15'
+-- Since 0050 a merchant COD shipment has no delivery fee (merchant_fee_policy),
+-- so these two postpaid bookings cost AED 0; non-COD single bookings still
+-- use the AED 15 rule (attacks.sql, merchant-fee-policy.sql).
+\echo 'LEGITIMATE: merchant books a Next-Day COD shipment (no fee since 0050)'
 insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
   dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
   distance_km, duration_minutes, pricing_rule_id, delivery_type, package_weight_kg,
   base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type,
   recipient_payment_type, cod_amount)
 values (auth.uid(), 'Jebel Ali Freezone', 25.0, 55.1, 'Shop M', '04 111 2222', 'Al Khayal', 25.1, 55.2, 'Sara', '0559876543',
-  45, 50, :'next_rule', 'next_day', 2, 15, 0, 0, 0, 15, 'AED', 'cod', 'parcel', 'postpaid', 233)
+  45, 50, :'next_rule', 'next_day', 2, 0, 0, 0, 0, 0, 'AED', 'cod', 'parcel', 'postpaid', 233)
 returning price, cod_amount;
 
-\echo 'LEGITIMATE: merchant books Same-Day at AED 15 (+ its AED 3 COD fee: 18)'
+\echo 'LEGITIMATE: merchant books a Same-Day COD shipment (no fee, and no COD handling charge, since 0050)'
 insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
   dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
   distance_km, duration_minutes, pricing_rule_id, delivery_type, package_weight_kg,
   base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type,
   recipient_payment_type, cod_amount)
 values (auth.uid(), 'Jebel Ali Freezone', 25.0, 55.1, 'Shop M', '04 111 2222', 'Al Aweer', 25.1, 55.2, 'Omar', '0551112222',
-  12, 20, :'same_rule', 'same_day', 2, 15, 0, 0, 3, 18, 'AED', 'card', 'parcel', 'postpaid', 39)
+  12, 20, :'same_rule', 'same_day', 2, 0, 0, 0, 0, 0, 'AED', 'cod', 'parcel', 'postpaid', 39)
 returning price;
 
 \set ON_ERROR_STOP 0
@@ -152,9 +155,9 @@ values (auth.uid(), 'Marina', 25.0, 55.1, 'Person P', '0502020202', 'JBR', 25.1,
 returning price;
 reset role;
 
-select t_check('merchant shipments booked after 0033 are AED 15 (+ COD fee where set)',
+select t_check('merchant COD shipments booked since 0050 have no fee (the AED 10 attempts were refused)',
   (select string_agg(price::text, ',' order by price) from shipments
-   where customer_id = '00000000-0000-0000-0000-0000000000e1' and pricing_rule_id in (:'next_rule', :'same_rule')), '15.00,18.00');
+   where customer_id = '00000000-0000-0000-0000-0000000000e1' and pricing_rule_id in (:'next_rule', :'same_rule')), '0.00,0.00');
 select t_check('the COD amount is the goods only, never the fee',
   (select cod_amount::text from shipments where customer_id = '00000000-0000-0000-0000-0000000000e1' and pricing_rule_id = :'next_rule'), '233.00');
 

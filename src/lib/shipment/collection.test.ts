@@ -8,6 +8,8 @@ const shipment = (overrides: Partial<Parameters<typeof cashCollection>[0]> = {})
   paymentMethod: 'cod' as const,
   price: 15,
   currency: 'AED',
+  // An individual customer paying their own fee in cash.
+  feeBilled: false,
   ...overrides,
 });
 
@@ -39,6 +41,16 @@ describe('cashCollection', () => {
     const result = cashCollection(shipment({ codAmount, price }));
     expect(result.fromRecipient).toBe(codAmount);
     expect(result.senderCashFee).toBe(price);
+  });
+
+  it('never hands a driver a merchant-billed fee: COD only, and nothing for a merchant shipment without COD', () => {
+    expect(cashCollection(shipment({ feeBilled: true, price: 0 }))).toEqual({ fromRecipient: 150, senderCashFee: 0, currency: 'AED' });
+    // Even if a billed shipment still carries a price, it is not driver cash.
+    expect(cashCollection(shipment({ feeBilled: true, price: 20, recipientPaymentType: 'prepaid', codAmount: 0 }))).toEqual({
+      fromRecipient: 0,
+      senderCashFee: 0,
+      currency: 'AED',
+    });
   });
 
   it('reads PostgREST numeric strings as numbers', () => {

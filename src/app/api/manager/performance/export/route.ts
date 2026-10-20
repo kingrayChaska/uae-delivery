@@ -35,7 +35,6 @@ export const GET = async (request: NextRequest) => {
           ['Period', `${period.from} to ${period.to}`, 'Asia/Dubai calendar days; accrual basis', ''],
           ['Revenue', 'Merchant service revenue', 'Price of merchant deliveries completed', money(s.merchantServiceRevenue)],
           ['Revenue', 'Merchant return charges', '50% of original delivery service cost', money(s.merchantReturnRevenue)],
-          ['Revenue', 'Merchant cash-handling fees', '1.5% of verified COD collected', money(s.merchantCashHandlingRevenue)],
           ['Revenue', 'Individual & walk-in revenue', 'Price of individual/guest deliveries completed', money(s.individualRevenue)],
           ['Revenue', 'Other approved revenue', 'None recorded', money(s.otherRevenue)],
           ['Revenue', 'Total revenue (R)', '', money(s.totalRevenue)],
@@ -54,7 +53,7 @@ export const GET = async (request: NextRequest) => {
     } else {
       const lines = await getRevenueLines(period, 100_000);
       csv = toCsv(
-        ['Completed at', 'Tracking ID', 'Customer type', 'Outcome', 'Service charge (AED)', 'Return charge (AED)', 'Cash-handling fee (AED)', 'COD collected for merchant (AED)'],
+        ['Completed at', 'Tracking ID', 'Customer type', 'Outcome', 'Service charge (AED)', 'Return charge (AED)', 'COD collected for merchant (AED)'],
         lines.map((line) => [
           line.eventAt,
           line.trackingNumber,
@@ -62,7 +61,6 @@ export const GET = async (request: NextRequest) => {
           line.event,
           money(line.serviceCharge),
           money(line.returnCharge),
-          money(line.cashHandlingFee),
           money(line.codCollected),
         ]),
       );

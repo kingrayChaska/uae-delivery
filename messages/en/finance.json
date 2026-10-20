@@ -442,8 +442,8 @@
   },
   "rates": {
     "heading": "Statement rates",
-    "description": "The return charge and cash-handling rates used on statements and in the performance report.",
-    "current": "In force today: return charge {returnRate} of the original service cost, cash handling {handlingRate} of COD collected.",
+    "description": "The return charge rate used on statements and in the performance report. There is no cash-handling charge.",
+    "current": "In force today: return charge {returnRate} of the original service cost.",
     "effectiveFrom": "Takes effect from",
     "returnRate": "Return charge (%)",
     "handlingRate": "Cash handling (%)",
@@ -461,6 +461,7 @@
       "returnRate": "Return charge",
       "handlingRate": "Cash handling",
       "note": "Note"
-    }
+    },
+    "noHandling": "There is no cash-handling charge: merchants are billed only the flat delivery rates, and the COD collected for them is paid out in full."
   }
 }

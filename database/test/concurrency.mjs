@@ -281,6 +281,59 @@ const opHeld = await one(
   check('7. confirmed once: the operator is at AED 0.00', [position.outstanding, position.confirmed_cod, position.confirmed_fee], ['0.00', opHeld.cod, opHeld.fee]);
 }
 
+// ── 8. Merchant bookings (migration 0050) ────────────────────────────────
+{
+  const merchant = '00000000-0000-0000-0000-000000000057';
+  await admin.query(`
+    insert into auth.users (id, email, raw_user_meta_data) values ('${merchant}', 'm5@test.com', '{"full_name":"Merchant Five","phone":"0505550009"}');
+    alter table profiles disable trigger user;
+    update profiles set account_type = 'merchant' where id = '${merchant}';
+    alter table profiles enable trigger user;
+    insert into shipment_batches (id, name, customer_id, created_by) values ('50000000-0000-4000-8000-0000000000b5', 'Five', '${merchant}', '${merchant}');
+  `);
+  const book = (batch, requestId, price) => ({
+    uid: merchant,
+    sql: `insert into shipments (customer_id, status, batch_id, client_request_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name,
+            pickup_contact_phone, dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone, distance_km,
+            duration_minutes, pricing_rule_id, delivery_type, base_charge, distance_charge, weight_charge, cod_charge, price, currency,
+            payment_method, recipient_payment_type, cod_amount, package_type, package_weight_kg)
+          values ($1, 'confirmed', $2, $3, 'A', 25, 55, 'S', '0500000000', 'B', 25.1, 55.1, 'R', '0500000001', 20, 30,
+            (select id from pricing_rules where is_active and account_type = 'merchant' and delivery_type = 'next_day'), 'next_day',
+            $4, 0, 0, 0, $4, 'AED', 'cod', 'prepaid', 0, 'parcel', 2)
+          returning price::text as result`,
+    params: [merchant, batch, requestId, price],
+  });
+  const single = await race(Array.from({ length: PARALLEL }, () => book(null, '50000000-0000-4000-8000-0000000000a1', 15)));
+  check('8. one merchant booking retried ten times in parallel: one shipment', okCount(single), 1);
+  check('8. …the others hit the one-per-request guard', errors(single).every((e) => e.includes('duplicate key')), true);
+  const forged = await race([book(null, null, 1)]);
+  check('8. a real session can\'t book a merchant shipment at a forged price', errors(forged), ['This is not the merchant price for this shipment']);
+
+  const rows = await race(Array.from({ length: 5 }, (_, i) => book('50000000-0000-4000-8000-0000000000b5', `50000000-0000-4000-8000-0000000000c${i}`, 1)));
+  check('8. five shipments booked into one batch at once', okCount(rows), 5);
+  await Promise.all([
+    admin.query(`update shipment_batches set status = 'submitted' where id = '50000000-0000-4000-8000-0000000000b5'`),
+    (async () => {
+      const other = new pg.Client({ connectionString: url });
+      await other.connect();
+      await other.query(`select reprice_merchant_batch('50000000-0000-4000-8000-0000000000b5', 'parallel')`);
+      await other.end();
+    })(),
+  ]);
+  const priced = await one(
+    `select string_agg(distinct price::text || '/' || merchant_fee_tier || '/' || merchant_order_count, ',') as tiers,
+       (select coalesce(max(n), 0)::int from (
+          select count(*) as n from audit_logs a where a.action = 'shipment.merchant_fee_policy'
+            and a.entity_id in (select id from shipments where batch_id = '50000000-0000-4000-8000-0000000000b5')
+          group by a.entity_id) per) as most_audits
+     from shipments where batch_id = '50000000-0000-4000-8000-0000000000b5'`,
+  );
+  check('8. finalized twice at once: every shipment at the 5+ rate', priced.tiers, '15.00/next_day_5_plus/5');
+  // A price change is audited once; a provisional price that already equals
+  // the final one isn't a change at all.
+  check('8. …no shipment is re-priced (or audited) twice', priced.most_audits <= 1, true);
+}
+
 // ── Every dirham in exactly one place ────────────────────────────────────
 {
   await admin.query('begin');

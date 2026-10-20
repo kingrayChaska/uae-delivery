@@ -2,6 +2,7 @@
 // Every feature imports role/status/enum values from here instead of
 // redefining string literals locally — this file is the single source of truth.
 // Extended further in Phase 2 alongside the database schema.
+import type { MerchantFeeTier } from '@/lib/pricing/merchant-fees';
 
 export const ROLES = ['customer', 'driver', 'operator', 'manager'] as const;
 export type Role = (typeof ROLES)[number];
@@ -128,6 +129,9 @@ export type PriceBreakdown = {
   maxDistanceKm: number | null;
   // True when the trip is longer than the rule allows: it can't be booked.
   exceedsDistanceLimit: boolean;
+  // Merchant fee policy tier (migration 0050); null for individual pricing.
+  // Optional: quotes stored before the policy don't carry it.
+  merchantFeeTier?: MerchantFeeTier | null;
 };
 
 // A customer with no ParcelLink account, booked by staff (migration 0040).
@@ -167,6 +171,13 @@ export type Shipment = {
   // What operations changed the calculated price by (migration 0046):
   // price = calculated charges + priceAdjustment. 0 when never changed.
   priceAdjustment: number;
+  // The delivery fee is billed to the merchant's account (invoice,
+  // statement) and is never cash a driver collects (migration 0050).
+  feeBilled: boolean;
+  // The merchant fee policy tier and booking size it was priced at; null
+  // for individual customers and merchant shipments settled before 0050.
+  merchantFeeTier: MerchantFeeTier | null;
+  merchantOrderCount: number | null;
   businessAccountId: string | null;
   batchId: string | null;
   // The bulk batch it was booked in (BLK-…), when the viewer may see it.

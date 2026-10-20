@@ -39,22 +39,25 @@ values ('Merchant Next-Day Flat', 'next_day', 'merchant', 50, 10, 0, 20, 1, 0, n
 select id as old_rule from pricing_rules where is_active and account_type = 'merchant' and delivery_type = 'next_day' \gset
 select id as person_rule from pricing_rules where is_active and account_type = 'individual' and delivery_type = 'same_day' \gset
 
--- ── Merchant bookings at AED 10, through the normal price check ──────────
-set role authenticated;
-set request.jwt.uid = '00000000-0000-0000-0000-0000000000f1';
+-- ── Merchant bookings at AED 10 ──────────────────────────────────────────
+-- Written as the database: they stand for bookings made before 0033, which
+-- a merchant session can no longer create since 0050 prices merchant
+-- shipments itself (COD ones at AED 0; merchant-fee-policy.sql).
 insert into shipments (customer_id, pickup_address, pickup_lat, pickup_lng, pickup_contact_name, pickup_contact_phone,
   dropoff_address, dropoff_lat, dropoff_lng, dropoff_contact_name, dropoff_contact_phone,
   distance_km, duration_minutes, pricing_rule_id, delivery_type, package_weight_kg,
   base_charge, distance_charge, weight_charge, cod_charge, price, currency, payment_method, package_type,
   recipient_payment_type, cod_amount, package_description)
 values
-  (auth.uid(), 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'A', 25.1, 55.2, 'R1', '0501', 30, 40, :'old_rule', 'next_day', 2, 10, 0, 0, 0, 10, 'AED', 'card', 'parcel', 'prepaid', 0, 'card-unpaid'),
-  (auth.uid(), 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'B', 25.1, 55.2, 'R2', '0502', 30, 40, :'old_rule', 'next_day', 2, 10, 0, 0, 0, 10, 'AED', 'cod', 'parcel', 'postpaid', 233, 'cash-assigned'),
-  (auth.uid(), 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'C', 25.1, 55.2, 'R3', '0503', 30, 40, :'old_rule', 'next_day', 2, 10, 0, 0, 0, 10, 'AED', 'cod', 'parcel', 'postpaid', 39, 'cash-collected'),
-  (auth.uid(), 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'D', 25.1, 55.2, 'R4', '0504', 30, 40, :'old_rule', 'next_day', 2, 10, 0, 0, 0, 10, 'AED', 'card', 'parcel', 'prepaid', 0, 'card-paid'),
-  (auth.uid(), 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'E', 25.1, 55.2, 'R5', '0505', 30, 40, :'old_rule', 'next_day', 25, 10, 0, 5, 0, 15, 'AED', 'card', 'parcel', 'prepaid', 0, 'heavy-25kg'),
-  (auth.uid(), 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'F', 25.1, 55.2, 'R6', '0506', 30, 40, :'old_rule', 'next_day', 2, 10, 0, 0, 0, 10, 'AED', 'card', 'parcel', 'prepaid', 0, 'invoiced'),
-  (auth.uid(), 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'G', 25.1, 55.2, 'R7', '0507', 30, 40, :'old_rule', 'next_day', 2, 10, 0, 0, 0, 10, 'AED', 'cod', 'parcel', 'postpaid', 50, 'bulk-booked');
+  ('00000000-0000-0000-0000-0000000000f1', 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'A', 25.1, 55.2, 'R1', '0501', 30, 40, :'old_rule', 'next_day', 2, 10, 0, 0, 0, 10, 'AED', 'card', 'parcel', 'prepaid', 0, 'card-unpaid'),
+  ('00000000-0000-0000-0000-0000000000f1', 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'B', 25.1, 55.2, 'R2', '0502', 30, 40, :'old_rule', 'next_day', 2, 10, 0, 0, 0, 10, 'AED', 'cod', 'parcel', 'postpaid', 233, 'cash-assigned'),
+  ('00000000-0000-0000-0000-0000000000f1', 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'C', 25.1, 55.2, 'R3', '0503', 30, 40, :'old_rule', 'next_day', 2, 10, 0, 0, 0, 10, 'AED', 'cod', 'parcel', 'postpaid', 39, 'cash-collected'),
+  ('00000000-0000-0000-0000-0000000000f1', 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'D', 25.1, 55.2, 'R4', '0504', 30, 40, :'old_rule', 'next_day', 2, 10, 0, 0, 0, 10, 'AED', 'card', 'parcel', 'prepaid', 0, 'card-paid'),
+  ('00000000-0000-0000-0000-0000000000f1', 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'E', 25.1, 55.2, 'R5', '0505', 30, 40, :'old_rule', 'next_day', 25, 10, 0, 5, 0, 15, 'AED', 'card', 'parcel', 'prepaid', 0, 'heavy-25kg'),
+  ('00000000-0000-0000-0000-0000000000f1', 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'F', 25.1, 55.2, 'R6', '0506', 30, 40, :'old_rule', 'next_day', 2, 10, 0, 0, 0, 10, 'AED', 'card', 'parcel', 'prepaid', 0, 'invoiced'),
+  ('00000000-0000-0000-0000-0000000000f1', 'Jebel Ali', 25.0, 55.1, 'Shop R', '04 111 2222', 'G', 25.1, 55.2, 'R7', '0507', 30, 40, :'old_rule', 'next_day', 2, 10, 0, 0, 0, 10, 'AED', 'cod', 'parcel', 'postpaid', 50, 'bulk-booked');
+set role authenticated;
+set request.jwt.uid = '00000000-0000-0000-0000-0000000000f1';
 \echo 'issue an invoice at AED 10 for "invoiced"'
 select issue_shipment_invoice((select id from shipments where package_description = 'invoiced')) as old_invoice \gset
 set request.jwt.uid = '00000000-0000-0000-0000-0000000000f2';

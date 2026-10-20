@@ -86,6 +86,8 @@ export const statementPdfModel = (statement: Statement, locale: Locale = 'en', n
     return doc.summary[row.key];
   };
 
+  // As the on-screen statement: a cash-handling column only when it carries one (pre-0051).
+  const handling = cod && statement.cashHandlingFee > 0;
   const columns: StatementPdfModel['columns'] = [
     { label: doc.lines.col.no, numeric: false, width: 9 },
     { label: doc.lines.col.date, numeric: false, width: 22 },
@@ -96,7 +98,7 @@ export const statementPdfModel = (statement: Statement, locale: Locale = 'en', n
     ...(cod ? [{ label: doc.lines.col.cod, numeric: true, width: 26 }] : []),
     { label: doc.lines.col.service, numeric: true, width: 24 },
     { label: doc.lines.col.return, numeric: true, width: 22 },
-    ...(cod ? [{ label: doc.lines.col.handling, numeric: true, width: 24 }] : []),
+    ...(handling ? [{ label: doc.lines.col.handling, numeric: true, width: 24 }] : []),
     { label: doc.lines.col.paid, numeric: true, width: 24 },
   ];
 
@@ -124,7 +126,7 @@ export const statementPdfModel = (statement: Statement, locale: Locale = 'en', n
       ...(cod ? [amount(line.codCollected)] : []),
       amount(line.serviceCharge),
       amount(line.returnCharge),
-      ...(cod ? [amount(line.cashHandlingFee)] : []),
+      ...(handling ? [amount(line.cashHandlingFee)] : []),
       amount(line.paymentsReceived),
     ];
   });
@@ -138,7 +140,7 @@ export const statementPdfModel = (statement: Statement, locale: Locale = 'en', n
     ...(cod ? [amount(cents.cod / 100)] : []),
     amount(cents.service / 100),
     amount(cents.returns / 100),
-    ...(cod ? [amount(cents.handling / 100)] : []),
+    ...(handling ? [amount(cents.handling / 100)] : []),
     amount(cents.paid / 100),
   ];
 
@@ -157,7 +159,7 @@ export const statementPdfModel = (statement: Statement, locale: Locale = 'en', n
   }
 
   const notes = [doc.notes.basis, doc.notes.serviceRule, fill(doc.notes.returnRule, { rate: percent(statement.returnChargeRate) })];
-  if (cod) notes.push(fill(doc.notes.handlingRule, { rate: percent(statement.cashHandlingRate) }));
+  if (handling) notes.push(fill(doc.notes.handlingRule, { rate: percent(statement.cashHandlingRate) }));
   if (statement.ratesVary) notes.push(doc.notes.ratesVary);
   notes.push(doc.notes.paidRule);
   if (statement.codAlreadyRemitted > 0) notes.push(doc.notes.remittedRule);

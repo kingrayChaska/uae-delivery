@@ -177,6 +177,8 @@ export const DATABASE_MESSAGES: Record<string, string> = {
   "New rates can only take effect from today onwards": "errors.db.rateBackdated",
   "The return charge rate must be between 0% and 100%": "errors.db.rateReturnRange",
   "The cash-handling rate must be between 0% and 20%": "errors.db.rateHandlingRange",
+  // Migration 0051.
+  "The cash-handling charge has been removed; merchants are billed the flat delivery rates": "errors.db.cashHandlingRemoved",
   "Rates already in force can't be changed": "errors.db.rateLocked",
   "Payments are recorded against the current published statement": "errors.db.settlementCurrentOnly",
   "Choose how the money was paid": "errors.db.settlementMethod",

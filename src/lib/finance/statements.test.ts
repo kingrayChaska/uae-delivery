@@ -38,7 +38,21 @@ const drawnText = (render: () => ArrayBuffer) => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('statementSummary / statementTotal', () => {
-  it('COD statement: COD less charges and fees, payable to the merchant', () => {
+  // Migration 0051: no cash-handling charge — the COD is paid out less only
+  // the delivery and return charges.
+  it('COD statement since 0051: no cash-handling line, the COD paid out less the flat charges', () => {
+    const s = { ...codStatement(), cashHandlingFee: 0, netAmount: 8300, lines: codStatement().lines.map((l) => ({ ...l, cashHandlingFee: 0 })) };
+    expect(statementSummary(s)).toEqual([
+      { key: 'totalCod', amount: 10000, sign: '' },
+      { key: 'serviceCharges', amount: 1500, sign: '-' },
+      { key: 'returnCharges', amount: 200, sign: '-' },
+    ]);
+    expect(statementTotal(s).amount).toBe(8300);
+    expect(summaryMatchesNet(s)).toBe(true);
+  });
+
+  // A statement issued before 0051 keeps the charge it was issued with.
+  it('COD statement issued before 0051: COD less charges and fees, payable to the merchant', () => {
     const s = codStatement();
     expect(statementSummary(s)).toEqual([
       { key: 'totalCod', amount: 10000, sign: '' },

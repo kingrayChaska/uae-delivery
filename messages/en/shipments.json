@@ -103,7 +103,8 @@
     "recipientPayment": "Recipient payment for goods",
     "postpaidCollect": "Postpaid — collect <mono>{amount}</mono>",
     "prepaidNothing": "Prepaid — nothing to collect",
-    "productValue": "Product value"
+    "productValue": "Product value",
+    "billed": "Billed to the merchant account · {status}"
   },
   "address": {
     "unit": "Unit {unit}",
@@ -169,5 +170,11 @@
     "title": "Pay the delivery fee in cash?",
     "description": "The shipment is confirmed and sent for dispatch. The delivery fee is collected in cash — nothing is marked as paid until then.",
     "confirm": "Switch to cash"
+  },
+  "merchantFeeTier": {
+    "cod_no_fee": "Merchant COD shipment: no delivery fee.",
+    "next_day_5_plus": "Merchant Next-Day rate for {count} orders booked together (5 or more): AED 15 flat.",
+    "next_day_2_4": "Merchant Next-Day rate for {count} orders booked together (2–4): AED 20 flat.",
+    "unconfirmed": "Rate not confirmed: no agreed merchant rate covers this booking yet ({count, plural, one {# order} other {# orders}}), so the standard merchant rate was applied."
   }
 }

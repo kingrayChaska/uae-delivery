@@ -56,7 +56,7 @@ const DriverDashboardPage = async () => {
         ) : (
           <div className="flex flex-col gap-2">
             {recent.map((shipment) => (
-              <ShipmentListItem key={shipment.id} shipment={shipment} basePath="/dashboard/driver/deliveries" showRecipientName />
+              <ShipmentListItem key={shipment.id} shipment={shipment} basePath="/dashboard/driver/deliveries" showRecipientName showPrice={false} />
             ))}
           </div>
         )}

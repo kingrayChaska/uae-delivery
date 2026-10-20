@@ -140,10 +140,14 @@ describe('calculateShipmentPrice — merchant flat rate', () => {
     }
   });
 
-  it('keeps the COD amount out of the merchant fee', () => {
+  // Migration 0050: a merchant COD shipment has no delivery fee at all, and
+  // the COD amount is never added to (or taken from) the fee.
+  it('charges no fee on a merchant COD shipment, and never adds the COD amount', () => {
     const rule = DEFAULT_PRICING_RULES.merchant.next_day;
-    const quote = calculateShipmentPrice({ rule, distanceKm: 30, weightKg: 2, recipientPaymentType: 'postpaid', codAmount: 233 });
-    expect(quote.totalPrice).toBe(15);
+    const quote = calculateShipmentPrice({ rule, distanceKm: 30, weightKg: 25, recipientPaymentType: 'postpaid', codAmount: 233 });
+    expect(quote.totalPrice).toBe(0);
+    expect([quote.basePrice, quote.distanceCharge, quote.weightCharge, quote.codCharge]).toEqual([0, 0, 0, 0]);
+    expect(quote.merchantFeeTier).toBe('cod_no_fee');
   });
 
   it('leaves individual pricing as it was', () => {
