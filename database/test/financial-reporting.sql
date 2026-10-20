@@ -461,10 +461,19 @@ select t_check('category audit trail', (select count(*)::text from audit_logs wh
 set role authenticated;
 set request.jwt.uid = '00000000-0000-0000-0000-0000000000a2';
 select t_check('operator sees no expenses', (select count(*)::text from expenses), '0');
-select t_fails('ATTACK: operator records an expense',
-  $$insert into expenses (category_id, description, amount, incurred_on, created_by)
-    values ((select id from expense_categories limit 1), 'Sneaky', 1, '2026-01-01', '00000000-0000-0000-0000-0000000000a2')$$,
-  '%row-level security%');
+-- Since 0052 an operator records their own expenses: they are the
+-- operator's, and stay out of the figures below until a manager approves
+-- their report (expense-reports.sql).
+insert into expenses (category_id, description, amount, incurred_on, created_by)
+values ((select id from expense_categories limit 1), 'Operator fuel', 1, '2026-01-01', '00000000-0000-0000-0000-0000000000a2');
+select t_check('an operator''s expense is theirs and unreported',
+  (select source || '/' || (report_id is null)::text from expenses where description = 'Operator fuel'), 'operator/true');
+-- ATTACK: operator records an expense as the manager — the database takes
+-- the recorder from the session (0044), so it is simply the operator's.
+insert into expenses (category_id, description, amount, incurred_on, created_by)
+values ((select id from expense_categories limit 1), 'Sneaky', 1, '2026-01-01', '00000000-0000-0000-0000-0000000000a1');
+select t_check('ATTACK: …recorded as the operator''s own, not the manager''s',
+  (select created_by || '/' || source from expenses where description = 'Sneaky'), '00000000-0000-0000-0000-0000000000a2/operator');
 select t_fails('ATTACK: operator adds a category', $$insert into expense_categories (name) values ('Bonus')$$, '%row-level security%');
 select t_fails('ATTACK: operator runs the performance report',
   $$select * from business_performance_summary('2026-01-01', '2026-01-31')$$, '%Only a manager%');

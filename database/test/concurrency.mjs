@@ -334,6 +334,47 @@ const opHeld = await one(
   check('8. …no shipment is re-priced (or audited) twice', priced.most_audits <= 1, true);
 }
 
+// ── 9. Expense reports (migration 0052) ──────────────────────────────────
+{
+  const operator = '00000000-0000-0000-0000-000000000056';
+  await admin.query(`
+    insert into auth.users (id, email, raw_user_meta_data) values ('${operator}', 'xo5@test.com', '{"full_name":"Exp Op Five","phone":"0505550010"}');
+    alter table profiles disable trigger user;
+    update profiles set role = 'operator' where id = '${operator}';
+    alter table profiles enable trigger user;
+    insert into staff_profiles (profile_id, employee_id) values ('${operator}', 'EMP-C9');
+    insert into expenses (category_id, description, amount, incurred_on, created_by, source)
+    values ((select id from expense_categories where name = 'Fuel'), 'Race fuel', 80, '2026-09-08', '${operator}', 'operator');
+  `);
+  // Two overlapping reports created at once: one wins.
+  const created = await race([
+    { uid: operator, sql: `select create_expense_report('week', '2026-09-07', '2026-09-13', gen_random_uuid())::text as result` },
+    { uid: operator, sql: `select create_expense_report('month', '2026-09-01', '2026-09-30', gen_random_uuid())::text as result` },
+    { uid: operator, sql: `select create_expense_report('custom', '2026-09-05', '2026-09-20', gen_random_uuid())::text as result` },
+  ]);
+  check('9. overlapping reports created at once: exactly one', okCount(created), 1);
+  check('9. …the others are refused as overlapping', errors(created).every((e) => e.includes('overlaps your report')), true);
+  const reportId = created.find((o) => 'ok' in o).ok;
+  await admin.query(`update expenses set report_id = $1 where description = 'Race fuel'`, [reportId]);
+
+  const submits = await race(Array.from({ length: 5 }, () => ({ uid: operator, sql: `select submit_expense_report($1) as result`, params: [reportId] })));
+  check('9. five submits at once: every one answers "submitted"', submits.map((o) => o.ok ?? o.error), Array(5).fill('submitted'));
+  const submitted = await one(
+    `select (select count(*)::int from expense_report_events where report_id = $1 and action = 'submitted') as events,
+       (select count(*)::int from notifications where type = 'expense_report.submitted' and profile_id = $2) as notices`,
+    [reportId, ID.mgr1],
+  );
+  check('9. …one submission recorded, each manager told once', [submitted.events, submitted.notices], [1, 1]);
+
+  const decisions = await race([
+    { uid: ID.mgr1, sql: `select approve_expense_report($1, null) as result`, params: [reportId] },
+    { uid: ID.mgr2, sql: `select return_expense_report($1, 'Missing the receipt') as result`, params: [reportId] },
+  ]);
+  const final = await one(`select status from expense_reports where id = $1`, [reportId]);
+  check('9. approve and return at once: exactly one decision stands', okCount(decisions), 1);
+  check('9. …the report is in the winner\'s state', decisions.find((o) => 'ok' in o).ok, final.status);
+}
+
 // ── Every dirham in exactly one place ────────────────────────────────────
 {
   await admin.query('begin');

@@ -177,6 +177,24 @@ export const DATABASE_MESSAGES: Record<string, string> = {
   "New rates can only take effect from today onwards": "errors.db.rateBackdated",
   "The return charge rate must be between 0% and 100%": "errors.db.rateReturnRange",
   "The cash-handling rate must be between 0% and 20%": "errors.db.rateHandlingRange",
+  // Migration 0052 (operator expense reports).
+  "Only operators prepare expense reports": "errors.db.expenseOperatorOnly",
+  "Only a manager reviews expense reports": "errors.db.expenseManagerOnly",
+  "Add at least one expense before submitting this report": "errors.db.expenseReportEmpty",
+  "A weekly report runs Monday to Sunday": "errors.db.expenseReportWeek",
+  "A monthly report covers one calendar month": "errors.db.expenseReportMonth",
+  "A custom report can cover at most 93 days": "errors.db.expenseReportCustomLong",
+  "A report can't start in the future": "errors.db.expenseReportFuture",
+  "Report not found": "errors.db.expenseReportNotFound",
+  "Only a draft that was never submitted can be discarded": "errors.db.expenseReportDiscard",
+  "This report holds a voided expense, so it stays on record": "errors.db.expenseReportHoldsVoid",
+  "This expense is in a submitted report: it can't be changed until a manager returns the report": "errors.db.expenseInSubmitted",
+  "This expense is in an approved report: a manager corrects it with a correction": "errors.db.expenseInApproved",
+  "Return the report to the operator to change their expense": "errors.db.expenseManagerEdit",
+  "Attach a receipt you uploaded yourself": "errors.db.expenseReceiptOwn",
+  "Explain what needs correcting (5 to 1000 characters)": "errors.db.expenseReturnReason",
+  "Only an expense in an approved operator report is corrected this way": "errors.db.expenseCorrectionApprovedOnly",
+  "The corrected amount is the same as the current one": "errors.db.expenseCorrectionSame",
   // Migration 0051.
   "The cash-handling charge has been removed; merchants are billed the flat delivery rates": "errors.db.cashHandlingRemoved",
   "Rates already in force can't be changed": "errors.db.rateLocked",
@@ -307,6 +325,18 @@ const DATABASE_PATTERNS: [RegExp, (match: RegExpMatchArray) => string][] = [
       msg("errors.db.applicationLocked", {
         status: ref(`merchant.status.${status}`),
       }),
+  ],
+  [
+    /^This period overlaps your report (\S+) \((.+) to (.+)\)$/,
+    ([, number, from, to]) => msg("errors.db.expenseReportOverlap", { number, from, to }),
+  ],
+  [
+    /^The report for (.+) has already been (submitted|approved) — choose a date outside it$/,
+    ([, date, status]) => msg("errors.db.expenseReportLocked", { date, status: ref(`finance.reports.status.${status}`) }),
+  ],
+  [
+    /^Only a submitted report can be (approved|returned) \(this one is (\w+)\)$/,
+    ([, , status]) => msg("errors.db.expenseReportNotSubmitted", { status: ref(`finance.reports.status.${status}`) }),
   ],
 ];
 

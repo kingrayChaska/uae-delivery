@@ -275,7 +275,9 @@
       "heading": "Expenditure",
       "manage": "Manage expenses",
       "countsAs": "{group} · {count, plural, one {# entry} other {# entries}}",
-      "total": "Total expenditure"
+      "total": "Total expenditure",
+      "official": "Official expenses: everything managers record, plus operator expenses in approved reports.",
+      "awaiting": "{amount} is awaiting review and not counted yet."
     },
     "profit": {
       "heading": "Profitability",
@@ -368,7 +370,16 @@
       "submit": "Save expense",
       "saving": "Saving…",
       "saved": "Expense saved.",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "receipt": "Receipt or supporting document",
+      "receiptHint": "PDF, JPG, PNG or WebP, up to 5 MB. Only you and managers can open it.",
+      "receiptUploading": "Uploading…",
+      "receiptAttached": "Attached: {name}",
+      "receiptExisting": "the current receipt",
+      "receiptRemove": "Remove receipt",
+      "receiptType": "Upload a PDF, JPG, PNG or WebP file.",
+      "receiptSize": "The file is larger than 5 MB.",
+      "receiptFailed": "The receipt couldn’t be uploaded. Please try again."
     },
     "list": {
       "heading": "Expenses",
@@ -379,7 +390,8 @@
       "reference": "ref. {reference}",
       "recorded": "Recorded by {name} on {date}",
       "edited": "last edited by {name} on {date}",
-      "voidReason": "Voided: {reason}"
+      "voidReason": "Voided: {reason}",
+      "operatorExpense": "Operator expense"
     },
     "void": {
       "button": "Void",
@@ -404,7 +416,8 @@
       "inactive": "Inactive",
       "activate": "Activate",
       "deactivate": "Deactivate"
-    }
+    },
+    "officialNote": "The totals here are the official expenses: costs managers record, plus operator expenses in approved reports. Operator expenses still in review are on Performance Reports."
   },
   "validation": {
     "date": "Enter a valid date.",
@@ -431,7 +444,8 @@
     "rateBackdated": "New rates can only start today or later.",
     "method": "Choose how the money was paid.",
     "paidOnFuture": "The payment date can’t be in the future.",
-    "moreThanOutstanding": "That’s more than is outstanding on this statement."
+    "moreThanOutstanding": "That’s more than is outstanding on this statement.",
+    "receipt": "Attach the receipt again: that file can’t be used."
   },
   "errors": {
     "generateFailed": "The statement couldn’t be generated. Try again.",
@@ -463,5 +477,162 @@
       "note": "Note"
     },
     "noHandling": "There is no cash-handling charge: merchants are billed only the flat delivery rates, and the COD collected for them is paid out in full."
+  },
+  "operatorExpenses": {
+    "meta": "Expenses · ParcelLink",
+    "title": "Expenses",
+    "subtitle": "Record the operational expenses you pay, with a receipt, and send them to a manager in a weekly, monthly or custom report. They count in the business figures once a manager approves the report.",
+    "presetsLabel": "Reporting period",
+    "presets": {
+      "thisWeek": "This week",
+      "lastWeek": "Last week",
+      "thisMonth": "This month",
+      "lastMonth": "Last month"
+    },
+    "filters": {
+      "from": "From",
+      "to": "To",
+      "category": "Category",
+      "allCategories": "All categories",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "apply": "Apply"
+    },
+    "totalsHeading": "Your expenses, {from} – {to}",
+    "periodTotal": "Total",
+    "noneInPeriod": "No expenses in this period.",
+    "addHeading": "Add an expense",
+    "addHint": "An expense dated in one of your draft or returned reports joins it. A period you have already submitted is closed.",
+    "prepareHeading": "Prepare a report",
+    "prepareHint": "Choose a week, a month or a range. Your reports can’t overlap, so each expense is reported once.",
+    "reportsHeading": "Your reports",
+    "noReports": "No reports yet.",
+    "reportCount": "{count, plural, =0 {No expenses} one {# expense} other {# expenses}}",
+    "listHeading": "Expenses",
+    "empty": "No expenses match these filters.",
+    "void": "Void",
+    "hasReceipt": "Receipt",
+    "voidReason": "Voided: {reason}",
+    "locked": "In review",
+    "loadFailed": "This couldn’t be loaded. Please refresh the page."
+  },
+  "reports": {
+    "meta": "Expense report · ParcelLink",
+    "status": {
+      "unreported": "Not in a report",
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "approved": "Approved",
+      "returned": "Returned"
+    },
+    "kind": {
+      "week": "Weekly",
+      "month": "Monthly",
+      "custom": "Custom"
+    },
+    "prepare": {
+      "kind": "Report type",
+      "from": "From",
+      "to": "To",
+      "anyDayOfWeek": "Any day of the week",
+      "anyDayOfMonth": "Any day of the month",
+      "period": "Period: {from} – {to}",
+      "hint": "Weeks run Monday to Sunday and months are calendar months, in UAE time.",
+      "create": "Create report",
+      "creating": "Creating…"
+    },
+    "validation": {
+      "future": "A report can’t start in the future.",
+      "customTooLong": "A custom report can cover at most 93 days.",
+      "returnReason": "Explain what needs correcting (5 to 1,000 characters).",
+      "correctionReason": "Give a reason for the correction (5 to 500 characters)."
+    },
+    "errors": {
+      "createFailed": "The report couldn’t be created. Please try again."
+    },
+    "operator": {
+      "submit": "Submit to manager",
+      "resubmit": "Resubmit to manager",
+      "submitTitle": "Submit this report?",
+      "resubmitTitle": "Resubmit this report?",
+      "submitDescription": "A manager will review it. Until they approve it or return it to you, its expenses can’t be changed and no expense can be added to its period.",
+      "cancel": "Cancel",
+      "submitting": "Submitting…",
+      "confirmSubmit": "Submit",
+      "discard": "Discard draft",
+      "discardConfirm": "Discard this draft? Its expenses stay, outside any report."
+    },
+    "review": {
+      "heading": "Review",
+      "description": "Check the expenses and receipts, then approve the report or return it to the operator.",
+      "note": "Note to the operator",
+      "optional": "optional",
+      "approve": "Approve",
+      "working": "Saving…",
+      "return": "Return for correction",
+      "returnTitle": "Return this report?",
+      "returnDescription": "The operator can then correct it and submit it again. Tell them what needs changing.",
+      "reason": "What needs correcting",
+      "cancel": "Cancel",
+      "confirmReturn": "Return report",
+      "approvalMeaning": "Approving confirms the report was reviewed and accepted, and counts it in the business figures. It doesn’t record a payment or reimbursement."
+    },
+    "correction": {
+      "button": "Correct",
+      "title": "Correct an approved expense",
+      "description": "{description}",
+      "amount": "Corrected amount (AED)",
+      "reason": "Reason",
+      "kept": "The original amount, the reason and your name are kept with the report.",
+      "cancel": "Cancel",
+      "confirm": "Save correction"
+    },
+    "history": {
+      "created": "Created",
+      "submitted": "Submitted",
+      "resubmitted": "Resubmitted",
+      "approved": "Approved",
+      "returned": "Returned for correction",
+      "corrected": "Corrected"
+    },
+    "submittedOn": "{count, plural, one {Submitted {date}} other {Submitted {date} (#th time)}}",
+    "returnedHeading": "Returned by {name}:",
+    "approvedNote": "Approved by {name}: {note}",
+    "totalsHeading": "Totals",
+    "total": "Total now",
+    "expenseCount": "{count, plural, =0 {No expenses} one {# expense} other {# expenses}} · {receipts} with receipts",
+    "submittedTotal": "As submitted",
+    "approvedTotal": "As approved",
+    "entriesHeading": "Expenses",
+    "noEntries": "No expenses in this report yet.",
+    "void": "Void",
+    "viewReceipt": "View receipt",
+    "noReceipt": "No receipt attached",
+    "corrected": "Corrected from {from} to {to} on {date}: {reason}",
+    "historyHeading": "History",
+    "backToExpenses": "Expenses",
+    "backToPerformance": "Performance Reports",
+    "performance": {
+      "heading": "Operator expense reports",
+      "description": "Expenses operators send for review. Only approved reports count in the figures above, together with expenses managers record. Each expense is counted once, by its date.",
+      "official": "Counted (official)",
+      "managerRecorded": "Recorded by managers",
+      "approved": "Approved operator reports",
+      "awaiting": "Awaiting review",
+      "notCounted": "Returned or not submitted",
+      "notCountedHint": "Not counted: {returned} returned for correction, {unsubmitted} not yet submitted.",
+      "filterLabel": "Filter reports by status",
+      "allReports": "All",
+      "empty": "No operator expense reports overlap this period.",
+      "col": {
+        "report": "Report",
+        "operator": "Operator",
+        "period": "Period",
+        "status": "Status",
+        "total": "Total",
+        "submitted": "Submitted"
+      },
+      "entries": "{count, plural, =0 {No expenses} one {# expense} other {# expenses}} · {receipts} receipts"
+    }
   }
 }

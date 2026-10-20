@@ -28,11 +28,13 @@ type ExpenseRowActionsProps = {
   categories: { id: string; name: string; active: boolean }[];
   today: string;
   initial: ExpenseFormValues;
+  // Operators: the receipt upload folder (their id), passed to the form.
+  receiptFolder?: string;
 };
 
 // Edit or void one active expense. Expenses are never deleted: a void
 // expense stays on record with its reason and stops counting in totals.
-const ExpenseRowActions = ({ expenseId, description, categories, today, initial }: ExpenseRowActionsProps) => {
+const ExpenseRowActions = ({ expenseId, description, categories, today, initial, receiptFolder }: ExpenseRowActionsProps) => {
   const t = useTranslations('finance.expenses');
   const router = useRouter();
   const ids = useId();
@@ -55,7 +57,14 @@ const ExpenseRowActions = ({ expenseId, description, categories, today, initial 
             <DialogTitle>{t('form.editHeading')}</DialogTitle>
             <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
-          <ExpenseForm categories={categories} today={today} expenseId={expenseId} initial={initial} onDone={() => setEditOpen(false)} />
+          <ExpenseForm
+            categories={categories}
+            today={today}
+            expenseId={expenseId}
+            initial={initial}
+            onDone={() => setEditOpen(false)}
+            receiptFolder={receiptFolder}
+          />
         </DialogContent>
       </Dialog>
 

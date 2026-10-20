@@ -213,10 +213,26 @@ describe('expenses', () => {
     });
   });
 
-  it.each(['operator', 'driver', 'customer'])('a %s can’t record expenses or categories', async (who) => {
+  it.each(['driver', 'customer'])('a %s can’t record expenses or categories', async (who) => {
     role.current = who;
     await expect(actions.createExpenseAction(expense)).rejects.toThrow('Forbidden');
     await expect(actions.createExpenseCategoryAction({ name: 'Bonus', profitGroup: 'salary' })).rejects.toThrow('Forbidden');
+    expect(writes).toEqual([]);
+  });
+
+  // Migration 0052: operators record their own expenses (the database makes
+  // them operator expenses, in the report for their date); categories stay
+  // the managers'.
+  it('an operator records an expense, with a receipt from their own folder, but not a category', async () => {
+    role.current = 'operator';
+    const receiptPath = '00000000-0000-4000-8000-000000000001/receipt.pdf';
+    expect(await actions.createExpenseAction({ ...expense, receiptPath })).toMatchObject({ success: true });
+    expect(writes[0]).toMatchObject({ table: 'expenses', op: 'insert', values: { receipt_path: receiptPath } });
+    await expect(actions.createExpenseCategoryAction({ name: 'Bonus', profitGroup: 'salary' })).rejects.toThrow('Forbidden');
+  });
+
+  it.each(['../x.pdf', 'no-folder.pdf', '00000000-0000-4000-8000-000000000001/../../x.pdf'])('refuses a receipt path like %s', async (receiptPath) => {
+    expect(await actions.createExpenseAction({ ...expense, receiptPath })).toEqual({ success: false, error: 'finance.validation.receipt' });
     expect(writes).toEqual([]);
   });
 });

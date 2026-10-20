@@ -7,11 +7,14 @@ import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
 import Label from '@/components/ui/label';
 import StatCard from '@/components/dashboard/stat-card';
+import ExpenseReportStatusBadge from '@/components/finance/expense-report-status-badge';
 import PrintButton from '@/components/shipment/label/print-button';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { failedLoad } from '@/lib/finance/load-error';
 import { parsePeriod } from '@/lib/finance/schemas';
+import { EXPENSE_REPORT_STATUSES, parseReportStatus } from '@/lib/finance/expense-reports';
 import { getCategoryTotals, getPerformanceSummary, getRevenueLines } from '@/services/finance/performance';
+import { getExpenseReviewSummary, listExpenseReports } from '@/services/finance/expense-reports';
 import { getFormat } from '@/i18n/server';
 
 import type { Metadata } from 'next';
@@ -21,7 +24,7 @@ export const generateMetadata = async (): Promise<Metadata> => ({
   title: (await getTranslations('finance.performance'))('meta'),
 });
 
-type SearchParams = Promise<{ from?: string; to?: string }>;
+type SearchParams = Promise<{ from?: string; to?: string; reports?: string }>;
 
 // Shown on screen; the CSV export has every line.
 const DETAIL_ROWS = 200;
@@ -34,7 +37,8 @@ const PerformancePage = async ({ searchParams }: { searchParams: SearchParams })
   await requireRoleOrRedirect('manager');
   const params = await searchParams;
   const period = parsePeriod(params.from, params.to);
-  const [t, format, summary, categories, lines] = await Promise.all([
+  const reportStatus = parseReportStatus(params.reports);
+  const [t, format, summary, categories, lines, review, reports] = await Promise.all([
     getTranslations('finance'),
     getFormat(),
     getPerformanceSummary(period).catch((error: unknown) => {
@@ -43,6 +47,10 @@ const PerformancePage = async ({ searchParams }: { searchParams: SearchParams })
     }),
     getCategoryTotals(period).catch(failedLoad('Expense totals')),
     getRevenueLines(period, DETAIL_ROWS + 1).catch(failedLoad('Revenue lines')),
+    // Operator expense reports (migration 0052): where the period's
+    // expenses stand, and the reports overlapping it.
+    getExpenseReviewSummary(period).catch(failedLoad('Expense review summary')),
+    listExpenseReports({ period, status: reportStatus }).catch(failedLoad('Expense reports')),
   ]);
   const aed = (value: number) => format.money(value);
   const query = `from=${period.from}&to=${period.to}`;
@@ -194,6 +202,16 @@ const PerformancePage = async ({ searchParams }: { searchParams: SearchParams })
               ))}
               {row(t('performance.expenses.total'), summary.totalExpenditure, { strong: true })}
             </dl>
+          ) : null}
+          {categories ? (
+            <p className="text-xs text-muted-foreground">
+              {t('performance.expenses.official')}{' '}
+              {review && review.awaitingReview > 0 ? (
+                <a href="#expense-reports" className="text-primary hover:underline">
+                  {t('performance.expenses.awaiting', { amount: aed(review.awaitingReview) })}
+                </a>
+              ) : null}
+            </p>
           ) : (
             <p role="alert" className="text-sm text-destructive">
               {t('performance.loadFailed')}
@@ -277,6 +295,103 @@ const PerformancePage = async ({ searchParams }: { searchParams: SearchParams })
             <p className="text-xs text-muted-foreground">{t('performance.breakEven.assumption')}</p>
           </div>
         </div>
+      </section>
+
+      {/* G. Operator expense reports (migration 0052) */}
+      <section id="expense-reports" aria-labelledby="perf-expense-reports" className="flex flex-col gap-3 print:hidden">
+        <h2 id="perf-expense-reports" className="text-lg font-medium">
+          {t('reports.performance.heading')}
+        </h2>
+        <p className="max-w-3xl text-sm text-muted-foreground">{t('reports.performance.description')}</p>
+        {review ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <StatCard label={t('reports.performance.official')} value={aed(review.official)} />
+            <StatCard label={t('reports.performance.managerRecorded')} value={aed(review.managerRecorded)} />
+            <StatCard label={t('reports.performance.approved')} value={aed(review.approved)} />
+            <StatCard label={t('reports.performance.awaiting')} value={aed(review.awaitingReview)} />
+            <StatCard label={t('reports.performance.notCounted')} value={aed(review.returned + review.notSubmitted)} />
+          </div>
+        ) : (
+          <p role="alert" className="text-sm text-destructive">
+            {t('performance.loadFailed')}
+          </p>
+        )}
+        {review ? (
+          <p className="text-xs text-muted-foreground">
+            {t('reports.performance.notCountedHint', { returned: aed(review.returned), unsubmitted: aed(review.notSubmitted) })}
+          </p>
+        ) : null}
+        <nav aria-label={t('reports.performance.filterLabel')} className="flex flex-wrap gap-2">
+          {[null, ...EXPENSE_REPORT_STATUSES].map((status) => {
+            const current = reportStatus === status;
+            const href = `/dashboard/manager/performance?${query}${status ? `&reports=${status}` : ''}#expense-reports`;
+            const count =
+              review && status
+                ? { draft: review.draftReports, submitted: review.submittedReports, approved: review.approvedReports, returned: review.returnedReports }[status]
+                : null;
+            return (
+              <Link
+                key={status ?? 'all'}
+                href={href}
+                aria-current={current ? 'page' : undefined}
+                className={
+                  current
+                    ? 'inline-flex min-h-9 items-center gap-1.5 rounded-full border border-primary bg-primary px-3 text-sm text-primary-foreground'
+                    : 'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm hover:bg-secondary/60'
+                }
+              >
+                {status ? t(`reports.status.${status}`) : t('reports.performance.allReports')}
+                {count !== null ? <span className="font-brand-mono text-xs">{count}</span> : null}
+              </Link>
+            );
+          })}
+        </nav>
+        {!reports ? (
+          <p role="alert" className="text-sm text-destructive">
+            {t('performance.loadFailed')}
+          </p>
+        ) : reports.length === 0 ? (
+          <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">{t('reports.performance.empty')}</p>
+        ) : (
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full min-w-2xl text-sm">
+              <caption className="sr-only">{t('reports.performance.heading')}</caption>
+              <thead className="bg-secondary/50 text-xs text-muted-foreground">
+                <tr>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t('reports.performance.col.report')}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t('reports.performance.col.operator')}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t('reports.performance.col.period')}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t('reports.performance.col.status')}</th>
+                  <th scope="col" className="px-3 py-2 text-end font-medium">{t('reports.performance.col.total')}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t('reports.performance.col.submitted')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reports.map((report) => (
+                  <tr key={report.id} className="border-t">
+                    <td dir="ltr" className="px-3 py-2 font-brand-mono rtl:text-right">
+                      <Link href={`/dashboard/manager/performance/expense-reports/${report.id}?${query}`} className="text-primary hover:underline">
+                        {report.number}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2">{report.operatorName}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {t(`reports.kind.${report.kind}`)} · {format.calendarDate(report.periodStart)} – {format.calendarDate(report.periodEnd)}
+                    </td>
+                    <td className="px-3 py-2">
+                      <ExpenseReportStatusBadge status={report.status} />
+                    </td>
+                    <td dir="ltr" className="px-3 py-2 text-end font-brand-mono whitespace-nowrap">
+                      {aed(report.total)}
+                      <span className="block text-xs text-muted-foreground">{t('reports.performance.entries', { count: report.expenseCount, receipts: report.receiptCount })}</span>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">{report.submittedAt ? format.date(report.submittedAt) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       {/* F. Supporting details */}

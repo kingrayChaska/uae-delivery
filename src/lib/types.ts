@@ -273,6 +273,7 @@ export const NAV_SECTIONS: Record<Role, NavSection[]> = {
         { href: '/dashboard/operator/cod', icon: 'cod' },
         { href: '/dashboard/operator/cash', icon: 'cash' },
         { href: '/dashboard/operator/remittances', icon: 'remittances' },
+        { href: '/dashboard/operator/expenses', icon: 'expenses' },
       ],
     },
     {

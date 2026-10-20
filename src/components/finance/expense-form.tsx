@@ -10,6 +10,7 @@ import Input from '@/components/ui/input';
 import Label from '@/components/ui/label';
 import Select from '@/components/ui/select';
 import { createExpenseAction, updateExpenseAction } from '@/lib/finance/actions';
+import { createClient } from '@/lib/supabase/client';
 
 import type { ExpensePaymentStatus } from '@/lib/finance/schemas';
 
@@ -23,7 +24,13 @@ export type ExpenseFormValues = {
   vendor: string;
   reference: string;
   notes: string;
+  // The receipt already attached (expense-receipts bucket path), if any.
+  receiptPath?: string | null;
 };
+
+// What the expense-receipts bucket accepts (migration 0052).
+const RECEIPT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
 type ExpenseFormProps = {
   categories: { id: string; name: string; active: boolean }[];
@@ -32,6 +39,9 @@ type ExpenseFormProps = {
   expenseId?: string;
   initial?: ExpenseFormValues;
   onDone?: () => void;
+  // The signed-in user's id: shows a receipt upload into their own folder
+  // of the private expense-receipts bucket (operators; migration 0052).
+  receiptFolder?: string;
 };
 
 const textareaClass =
@@ -39,7 +49,7 @@ const textareaClass =
 
 // Records or edits an expense. The database records who did it and when,
 // and keeps the before/after in the audit log (migration 0044).
-const ExpenseForm = ({ categories, today, expenseId, initial, onDone }: ExpenseFormProps) => {
+const ExpenseForm = ({ categories, today, expenseId, initial, onDone, receiptFolder }: ExpenseFormProps) => {
   const t = useTranslations('finance.expenses.form');
   const router = useRouter();
   const ids = useId();
@@ -58,7 +68,38 @@ const ExpenseForm = ({ categories, today, expenseId, initial, onDone }: ExpenseF
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [receiptPath, setReceiptPath] = useState<string | null>(initial?.receiptPath ?? null);
+  const [receiptChanged, setReceiptChanged] = useState(false);
+  const [receiptName, setReceiptName] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const inFlight = useRef(false);
+
+  // Straight to Storage, into the user's own folder: the bucket's RLS
+  // refuses any other path, and the bucket enforces size and type.
+  const uploadReceipt = async (file: File) => {
+    if (!receiptFolder) return;
+    setError(null);
+    if (!RECEIPT_TYPES.includes(file.type)) {
+      setError('finance.expenses.form.receiptType');
+      return;
+    }
+    if (file.size > MAX_RECEIPT_BYTES) {
+      setError('finance.expenses.form.receiptSize');
+      return;
+    }
+    setIsUploading(true);
+    const extension = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'pdf';
+    const path = `${receiptFolder}/receipt-${crypto.randomUUID()}.${extension}`;
+    const { error: uploadError } = await createClient().storage.from('expense-receipts').upload(path, file, { contentType: file.type });
+    setIsUploading(false);
+    if (uploadError) {
+      setError('finance.expenses.form.receiptFailed');
+      return;
+    }
+    setReceiptPath(path);
+    setReceiptName(file.name);
+    setReceiptChanged(true);
+  };
   const set = <K extends keyof ExpenseFormValues>(key: K, value: ExpenseFormValues[K]) => setValues((v) => ({ ...v, [key]: value }));
   // An inactive category stays selectable only for an expense already in it.
   const options = categories.filter((c) => c.active || c.id === initial?.categoryId);
@@ -85,6 +126,8 @@ const ExpenseForm = ({ categories, today, expenseId, initial, onDone }: ExpenseF
       vendor: values.vendor || undefined,
       reference: values.reference || undefined,
       notes: values.notes || undefined,
+      // Sent only when it changed: an edit otherwise keeps the receipt.
+      ...(receiptFolder && (receiptChanged || !expenseId) ? { receiptPath } : {}),
     };
     const result = await (expenseId ? updateExpenseAction(expenseId, input) : createExpenseAction(input)).catch(() => ({
       success: false as const,
@@ -98,6 +141,9 @@ const ExpenseForm = ({ categories, today, expenseId, initial, onDone }: ExpenseF
     }
     if (!expenseId) {
       setValues({ ...blank, categoryId: values.categoryId });
+      setReceiptPath(null);
+      setReceiptName(null);
+      setReceiptChanged(false);
       setDone(true);
     }
     router.refresh();
@@ -181,6 +227,47 @@ const ExpenseForm = ({ categories, today, expenseId, initial, onDone }: ExpenseF
           </Label>
           <textarea id={`${ids}-notes`} rows={2} maxLength={1000} value={values.notes} onChange={(e) => set('notes', e.target.value)} className={textareaClass} />
         </div>
+        {receiptFolder ? (
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <Label htmlFor={`${ids}-receipt`}>
+              {t('receipt')} <span className="font-normal text-muted-foreground">({t('optional')})</span>
+            </Label>
+            <input
+              id={`${ids}-receipt`}
+              type="file"
+              accept={RECEIPT_TYPES.join(',')}
+              disabled={isUploading || isPending}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void uploadReceipt(file);
+                e.target.value = '';
+              }}
+              className="text-sm file:me-3 file:rounded-md file:border file:bg-secondary file:px-3 file:py-1.5 file:text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              {isUploading
+                ? t('receiptUploading')
+                : receiptPath
+                  ? t('receiptAttached', { name: receiptName ?? t('receiptExisting') })
+                  : t('receiptHint')}
+            </p>
+            {receiptPath && !isUploading ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-fit"
+                onClick={() => {
+                  setReceiptPath(null);
+                  setReceiptName(null);
+                  setReceiptChanged(true);
+                }}
+              >
+                {t('receiptRemove')}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       <FieldError message={error} />
       {done ? (
@@ -189,7 +276,7 @@ const ExpenseForm = ({ categories, today, expenseId, initial, onDone }: ExpenseF
         </p>
       ) : null}
       <div className="flex gap-2">
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={isPending || isUploading}>
           {isPending ? t('saving') : t('submit')}
         </Button>
         {onDone ? (

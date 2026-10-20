@@ -184,6 +184,26 @@
     "cashMoreFee": "That is more in delivery fees than you hold: AED {amount} available.",
     "cashMoreTotal": "That is more than you hold: AED {amount} available.",
     "cashOperatorNowHolds": "That is more than the operator now holds (AED {amount}).",
-    "cashHandlingRemoved": "The cash-handling charge has been removed: merchants are billed the flat delivery rates."
+    "cashHandlingRemoved": "The cash-handling charge has been removed: merchants are billed the flat delivery rates.",
+    "expenseOperatorOnly": "Only operators prepare expense reports.",
+    "expenseManagerOnly": "Only a manager reviews expense reports.",
+    "expenseReportEmpty": "Add at least one expense before submitting this report.",
+    "expenseReportWeek": "A weekly report runs Monday to Sunday.",
+    "expenseReportMonth": "A monthly report covers one calendar month.",
+    "expenseReportCustomLong": "A custom report can cover at most 93 days.",
+    "expenseReportFuture": "A report can’t start in the future.",
+    "expenseReportNotFound": "Report not found.",
+    "expenseReportDiscard": "Only a draft that was never submitted can be discarded.",
+    "expenseReportHoldsVoid": "This report holds a voided expense, so it stays on record.",
+    "expenseInSubmitted": "This expense is in a submitted report: it can’t be changed until a manager returns the report.",
+    "expenseInApproved": "This expense is in an approved report: a manager corrects it with a correction.",
+    "expenseManagerEdit": "Return the report to the operator to change their expense.",
+    "expenseReceiptOwn": "Attach a receipt you uploaded yourself.",
+    "expenseReturnReason": "Explain what needs correcting (5 to 1,000 characters).",
+    "expenseCorrectionApprovedOnly": "Only an expense in an approved operator report is corrected this way.",
+    "expenseCorrectionSame": "The corrected amount is the same as the current one.",
+    "expenseReportOverlap": "This period overlaps your report {number} ({from} to {to}).",
+    "expenseReportLocked": "Your report for {date} is already {status}. Choose a date outside it.",
+    "expenseReportNotSubmitted": "Only a submitted report can be reviewed (this one is {status})."
   }
 }

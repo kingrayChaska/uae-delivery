@@ -184,6 +184,26 @@
     "cashMoreFee": "هذا أكثر من رسوم التوصيل التي بحوزتك: المتاح {amount} درهم.",
     "cashMoreTotal": "هذا أكثر مما بحوزتك: المتاح {amount} درهم.",
     "cashOperatorNowHolds": "هذا أكثر مما يحوزه المشغّل الآن ({amount} درهم).",
-    "cashHandlingRemoved": "أُلغيت رسوم المناولة النقدية: تُفوتر على التجار أسعار التوصيل الثابتة."
+    "cashHandlingRemoved": "أُلغيت رسوم المناولة النقدية: تُفوتر على التجار أسعار التوصيل الثابتة.",
+    "expenseOperatorOnly": "المشغّلون فقط يعدّون تقارير المصروفات.",
+    "expenseManagerOnly": "المدير فقط يراجع تقارير المصروفات.",
+    "expenseReportEmpty": "أضف مصروفًا واحدًا على الأقل قبل إرسال هذا التقرير.",
+    "expenseReportWeek": "يمتد التقرير الأسبوعي من الاثنين إلى الأحد.",
+    "expenseReportMonth": "يغطي التقرير الشهري شهرًا تقويميًا واحدًا.",
+    "expenseReportCustomLong": "يمكن أن يغطي التقرير المخصّص 93 يومًا كحد أقصى.",
+    "expenseReportFuture": "لا يمكن أن يبدأ التقرير في المستقبل.",
+    "expenseReportNotFound": "التقرير غير موجود.",
+    "expenseReportDiscard": "يمكن حذف المسوّدة التي لم تُرسل قط فقط.",
+    "expenseReportHoldsVoid": "يحتوي هذا التقرير على مصروف ملغى، لذا يبقى في السجل.",
+    "expenseInSubmitted": "هذا المصروف في تقرير مُرسل: لا يمكن تغييره حتى يعيد المدير التقرير.",
+    "expenseInApproved": "هذا المصروف في تقرير معتمد: يصحّحه المدير بتصحيح.",
+    "expenseManagerEdit": "أعد التقرير إلى المشغّل لتغيير مصروفه.",
+    "expenseReceiptOwn": "أرفق إيصالًا رفعته بنفسك.",
+    "expenseReturnReason": "اشرح ما يحتاج إلى تصحيح (من 5 إلى 1000 حرف).",
+    "expenseCorrectionApprovedOnly": "يُصحَّح بهذه الطريقة فقط مصروف في تقرير مشغّل معتمد.",
+    "expenseCorrectionSame": "المبلغ المصحَّح مطابق للمبلغ الحالي.",
+    "expenseReportOverlap": "تتداخل هذه الفترة مع تقريرك {number} ({from} إلى {to}).",
+    "expenseReportLocked": "تقريرك عن {date} أصبح {status}. اختر تاريخًا خارجه.",
+    "expenseReportNotSubmitted": "يمكن مراجعة التقرير المُرسل فقط (هذا التقرير {status})."
   }
 }

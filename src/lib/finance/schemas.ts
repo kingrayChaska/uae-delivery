@@ -111,6 +111,15 @@ export const expenseSchema = z
     vendor: optionalText(120, 'finance.validation.vendorTooLong'),
     reference: optionalText(100, 'finance.validation.referenceTooLong'),
     notes: optionalText(1000, 'finance.validation.notesTooLong'),
+    // A file the recorder uploaded to the private expense-receipts bucket
+    // ("<their id>/<file>", checked again by the database, migration 0052).
+    // Left out on an edit = unchanged.
+    receiptPath: z
+      .string()
+      .max(300, 'finance.validation.receipt')
+      .regex(/^[0-9a-f-]{36}\/[A-Za-z0-9._-]+$/, 'finance.validation.receipt')
+      .nullable()
+      .optional(),
   })
   .superRefine((value, ctx) => {
     if (value.incurredOn > todayInDubai()) ctx.addIssue({ code: 'custom', path: ['incurredOn'], message: 'finance.validation.expenseFuture' });

@@ -11,6 +11,7 @@ import Pagination from '@/components/dashboard/pagination';
 import ExpenseCategories from '@/components/finance/expense-categories';
 import ExpenseForm from '@/components/finance/expense-form';
 import ExpenseRowActions from '@/components/finance/expense-row-actions';
+import ExpenseReportStatusBadge from '@/components/finance/expense-report-status-badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { failedLoad } from '@/lib/finance/load-error';
@@ -102,6 +103,7 @@ const ExpensesPage = async ({ searchParams }: { searchParams: SearchParams }) =>
       </form>
 
       <section aria-labelledby="expense-totals" className="flex flex-col gap-3">
+        <p className="text-xs text-muted-foreground">{t('expenses.officialNote')}</p>
         <h2 id="expense-totals" className="text-lg font-medium">
           {categoryName ? t('expenses.totalCategory', { category: categoryName }) : t('expenses.total')}
           <span className="ms-2 text-sm font-normal text-muted-foreground">
@@ -170,6 +172,12 @@ const ExpensesPage = async ({ searchParams }: { searchParams: SearchParams }) =>
                         <Badge variant="secondary">{expense.categoryName}</Badge>
                         {isVoid ? <Badge variant="destructive">{t('expenses.list.voidBadge')}</Badge> : null}
                         {expense.paymentStatus === 'unpaid' ? <Badge variant="warning">{t('expenses.form.unpaid')}</Badge> : null}
+                        {expense.source === 'operator' ? (
+                          <>
+                            <Badge variant="outline">{t('expenses.list.operatorExpense')}</Badge>
+                            <ExpenseReportStatusBadge status={expense.reportStatus ?? 'unreported'} />
+                          </>
+                        ) : null}
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {t('expenses.list.incurred', { date: format.calendarDate(expense.incurredOn) })}
@@ -190,7 +198,13 @@ const ExpensesPage = async ({ searchParams }: { searchParams: SearchParams }) =>
                       <span dir="ltr" className="font-brand-mono text-base font-semibold">
                         {format.money(expense.amount, expense.currency)}
                       </span>
-                      {!isVoid && categories ? (
+                      {expense.source === 'operator' && expense.reportId ? (
+                        <Link href={`/dashboard/manager/performance/expense-reports/${expense.reportId}`} className="text-sm text-primary hover:underline">
+                          <span dir="ltr">{expense.reportNumber}</span>
+                        </Link>
+                      ) : null}
+                      {/* An operator's expense is reviewed through its report (migration 0052). */}
+                      {!isVoid && categories && expense.source === 'manager' ? (
                         <ExpenseRowActions
                           expenseId={expense.id}
                           description={expense.description}

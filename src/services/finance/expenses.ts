@@ -3,6 +3,7 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 
 import type { ExpenseFilters, ExpensePaymentStatus, ProfitGroup } from '@/lib/finance/schemas';
+import type { ExpenseReportStatus } from '@/lib/finance/expense-reports';
 
 // Expenses and their categories (migration 0044). Managers only — RLS
 // returns nothing to anyone else.
@@ -29,6 +30,12 @@ export type Expense = {
   updatedByName: string | null;
   createdAt: string;
   updatedAt: string;
+  // Who recorded it (migration 0052): a manager's own costs, or an
+  // operator's — then the report it's in and that report's status.
+  source: 'manager' | 'operator';
+  reportId: string | null;
+  reportNumber: string | null;
+  reportStatus: ExpenseReportStatus | null;
 };
 
 export const EXPENSE_PAGE_SIZE = 50;
@@ -70,6 +77,9 @@ type ExpenseRow = {
   category: { name: string } | null;
   creator: { full_name: string | null } | null;
   updater: { full_name: string | null } | null;
+  source: 'manager' | 'operator';
+  report_id: string | null;
+  report: { report_number: string; status: ExpenseReportStatus } | null;
 };
 
 export const listExpenses = async (
@@ -81,7 +91,7 @@ export const listExpenses = async (
   let query = supabase
     .from('expenses')
     .select(
-      'id, category_id, description, amount, currency, incurred_on, payment_status, paid_on, vendor, reference, notes, status, void_reason, voided_at, created_at, updated_at, category:expense_categories(name), creator:profiles!expenses_created_by_fkey(full_name), updater:profiles!expenses_updated_by_fkey(full_name)',
+      'id, category_id, description, amount, currency, incurred_on, payment_status, paid_on, vendor, reference, notes, status, void_reason, voided_at, created_at, updated_at, category:expense_categories(name), creator:profiles!expenses_created_by_fkey(full_name), updater:profiles!expenses_updated_by_fkey(full_name), source, report_id, report:expense_reports(report_number, status)',
       { count: 'exact' },
     )
     .gte('incurred_on', filters.from)
@@ -116,6 +126,10 @@ export const listExpenses = async (
       updatedByName: row.updater?.full_name ?? null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      source: row.source,
+      reportId: row.report_id,
+      reportNumber: row.report?.report_number ?? null,
+      reportStatus: row.report?.status ?? null,
     })),
     total: count ?? 0,
   };

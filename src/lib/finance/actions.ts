@@ -173,11 +173,14 @@ export const discardStatementAction = async (statementId: string): Promise<Finan
 };
 
 // ── Expenses ──────────────────────────────────────────────────────────────
-// Written with the manager's own session: expenses_insert/update (RLS)
-// admit managers only, and the database triggers record who created,
-// changed or voided each expense, keep void expenses unchanged, refuse
-// deletion and write the audit trail. The column list below is the only
-// thing a request can set.
+// Written with the caller's own session — a manager's, or (since 0052) an
+// operator's: expenses_insert/update (RLS) admit a manager for any expense
+// and an operator for their own, and the database triggers record who
+// created, changed or voided each expense, set whether it is a manager's
+// or an operator's, put an operator's expense into the report for its
+// date, refuse changes once that report is submitted or approved, keep
+// void expenses unchanged, refuse deletion and write the audit trail. The
+// column list below is the only thing a request can set.
 
 const expenseColumns = (values: ExpenseValues) => ({
   category_id: values.categoryId,
@@ -189,10 +192,11 @@ const expenseColumns = (values: ExpenseValues) => ({
   vendor: values.vendor,
   reference: values.reference,
   notes: values.notes,
+  ...(values.receiptPath !== undefined ? { receipt_path: values.receiptPath } : {}),
 });
 
 export const createExpenseAction = async (input: ExpenseInput): Promise<FinanceActionResult> => {
-  const profile = await requireRole('manager');
+  const profile = await requireRole('manager', 'operator');
   const parsed = expenseSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: firstIssue(parsed.error.issues) };
 
@@ -207,7 +211,7 @@ export const createExpenseAction = async (input: ExpenseInput): Promise<FinanceA
 };
 
 export const updateExpenseAction = async (expenseId: string, input: ExpenseInput): Promise<FinanceActionResult> => {
-  await requireRole('manager');
+  await requireRole('manager', 'operator');
   if (!isUuid(expenseId)) return { success: false, error: 'errors.notFound' };
   const parsed = expenseSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: firstIssue(parsed.error.issues) };
@@ -225,7 +229,7 @@ export const updateExpenseAction = async (expenseId: string, input: ExpenseInput
 };
 
 export const voidExpenseAction = async (input: VoidExpenseInput): Promise<FinanceActionResult> => {
-  await requireRole('manager');
+  await requireRole('manager', 'operator');
   const parsed = voidExpenseSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: firstIssue(parsed.error.issues) };
 

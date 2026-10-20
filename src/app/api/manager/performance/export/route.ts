@@ -4,6 +4,7 @@ import { getCurrentProfile } from '@/lib/auth/session';
 import { toCsv } from '@/lib/csv/serialize';
 import { parsePeriod } from '@/lib/finance/schemas';
 import { getCategoryTotals, getPerformanceSummary, getRevenueLines } from '@/services/finance/performance';
+import { getExpenseReviewSummary } from '@/services/finance/expense-reports';
 
 import type { NextRequest } from 'next/server';
 
@@ -28,7 +29,7 @@ export const GET = async (request: NextRequest) => {
   let csv: string;
   try {
     if (type === 'summary') {
-      const [s, categories] = await Promise.all([getPerformanceSummary(period), getCategoryTotals(period)]);
+      const [s, categories, review] = await Promise.all([getPerformanceSummary(period), getCategoryTotals(period), getExpenseReviewSummary(period)]);
       csv = toCsv(
         ['Section', 'Item', 'Formula', 'Amount (AED)'],
         [
@@ -40,7 +41,10 @@ export const GET = async (request: NextRequest) => {
           ['Revenue', 'Total revenue (R)', '', money(s.totalRevenue)],
           ['Memo', 'COD collected for merchants (not revenue)', '', money(s.merchantCodCollected)],
           ...categories.map((c) => ['Expenditure', c.name, `Counts as ${c.profitGroup}`, money(c.total)]),
-          ['Expenditure', 'Total expenditure', '', money(s.totalExpenditure)],
+          ['Expenditure', 'Total expenditure', 'Manager-recorded + approved operator expense reports', money(s.totalExpenditure)],
+          ['Memo', 'Operator expenses awaiting review (not counted)', 'Submitted operator reports', money(review.awaitingReview)],
+          ['Memo', 'Operator expenses returned for correction (not counted)', 'Returned operator reports', money(review.returned)],
+          ['Memo', 'Operator expenses not yet submitted (not counted)', 'Unreported or draft', money(review.notSubmitted)],
           ['Profitability', 'Profit after fuel', 'R - Fuel', money(s.profitAfterFuel)],
           ['Profitability', 'Profit after fuel and subscription', 'R - Fuel - Subscription', money(s.profitAfterSubscription)],
           ['Profitability', 'Profit after fuel, subscription, and salary', 'R - Fuel - Subscription - Salary', money(s.profitAfterSalary)],
