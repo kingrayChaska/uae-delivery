@@ -2,9 +2,9 @@ import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
 import { isUuid } from '@/lib/security/validate';
-import { isInvoiceNumber } from '@/lib/invoices/types';
+import { INVOICE_PAYMENT_STATES, isInvoiceNumber } from '@/lib/invoices/types';
 
-import type { BilledTo, Invoice, InvoiceLine, InvoiceStatus, InvoiceType } from '@/lib/invoices/types';
+import type { BilledTo, Invoice, InvoiceLine, InvoicePayment, InvoicePaymentState, InvoiceStatus, InvoiceType } from '@/lib/invoices/types';
 import type { DeliveryType, PackageType, PaymentMethod } from '@/lib/types';
 
 // Every read here uses the caller's own session: invoices_select (migration
@@ -56,13 +56,14 @@ type LineRow = {
   cod_charge: Numeric;
   amount: Numeric;
   currency: string;
+  cod_amount: Numeric | null;
 };
 
 const INVOICE_SELECT =
   'id, invoice_number, invoice_type, status, billed_to, reference, batch_name, pickup_address, shipment_count, subtotal, additional_charges, discount_total, total, currency, issued_at, voided_at, shipment_id, batch_id';
 
 const LINE_SELECT =
-  'line_number, tracking_number, booked_at, pickup_address, dropoff_address, recipient_name, delivery_type, package_type, description, quantity, weight_kg, distance_km, payment_method, base_charge, distance_charge, service_charge, weight_charge, cod_charge, amount, currency';
+  'line_number, tracking_number, booked_at, pickup_address, dropoff_address, recipient_name, delivery_type, package_type, description, quantity, weight_kg, distance_km, payment_method, base_charge, distance_charge, service_charge, weight_charge, cod_charge, amount, currency, cod_amount';
 
 // PostgREST returns at most 1,000 rows per request; a bulk invoice can hold
 // more, so its lines are read a page at a time (one request per 1,000
@@ -93,6 +94,7 @@ const toLine = (row: LineRow): InvoiceLine => ({
   codCharge: num(row.cod_charge),
   amount: num(row.amount),
   currency: row.currency,
+  codAmount: numOrNull(row.cod_amount),
 });
 
 // The invoice and all of its lines, or null when there's no such invoice
@@ -160,4 +162,25 @@ export const getInvoiceNumberFor = async ({
     return null;
   }
   return data?.invoice_number ?? null;
+};
+
+// The invoice's payment state as the payment records show it now, or null
+// for a bulk or void invoice, or one the caller may not see. Errors are
+// logged and read as "unknown" (null): the invoice itself still shows.
+export const getInvoicePayment = async (invoiceNumber: string): Promise<InvoicePayment | null> => {
+  if (!isInvoiceNumber(invoiceNumber)) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('invoice_payment_state', { p_invoice_number: invoiceNumber });
+  if (error) {
+    console.error('Invoice payment state could not be read', error.message);
+    return null;
+  }
+  const row = data as { state?: string; amountDue?: Numeric; currency?: string; checkedAt?: string } | null;
+  if (!row || !(INVOICE_PAYMENT_STATES as readonly string[]).includes(row.state ?? '')) return null;
+  return {
+    state: row.state as InvoicePaymentState,
+    amountDue: num(row.amountDue ?? 0),
+    currency: row.currency ?? 'AED',
+    checkedAt: row.checkedAt ?? new Date().toISOString(),
+  };
 };

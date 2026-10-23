@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { ArrowLeft, FileText } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 import Badge from '@/components/ui/badge';
 import ExpenseReportStatusBadge from '@/components/finance/expense-report-status-badge';
+import ReceiptThumbnails from '@/components/finance/receipt-thumbnails';
 import { getFormat } from '@/i18n/server';
 
 import type { ReactNode } from 'react';
@@ -124,14 +125,11 @@ const ExpenseReportView = async ({ detail, backHref, backLabel, actions, entryAc
                     <p className="text-sm text-muted-foreground">
                       {format.calendarDate(entry.incurredOn)}
                       {entry.vendor ? ` · ${entry.vendor}` : ''}
-                      {entry.reference ? ` · ${entry.reference}` : ''}
+                      {entry.reference ? ` · ${t('legacyReference', { reference: entry.reference })}` : ''}
                     </p>
                     {entry.notes ? <p className="text-sm wrap-break-word">{entry.notes}</p> : null}
-                    {entry.receiptUrl ? (
-                      <a href={entry.receiptUrl} target="_blank" rel="noopener noreferrer" className="inline-flex w-fit items-center gap-1 text-sm text-primary hover:underline">
-                        <FileText className="size-4" aria-hidden />
-                        {t('viewReceipt')}
-                      </a>
+                    {entry.receipts.length > 0 ? (
+                      <ReceiptThumbnails receipts={entry.receipts} size="md" />
                     ) : (
                       <p className="text-xs text-muted-foreground">{t('noReceipt')}</p>
                     )}

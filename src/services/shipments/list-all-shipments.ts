@@ -46,8 +46,8 @@ export const listUnassignedShipments = async (): Promise<Shipment[]> => {
   return ((data ?? []) as ShipmentRow[]).map(mapRowToShipment);
 };
 
-// The staff Shipments list's search (search_staff_shipments, migration
-// 0038): every shipment matching the filters, one by one — a bulk
+// The staff Shipments list's search (search_staff_shipments_with_delivery_date,
+// migration 0055): every shipment matching the filters, one by one — a bulk
 // booking's shipments included individually — matched and paged in the
 // database. The tab narrows it: Individual / Merchant by the booking
 // customer's account type, Bulk to bulk-booked shipments, and ?batch= to
@@ -63,12 +63,14 @@ export const searchStaffShipments = async (
 
   const { data, count, error } = await supabase
     .rpc(
-      'search_staff_shipments',
+      'search_staff_shipments_with_delivery_date',
       {
         p_query: filters.q || null,
         p_statuses: statusesFor(filters.status),
         p_from: filters.from,
         p_to: filters.to,
+        p_delivered_from: filters.deliveredFrom,
+        p_delivered_to: filters.deliveredTo,
         p_account_type: category === 'individual' || category === 'merchant' ? category : null,
         p_bulk_only: category === 'bulk',
         p_batch_id: batchId,

@@ -46,7 +46,7 @@ const CashFiltersForm = ({ path, filters, ledger = false }: CashFiltersFormProps
               <Select id="cash-collection" name="collection" defaultValue={filters.collection ?? 'all'}>
                 {COLLECTION_FILTERS.map((option) => (
                   <option key={option} value={option}>
-                    {option === 'all' ? t('all') : option === 'unverified' ? t('unverified') : tCod(option)}
+                    {option === 'all' ? t('all') : tCod(option)}
                   </option>
                 ))}
               </Select>

@@ -364,22 +364,21 @@
       "unpaid": "لم يُدفع بعد",
       "paidOn": "تاريخ الدفع",
       "vendor": "المورّد أو المستفيد",
-      "reference": "المرجع أو رقم الإيصال",
       "notes": "ملاحظات",
       "optional": "اختياري",
       "submit": "حفظ المصروف",
       "saving": "جارٍ الحفظ…",
       "saved": "تم حفظ المصروف.",
       "cancel": "إلغاء",
-      "receipt": "الإيصال أو المستند الداعم",
-      "receiptHint": "PDF أو JPG أو PNG أو WebP، حتى 5 ميغابايت. يمكنك أنت والمديرون فقط فتحه.",
-      "receiptUploading": "جارٍ الرفع…",
-      "receiptAttached": "مرفق: {name}",
-      "receiptExisting": "الإيصال الحالي",
-      "receiptRemove": "إزالة الإيصال",
       "receiptType": "ارفع ملف PDF أو JPG أو PNG أو WebP.",
-      "receiptSize": "حجم الملف أكبر من 5 ميغابايت.",
-      "receiptFailed": "تعذّر رفع الإيصال. يُرجى المحاولة مرة أخرى."
+      "receiptSize": "حجم الملف أكبر من 4 ميغابايت.",
+      "receiptFailed": "تعذّر رفع الإيصال. يُرجى المحاولة مرة أخرى.",
+      "receiptOffline": "لا يوجد اتصال. تحقّق من الإنترنت ثم أعد المحاولة.",
+      "receiptInUse": "هذا الإيصال مرفق بمصروف محفوظ.",
+      "receiptRemoveFailed": "تعذّرت إزالة الإيصال. يُرجى المحاولة مرة أخرى.",
+      "legacyReference": "المرجع المسجّل سابقًا: {reference}",
+      "receiptsReadOnly": "صور الإيصالات (لا يغيّرها إلا من سجّل هذا المصروف)",
+      "noReceipts": "لا توجد صور إيصالات مرفقة."
     },
     "list": {
       "heading": "المصروفات",
@@ -445,7 +444,8 @@
     "method": "اختر طريقة الدفع.",
     "paidOnFuture": "لا يمكن أن يكون تاريخ الدفع في المستقبل.",
     "moreThanOutstanding": "هذا أكثر من المبلغ المتبقي على هذا الكشف.",
-    "receipt": "أرفق الإيصال مرة أخرى: لا يمكن استخدام هذا الملف."
+    "receipt": "أرفق الإيصال مرة أخرى: لا يمكن استخدام هذا الملف.",
+    "tooManyReceipts": "أرفق 10 إيصالات كحد أقصى للمصروف الواحد."
   },
   "errors": {
     "generateFailed": "تعذّر إنشاء الكشف. حاول مرة أخرى.",
@@ -511,10 +511,10 @@
     "listHeading": "المصروفات",
     "empty": "لا توجد مصروفات تطابق هذه التصفية.",
     "void": "ملغى",
-    "hasReceipt": "إيصال",
     "voidReason": "أُلغي: {reason}",
     "locked": "قيد المراجعة",
-    "loadFailed": "تعذّر التحميل. يُرجى تحديث الصفحة."
+    "loadFailed": "تعذّر التحميل. يُرجى تحديث الصفحة.",
+    "receiptCount": "{count, plural, zero {لا إيصالات} one {إيصال واحد} two {إيصالان} few {# إيصالات} many {# إيصالًا} other {# إيصال}}"
   },
   "reports": {
     "meta": "تقرير مصروفات · ParcelLink",
@@ -606,7 +606,6 @@
     "entriesHeading": "المصروفات",
     "noEntries": "لا توجد مصروفات في هذا التقرير بعد.",
     "void": "ملغى",
-    "viewReceipt": "عرض الإيصال",
     "noReceipt": "لا يوجد إيصال مرفق",
     "corrected": "صُحّح من {from} إلى {to} في {date}: {reason}",
     "historyHeading": "السجل",
@@ -633,6 +632,31 @@
         "submitted": "أُرسل"
       },
       "entries": "{count} مصروفات · {receipts} إيصالات"
-    }
+    },
+    "legacyReference": "مرجع {reference}"
+  },
+  "receipts": {
+    "heading": "رفع صور الإيصالات",
+    "hint": "صور الإيصال (JPG أو PNG أو WebP) أو ملف PDF — حتى {max} ملفات، 4 ميغابايت لكل ملف. يمكنك أنت والمديرون فقط فتحها.",
+    "choose": "اختيار صور",
+    "camera": "التقاط صورة",
+    "empty": "لا توجد صور إيصالات بعد.",
+    "untitled": "الإيصال {number}",
+    "previewAlt": "صورة الإيصال {number}",
+    "uploading": "جارٍ رفع {name}",
+    "progress": "جارٍ الرفع… {percent}%",
+    "uploaded": "تم الرفع — يُرفق عند الحفظ",
+    "attached": "مرفق",
+    "retry": "إعادة المحاولة",
+    "replace": "استبدال",
+    "replaceLabel": "استبدال {name}",
+    "remove": "إزالة",
+    "removeLabel": "إزالة {name}",
+    "wait": "انتظر حتى ينتهي رفع صور الإيصالات.",
+    "fixFailed": "أعد محاولة رفع صور الإيصالات التي لم تُرفع أو أزلها.",
+    "listLabel": "{count, plural, zero {لا إيصالات} one {إيصال واحد} two {إيصالان} few {# إيصالات} many {# إيصالًا} other {# إيصال}}",
+    "open": "فتح الإيصال {number} من {count} {name}",
+    "unavailable": "لا يمكن فتح هذا الإيصال الآن. أعد تحميل الصفحة.",
+    "none": "لا توجد صور إيصالات"
   }
 }

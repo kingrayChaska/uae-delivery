@@ -204,6 +204,10 @@
     "expenseCorrectionSame": "The corrected amount is the same as the current one.",
     "expenseReportOverlap": "This period overlaps your report {number} ({from} to {to}).",
     "expenseReportLocked": "Your report for {date} is already {status}. Choose a date outside it.",
-    "expenseReportNotSubmitted": "Only a submitted report can be reviewed (this one is {status})."
+    "expenseReportNotSubmitted": "Only a submitted report can be reviewed (this one is {status}).",
+    "expenseReceiptStaffOnly": "Only managers and operators can attach expense receipts.",
+    "expenseReceiptRecorderOnly": "Only the person who recorded this expense can change its receipts.",
+    "expenseReceiptTaken": "That receipt is already attached to another expense. Upload it again.",
+    "expenseReceiptMissing": "A receipt upload wasn’t found. Remove it and upload it again."
   }
 }

@@ -17,7 +17,34 @@ describe('parseShipmentFilters', () => {
       status: 'delivered',
       from: '2026-10-01',
       to: '2026-10-06',
+      deliveredFrom: null,
+      deliveredTo: null,
     });
+  });
+
+  it('reads and normalizes a delivery-date range when enabled', () => {
+    expect(
+      parseShipmentFilters(
+        { deliveredFrom: '2026-10-09', deliveredTo: '2026-10-08' },
+        undefined,
+        { includeDeliveredDate: true },
+      ),
+    ).toMatchObject({ deliveredFrom: '2026-10-08', deliveredTo: '2026-10-09' });
+    expect(
+      parseShipmentFilters(
+        { deliveredFrom: '2026-10-08', status: 'delivered' },
+        undefined,
+        { includeDeliveredDate: true },
+      ),
+    ).toMatchObject({ from: null, to: null, deliveredFrom: '2026-10-08', status: 'delivered' });
+  });
+
+  it('ignores delivery-date parameters on lists that do not offer them', () => {
+    expect(parseShipmentFilters({ deliveredFrom: '2026-10-08' })).toMatchObject({
+      deliveredFrom: null,
+      deliveredTo: null,
+    });
+    expect(hasFilters(parseShipmentFilters({ deliveredFrom: '2026-10-08' }))).toBe(false);
   });
 
   it('means no filters when the URL has none', () => {
@@ -107,10 +134,36 @@ describe('shipmentListHref', () => {
   });
 
   it('round-trips through the URL (refresh keeps the filters)', () => {
-    const filters = { scope: 'business' as const, q: 'Ahmed & Sons', status: 'delivered' as const, from: '2026-10-01', to: '2026-10-06' };
+    const filters = {
+      scope: 'business' as const,
+      q: 'Ahmed & Sons',
+      status: 'delivered' as const,
+      from: '2026-10-01',
+      to: '2026-10-06',
+      deliveredFrom: null,
+      deliveredTo: null,
+    };
     const href = shipmentListHref(BASE, filters);
     const params = Object.fromEntries(new URL(href, 'https://example.com').searchParams);
     expect(parseShipmentFilters(params)).toEqual(filters);
+  });
+
+  it('round-trips the delivered-date range for staff searches', () => {
+    const filters = {
+      scope: 'mine' as const,
+      q: '',
+      status: 'delivered' as const,
+      from: null,
+      to: null,
+      deliveredFrom: '2026-10-08',
+      deliveredTo: '2026-10-09',
+    };
+    const href = shipmentListHref('/dashboard/operator/shipments', filters, 2, { type: 'all' });
+    expect(href).toBe(
+      '/dashboard/operator/shipments?type=all&status=delivered&deliveredFrom=2026-10-08&deliveredTo=2026-10-09&page=2',
+    );
+    const params = Object.fromEntries(new URL(href, 'https://example.com').searchParams);
+    expect(parseShipmentFilters(params, undefined, { includeDeliveredDate: true })).toEqual(filters);
   });
 
   it('keeps the filters on later pages, and leaves page 1 out', () => {
@@ -137,6 +190,8 @@ describe('driver list', () => {
       status: 'delivered',
       from: '2026-10-08',
       to: '2026-10-08',
+      deliveredFrom: null,
+      deliveredTo: null,
     });
   });
 
@@ -145,7 +200,15 @@ describe('driver list', () => {
   });
 
   it('round-trips through the URL with a page, and a new search starts at page 1', () => {
-    const filters = { scope: 'mine' as const, q: 'Ahmed', status: 'all' as const, from: '2026-10-08', to: '2026-10-08' };
+    const filters = {
+      scope: 'mine' as const,
+      q: 'Ahmed',
+      status: 'all' as const,
+      from: '2026-10-08',
+      to: '2026-10-08',
+      deliveredFrom: null,
+      deliveredTo: null,
+    };
     const href = shipmentListHref(DRIVER, filters, 2);
     expect(href).toBe(`${DRIVER}?q=Ahmed&from=2026-10-08&to=2026-10-08&page=2`);
     const params = Object.fromEntries(new URL(href, 'https://example.com').searchParams);
@@ -182,7 +245,15 @@ describe('countFor', () => {
 
 describe('staff list (keep)', () => {
   const STAFF = '/dashboard/operator/shipments';
-  const filters = { scope: 'mine' as const, q: 'Ahmed', status: 'in_transit' as const, from: '2026-10-08', to: null };
+  const filters = {
+    scope: 'mine' as const,
+    q: 'Ahmed',
+    status: 'in_transit' as const,
+    from: '2026-10-08',
+    to: null,
+    deliveredFrom: null,
+    deliveredTo: null,
+  };
 
   it('keeps the tab through searching and paging', () => {
     expect(shipmentListHref(STAFF, filters, 2, { type: 'merchant' })).toBe(`${STAFF}?type=merchant&q=Ahmed&status=in_transit&from=2026-10-08&page=2`);

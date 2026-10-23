@@ -16,6 +16,16 @@ returns text language sql as $$
   select coalesce(string_agg(package_description, ',' order by package_description), '-')
   from search_staff_shipments(q, st, f, t, acct, bulk, batch)
 $$;
+create function t_staff_delivery(q text, st shipment_status[] default null, book_from date default null,
+                                 book_to date default null, delivered_from date default null,
+                                 delivered_to date default null, acct account_type default null,
+                                 bulk boolean default false, batch uuid default null)
+returns text language sql as $$
+  select coalesce(string_agg(package_description, ',' order by package_description), '-')
+  from search_staff_shipments_with_delivery_date(
+    q, st, book_from, book_to, delivered_from, delivered_to, acct, bulk, batch
+  )
+$$;
 create function t_check(label text, actual text, expected text) returns void language plpgsql as $$
 begin
   if actual is distinct from expected then raise exception 'FAIL %: got %, expected %', label, actual, expected; end if;
@@ -91,8 +101,13 @@ end $$;
 alter table shipments disable trigger user;
 update shipments set legacy_tracking_number = 'DLV-20261007-abc123' where package_description = 's2';
 alter table shipments enable trigger user;
+insert into shipment_status_history (shipment_id, status, created_at)
+select id, 'delivered', '2026-10-09 00:30+04'
+from shipments where package_description = 's1';
 
-grant execute on function t_staff(text, shipment_status[], date, date, account_type, boolean, uuid), t_check(text, text, text) to authenticated, anon;
+grant execute on function t_staff(text, shipment_status[], date, date, account_type, boolean, uuid),
+  t_staff_delivery(text, shipment_status[], date, date, date, date, account_type, boolean, uuid),
+  t_check(text, text, text) to authenticated, anon;
 
 \echo '── search_staff_shipments: operator ──'
 set role authenticated;
@@ -152,6 +167,10 @@ select t_check('company + status',                     t_staff('desert rose', '{
 select t_check('name + batch + status',                t_staff('ahmed', '{returned}', batch => '40000000-0000-0000-0000-00000000002b'), 's3');
 select t_check('phone + date',                         t_staff('0501234567', null, '2026-10-08', '2026-10-08'), 's1');
 select t_check('combined, no match',                   t_staff('ahmed', '{cancelled}', '2026-10-08', '2026-10-08'), '-');
+select t_check('delivery date ignores booking date',   t_staff_delivery(null, '{delivered}', null, null, '2026-10-09', '2026-10-09'), 's1');
+select t_check('booking date is not delivery date',    t_staff_delivery(null, '{delivered}', null, null, '2026-10-08', '2026-10-08'), '-');
+select t_check('booking and delivery ranges combine',  t_staff_delivery(null, '{delivered}', '2026-10-08', '2026-10-08', '2026-10-09', '2026-10-09'), 's1');
+select t_check('different booking range excludes it', t_staff_delivery(null, '{delivered}', '2026-10-09', '2026-10-09', '2026-10-09', '2026-10-09'), '-');
 
 \echo '── manager ──'
 set request.jwt.uid = '00000000-0000-0000-0000-00000000002f';

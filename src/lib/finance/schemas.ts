@@ -1,5 +1,6 @@
 import { z } from '@/lib/zod';
 import { SETTLEMENT_METHODS } from '@/lib/finance/statements';
+import { MAX_RECEIPTS_PER_EXPENSE, isReceiptPath } from '@/lib/finance/receipt-files';
 
 // Financial reporting (migration 0044). The database computes every amount;
 // these only describe what the pages and forms send it. Dates are calendar
@@ -109,16 +110,21 @@ export const expenseSchema = z
       .transform((value) => (value ? value : null))
       .refine((value) => value === null || isIsoDate(value), 'finance.validation.date'),
     vendor: optionalText(120, 'finance.validation.vendorTooLong'),
-    reference: optionalText(100, 'finance.validation.referenceTooLong'),
     notes: optionalText(1000, 'finance.validation.notesTooLong'),
-    // A file the recorder uploaded to the private expense-receipts bucket
-    // ("<their id>/<file>", checked again by the database, migration 0052).
-    // Left out on an edit = unchanged.
-    receiptPath: z
-      .string()
-      .max(300, 'finance.validation.receipt')
-      .regex(/^[0-9a-f-]{36}\/[A-Za-z0-9._-]+$/, 'finance.validation.receipt')
-      .nullable()
+    // Receipt pictures (migration 0053): files the recorder uploaded through
+    // /api/expense-receipts ("<their id>/<file>"), in display order — the
+    // expense's whole list. The database checks each one again. Left out on
+    // an edit = unchanged. (The typed reference number is no longer taken;
+    // one recorded earlier stays on the expense.)
+    receipts: z
+      .array(
+        z.object({
+          path: z.string().refine(isReceiptPath, 'finance.validation.receipt'),
+          name: z.string().trim().max(200).nullable().optional(),
+        }),
+      )
+      .max(MAX_RECEIPTS_PER_EXPENSE, 'finance.validation.tooManyReceipts')
+      .refine((list) => new Set(list.map((r) => r.path)).size === list.length, 'finance.validation.receipt')
       .optional(),
   })
   .superRefine((value, ctx) => {

@@ -55,14 +55,18 @@ create function t_cat(p_name text) returns uuid language sql as $$ select id fro
 grant execute on function t_cat(text) to authenticated;
 
 -- An expense recorded by the signed-in caller. It tries to claim to be a
--- manager's, already in a report: the database decides both.
+-- manager's, already in a report: the database decides both. A receipt is
+-- attached as the app does since 0053 (set_expense_receipts, same statement).
 create function t_spend(p_label text, p_category text, p_amount numeric, p_on date, p_receipt text default null)
 returns uuid language plpgsql as $$
 declare v_id uuid;
 begin
-  insert into expenses (category_id, description, amount, incurred_on, created_by, source, receipt_path)
-  values (t_cat(p_category), p_label, p_amount, p_on, auth.uid(), 'manager', p_receipt)
+  insert into expenses (category_id, description, amount, incurred_on, created_by, source)
+  values (t_cat(p_category), p_label, p_amount, p_on, auth.uid(), 'manager')
   returning id into v_id;
+  if p_receipt is not null then
+    perform set_expense_receipts(v_id, jsonb_build_array(jsonb_build_object('path', p_receipt)));
+  end if;
   return v_id;
 end $$;
 grant execute on function t_spend(text, text, numeric, date, text) to authenticated;
@@ -71,6 +75,11 @@ create function t_exp(p_label text) returns text language sql security definer a
   select x.source || '/' || x.amount || '/' || coalesce(r.report_number like 'EXR-%', false)::text || '/' || coalesce(r.status, '-')
   from expenses x left join expense_reports r on r.id = x.report_id where x.description = p_label;
 $$;
+
+-- The operator's receipt, stored by the app's checked upload route (0053:
+-- browsers can't write to the bucket).
+insert into storage.objects (bucket_id, name, owner, metadata)
+values ('expense-receipts', '00000000-0000-0000-0000-0000000000c1/fuel.pdf', '00000000-0000-0000-0000-0000000000c1', '{"mimetype":"application/pdf","size":1200}');
 
 -- A manager-recorded expense from before 0052 (written as the database).
 insert into expenses (category_id, description, amount, incurred_on, created_by)
@@ -254,7 +263,10 @@ reset role;
 \echo '── 15. Receipts ──'
 set role authenticated;
 set request.jwt.uid = '00000000-0000-0000-0000-0000000000c1';
-insert into storage.objects (bucket_id, name, owner) values ('expense-receipts', '00000000-0000-0000-0000-0000000000c1/fuel.pdf', auth.uid());
+select t_check('the operator reads their own receipt', (select count(*)::text from storage.objects where bucket_id = 'expense-receipts'), '1');
+-- Since 0053 only the app's checked upload route writes to the bucket.
+select t_fails('ATTACK: an upload straight to storage, skipping the server''s checks',
+  $$insert into storage.objects (bucket_id, name, owner) values ('expense-receipts', '00000000-0000-0000-0000-0000000000c1/raw.pdf', auth.uid())$$, '%row-level security%');
 select t_fails('ATTACK: upload into another operator''s folder',
   $$insert into storage.objects (bucket_id, name, owner) values ('expense-receipts', '00000000-0000-0000-0000-0000000000c2/x.pdf', auth.uid())$$, '%row-level security%');
 set request.jwt.uid = '00000000-0000-0000-0000-0000000000c2';

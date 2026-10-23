@@ -18,7 +18,10 @@ create table storage.objects (
   id uuid primary key default gen_random_uuid(),
   bucket_id text references storage.buckets (id),
   name text not null,
-  owner uuid
+  owner uuid,
+  -- Supabase records the stored object's type and size here
+  -- ({"mimetype": "image/jpeg", "size": 12345, ...}); migration 0053 reads it.
+  metadata jsonb
 );
 
 -- Supabase Storage always has RLS on for objects; without this the

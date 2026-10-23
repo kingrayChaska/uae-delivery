@@ -3,14 +3,15 @@
 // redrawn at most MAX_EDGE pixels on its longest side as a JPEG — still
 // plenty to read a label or see a doorway. Small photos, and anything the
 // browser can't decode, are returned unchanged (the size check after this
-// still applies).
+// still applies). `force` redraws any decodable image as a JPEG — e.g. a
+// camera's HEIC photo, for a destination that only takes JPEG/PNG/WebP.
 
 const SHRINK_ABOVE_BYTES = 1.5 * 1024 * 1024;
 const MAX_EDGE = 1600;
 const QUALITY = 0.82;
 
-export const shrinkPhoto = async (file: Blob): Promise<Blob> => {
-  if (file.size <= SHRINK_ABOVE_BYTES || typeof createImageBitmap !== 'function') return file;
+export const shrinkPhoto = async (file: Blob, { force = false }: { force?: boolean } = {}): Promise<Blob> => {
+  if ((!force && file.size <= SHRINK_ABOVE_BYTES) || typeof createImageBitmap !== 'function') return file;
   try {
     // from-image: keep the phone's orientation (EXIF) when redrawing.
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
@@ -21,7 +22,7 @@ export const shrinkPhoto = async (file: Blob): Promise<Blob> => {
     canvas.getContext('2d')?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close();
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', QUALITY));
-    return blob && blob.size < file.size ? blob : file;
+    return blob && (force || blob.size < file.size) ? blob : file;
   } catch {
     return file;
   }

@@ -5,7 +5,9 @@ import { BRAND, COMPANY } from '@/lib/brand';
 import { useFormat } from '@/i18n/hooks';
 
 import type { ReactNode } from 'react';
-import type { Invoice, InvoiceLine } from '@/lib/invoices/types';
+import { codMemo } from '@/lib/invoices/types';
+
+import type { Invoice, InvoiceLine, InvoicePayment } from '@/lib/invoices/types';
 import type { DeliveryType } from '@/lib/types';
 
 // The printable invoice. Everything on it comes from the invoice's stored
@@ -36,6 +38,7 @@ const BilledToBlock = ({ invoice }: { invoice: Invoice }) => {
     <div className="min-w-0" data-print-keep>
       <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{t('billedTo')}</h2>
       <p className="mt-1 text-base font-semibold wrap-break-word">{b.name}</p>
+      {b.walkIn ? <p className="text-neutral-600">{t('walkIn')}</p> : null}
       {b.contactPerson && b.contactPerson !== b.name ? <p>{t('contactPerson', { name: b.contactPerson })}</p> : null}
       {place ? <p className="wrap-break-word">{place}</p> : null}
       {b.email ? <p dir="ltr" className="wrap-anywhere rtl:text-right">{b.email}</p> : null}
@@ -269,7 +272,47 @@ const Totals = ({ invoice, format }: { invoice: Invoice; format: Format }) => {
   );
 };
 
-const InvoiceDocument = ({ invoice }: { invoice: Invoice }) => {
+// Cash collected for the sender: shown apart, never in the totals.
+const CodMemo = ({ invoice, format }: { invoice: Invoice; format: Format }) => {
+  const t = useTranslations('invoices.cod');
+  const cod = codMemo(invoice);
+  if (cod === null) return null;
+  return (
+    <section aria-labelledby="invoice-cod" className="flex flex-col gap-1 rounded-lg border border-neutral-300 p-3" data-print-keep>
+      <h2 id="invoice-cod" className="text-sm font-semibold">
+        {t('heading')}
+      </h2>
+      <p className="text-neutral-700">
+        {t(invoice.type === 'bulk_shipment' ? 'bulk' : 'single', { amount: format.money(cod, invoice.currency) })}
+      </p>
+    </section>
+  );
+};
+
+// What the payment records say now — labelled as such, not part of the
+// issued invoice.
+const PaymentStatus = ({ payment, format }: { payment: InvoicePayment; format: Format }) => {
+  const t = useTranslations('invoices.payment');
+  const showDue = payment.state === 'unpaid' || payment.state === 'paid' || payment.state === 'cash_collected';
+  return (
+    <section aria-labelledby="invoice-payment" className="flex flex-col gap-1" data-print-keep>
+      <h2 id="invoice-payment" className="text-sm font-semibold uppercase tracking-wide">
+        {t('heading')}
+      </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <p className="font-semibold">{t(`states.${payment.state}`)}</p>
+        {showDue ? (
+          <p>
+            {t('amountDue')}: <Money amount={payment.amountDue} currency={payment.currency} format={format} />
+          </p>
+        ) : null}
+      </div>
+      <p className="text-xs text-neutral-500">{t('asOf', { date: format.dateTime(payment.checkedAt) })}</p>
+    </section>
+  );
+};
+
+const InvoiceDocument = ({ invoice, payment = null }: { invoice: Invoice; payment?: InvoicePayment | null }) => {
   const t = useTranslations('invoices');
   const format = useFormat();
   const isBulk = invoice.type === 'bulk_shipment';
@@ -325,6 +368,10 @@ const InvoiceDocument = ({ invoice }: { invoice: Invoice }) => {
       {isBulk ? <BulkLines invoice={invoice} format={format} /> : line ? <ShipmentCharges line={line} format={format} /> : null}
 
       <Totals invoice={invoice} format={format} />
+
+      <CodMemo invoice={invoice} format={format} />
+
+      {payment ? <PaymentStatus payment={payment} format={format} /> : null}
 
       <footer className="flex flex-col gap-1 border-t border-neutral-300 pt-4 text-xs text-neutral-600" data-print-keep>
         <p>{t('footer')}</p>

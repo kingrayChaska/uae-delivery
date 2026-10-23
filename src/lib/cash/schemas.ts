@@ -42,7 +42,7 @@ export const parseCashFilters = (params: {
   return { q: first(params.q).trim().slice(0, 100), from, to };
 };
 
-export const COLLECTION_FILTERS = ['all', ...COD_STATUSES, 'unverified'] as const;
+export const COLLECTION_FILTERS = ['all', ...COD_STATUSES] as const;
 export type CollectionFilter = (typeof COLLECTION_FILTERS)[number];
 export const REMITTANCE_FILTERS = ['all', ...REMITTANCE_STATUSES] as const;
 export type RemittanceFilter = (typeof REMITTANCE_FILTERS)[number];

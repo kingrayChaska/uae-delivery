@@ -102,12 +102,9 @@ const CashDriverView = async ({ basePath, driverId, filters, collectionsPage, re
           <StatCard label={t('cards.remittedAllTime')} value={aed(position?.remitted ?? 0)} />
           <StatCard label={t('cards.expected')} value={aed(position?.expected ?? 0)} />
         </div>
-        {pending > 0 || (position?.unverified ?? 0) > 0 ? (
+        {pending > 0 ? (
           <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
             {pending > 0 ? <li>{t('pendingNote', { amount: aed(pending) })}</li> : null}
-            {(position?.unverified ?? 0) > 0 ? (
-              <li>{t('unverifiedNote', { amount: aed(position?.unverified ?? 0) })}</li>
-            ) : null}
           </ul>
         ) : null}
       </section>
@@ -272,9 +269,7 @@ const CashDriverView = async ({ basePath, driverId, filters, collectionsPage, re
                     <td className="px-3 py-2 text-end font-brand-mono whitespace-nowrap">
                       {record.collectedAmount !== null
                         ? format.money(record.collectedAmount, record.currency)
-                        : record.status === 'expected'
-                          ? '—'
-                          : t('collections.unverified')}
+                        : '—'}
                     </td>
                     <td className="px-3 py-2">
                       <Badge variant={COLLECTION_VARIANT[record.status] ?? 'default'}>{tCod(record.status)}</Badge>

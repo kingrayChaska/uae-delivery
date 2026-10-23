@@ -96,7 +96,9 @@
       "searchHint": "Shipment ID; sender or recipient name or phone (any format: +971 50…, 050…); pickup or drop-off address; the customer, company or driver.",
       "from": "Booked from",
       "to": "Booked to",
-      "dateHint": "Dates are the booking date (UAE time). Leave either one empty for an open range.",
+      "deliveredFrom": "Delivered from",
+      "deliveredTo": "Delivered to",
+      "dateHint": "Booking and delivery dates are UAE dates; each range is independent. Leave an end empty for an open range.",
       "status": "Status",
       "allStatuses": "All statuses",
       "active": "Active (on the way)",
@@ -383,7 +385,6 @@
     "drivers": "Drivers",
     "empty": "No driver has handled cash yet.",
     "emptySearch": "No driver matches this search.",
-    "unverifiedNote": "Plus {amount} collected before amounts were recorded (unverified, not in the balance).",
     "recordAction": "Record remittance",
     "view": "View",
     "back": "All drivers",
@@ -399,7 +400,6 @@
       "outstanding": "Outstanding (cash held)",
       "expected": "Still to collect",
       "pending": "Awaiting confirmation",
-      "unverified": "Unverified (older records)",
       "periodHeading": "Activity: {period}",
       "collected": "Collected",
       "remitted": "Remitted (confirmed)",
@@ -439,10 +439,6 @@
       "pending": {
         "term": "Awaiting confirmation",
         "meaning": "Remittances an operator recorded that a manager hasn’t confirmed yet. They don’t reduce the balance."
-      },
-      "unverified": {
-        "term": "Unverified",
-        "meaning": "Collections marked before amounts were recorded. They are kept out of the balance rather than guessed, and can still be reconciled one by one on the Cash on Delivery page."
       }
     },
     "filters": {
@@ -453,7 +449,6 @@
       "collection": "Collection status",
       "remittance": "Remittance status",
       "all": "All",
-      "unverified": "Unverified",
       "apply": "Apply",
       "clear": "Clear",
       "datesHint": "Dates filter the activity figures (UAE time). Balances are always today’s.",
@@ -518,7 +513,6 @@
         "collectedAt": "Collected at"
       },
       "split": "{goods} goods + {fee} fee",
-      "unverified": "Unverified",
       "settled": "Settled by a remittance"
     },
     "validation": {
@@ -571,7 +565,6 @@
     "pendingNote": "{amount} submitted and waiting for confirmation — still outstanding until confirmed.",
     "confirmedNote": "{amount} confirmed by operators or managers so far.",
     "expectedNote": "Still to collect on undelivered shipments: COD {cod} · delivery fees {fee}. Not in the balance.",
-    "unverifiedNote": "{amount} collected before amounts were recorded — not in the balance.",
     "cards": {
       "total": "Assigned shipments",
       "pending": "Pending pickup",

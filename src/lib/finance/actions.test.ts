@@ -13,19 +13,22 @@ const MERCHANT = 'b0b0b0b0-0000-4000-8000-000000000000';
 const STATEMENT = '11111111-1111-4111-8111-111111111111';
 const CATEGORY = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const EXPENSE = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+const CALLER = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 
 const role = vi.hoisted(() => ({ current: 'manager' as string }));
 const rpc = vi.hoisted(() => vi.fn());
 const from = vi.hoisted(() => vi.fn());
 const emails = vi.hoisted(() => vi.fn());
+const removeFiles = vi.hoisted(() => vi.fn());
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/services/notifications/statement-emails', () => ({ scheduleStatementEmails: emails }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({ rpc, from }) }));
+vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: () => ({ storage: { from: () => ({ remove: removeFiles }) } }) }));
 vi.mock('@/lib/auth/guards', () => ({
   requireRole: async (...allowed: string[]) => {
     if (!allowed.includes(role.current)) throw new Error('Forbidden');
-    return { id: 'manager-id', role: role.current };
+    return { id: CALLER, role: role.current };
   },
 }));
 
@@ -49,6 +52,7 @@ beforeEach(() => {
   writes.length = 0;
   rpc.mockReset().mockResolvedValue({ data: STATEMENT, error: null });
   emails.mockReset();
+  removeFiles.mockReset().mockResolvedValue({ data: [], error: null });
   from.mockReset().mockImplementation((name: string) => table(name, { data: [{ id: EXPENSE }], error: null }));
 });
 
@@ -152,27 +156,33 @@ describe('expenses', () => {
     paymentStatus: 'paid' as const,
     paidOn: '2026-02-01',
   };
+  const OTHER_FOLDER = '00000000-0000-4000-8000-000000000001';
+  const receipt = (n: number, folder = OTHER_FOLDER) => ({ path: `${folder}/receipt-${n}.jpg`, name: `IMG_${n}.jpg` });
 
-  it('writes only the expense’s own columns; who and when come from the database', async () => {
-    expect(await actions.createExpenseAction({ ...expense, status: 'void', created_by: 'someone-else' } as never)).toMatchObject({ success: true });
-    expect(writes).toEqual([
-      {
-        table: 'expenses',
-        op: 'insert',
-        values: {
-          category_id: CATEGORY,
-          description: 'Fleet fuel',
-          amount: 500,
-          incurred_on: '2026-01-31',
-          payment_status: 'paid',
-          paid_on: '2026-02-01',
-          vendor: null,
-          reference: null,
-          notes: null,
-          created_by: 'manager-id',
-        },
-      },
-    ]);
+  beforeEach(() => {
+    rpc.mockResolvedValue({ data: { id: EXPENSE, removed: [] }, error: null });
+  });
+
+  // Migration 0053: one save_expense() call writes the expense (under the
+  // caller's RLS and triggers) and its receipts, in one transaction.
+  it('sends only the expense’s own fields; who, when and the reference come from the database', async () => {
+    expect(await actions.createExpenseAction({ ...expense, status: 'void', created_by: 'someone-else', reference: 'R-1' } as never)).toEqual({
+      success: true,
+      id: EXPENSE,
+    });
+    expect(rpc).toHaveBeenCalledWith('save_expense', {
+      p_expense_id: null,
+      p_category_id: CATEGORY,
+      p_description: 'Fleet fuel',
+      p_amount: 500,
+      p_incurred_on: '2026-01-31',
+      p_payment_status: 'paid',
+      p_paid_on: '2026-02-01',
+      p_vendor: null,
+      p_notes: null,
+      p_receipts: null,
+    });
+    expect(writes).toEqual([]);
   });
 
   it('an unpaid expense has no payment date', async () => {
@@ -191,7 +201,7 @@ describe('expenses', () => {
     [{ incurredOn: addDays(todayInDubai(), 2) }, 'finance.validation.expenseFuture'],
   ])('validates %o', async (change, error) => {
     expect(await actions.createExpenseAction({ ...expense, ...change })).toEqual({ success: false, error });
-    expect(writes).toEqual([]);
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it('voiding needs a reason and only marks the expense void', async () => {
@@ -201,8 +211,13 @@ describe('expenses', () => {
   });
 
   it('a void expense can no longer be edited', async () => {
-    from.mockImplementation((name: string) => table(name, { data: [], error: null }));
+    rpc.mockResolvedValue({ data: null, error: { code: 'P0001', message: 'This expense can no longer be edited' } });
     expect(await actions.updateExpenseAction(EXPENSE, expense)).toEqual({ success: false, error: 'finance.errors.expenseNotEditable' });
+  });
+
+  it('an edit without receipt changes leaves the receipts alone', async () => {
+    expect(await actions.updateExpenseAction(EXPENSE, expense)).toMatchObject({ success: true });
+    expect(rpc).toHaveBeenCalledWith('save_expense', expect.objectContaining({ p_expense_id: EXPENSE, p_receipts: null }));
   });
 
   it('a duplicate category name is reported as such', async () => {
@@ -217,23 +232,42 @@ describe('expenses', () => {
     role.current = who;
     await expect(actions.createExpenseAction(expense)).rejects.toThrow('Forbidden');
     await expect(actions.createExpenseCategoryAction({ name: 'Bonus', profitGroup: 'salary' })).rejects.toThrow('Forbidden');
+    expect(rpc).not.toHaveBeenCalled();
     expect(writes).toEqual([]);
   });
 
-  // Migration 0052: operators record their own expenses (the database makes
-  // them operator expenses, in the report for their date); categories stay
-  // the managers'.
-  it('an operator records an expense, with a receipt from their own folder, but not a category', async () => {
+  // Operators record their own expenses (0052); categories stay the managers'.
+  it('an operator records an expense with several receipt pictures, in order, but not a category', async () => {
     role.current = 'operator';
-    const receiptPath = '00000000-0000-4000-8000-000000000001/receipt.pdf';
-    expect(await actions.createExpenseAction({ ...expense, receiptPath })).toMatchObject({ success: true });
-    expect(writes[0]).toMatchObject({ table: 'expenses', op: 'insert', values: { receipt_path: receiptPath } });
+    const receipts = [receipt(1), receipt(2), { ...receipt(3), name: null }];
+    expect(await actions.createExpenseAction({ ...expense, receipts })).toMatchObject({ success: true });
+    expect(rpc).toHaveBeenCalledWith('save_expense', expect.objectContaining({ p_receipts: receipts.map((r) => ({ path: r.path, name: r.name })) }));
     await expect(actions.createExpenseCategoryAction({ name: 'Bonus', profitGroup: 'salary' })).rejects.toThrow('Forbidden');
   });
 
-  it.each(['../x.pdf', 'no-folder.pdf', '00000000-0000-4000-8000-000000000001/../../x.pdf'])('refuses a receipt path like %s', async (receiptPath) => {
-    expect(await actions.createExpenseAction({ ...expense, receiptPath })).toEqual({ success: false, error: 'finance.validation.receipt' });
-    expect(writes).toEqual([]);
+  it.each(['../x.jpg', 'no-folder.jpg', `${OTHER_FOLDER}/../../x.jpg`, 'https://evil.example/x.jpg'])('refuses a receipt path like %s', async (path) => {
+    expect(await actions.createExpenseAction({ ...expense, receipts: [{ path, name: null }] })).toEqual({ success: false, error: 'finance.validation.receipt' });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('refuses more than ten receipts, and the same receipt twice', async () => {
+    const eleven = Array.from({ length: 11 }, (_, n) => receipt(n));
+    expect(await actions.createExpenseAction({ ...expense, receipts: eleven })).toEqual({ success: false, error: 'finance.validation.tooManyReceipts' });
+    expect(await actions.createExpenseAction({ ...expense, receipts: [receipt(1), receipt(1)] })).toEqual({ success: false, error: 'finance.validation.receipt' });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('deletes the files of receipts taken off — only from the caller’s own folder', async () => {
+    const own = receipt(1, CALLER).path;
+    rpc.mockResolvedValue({ data: { id: EXPENSE, removed: [own, receipt(2).path, '../x.jpg'] }, error: null });
+    expect(await actions.updateExpenseAction(EXPENSE, { ...expense, receipts: [] })).toMatchObject({ success: true });
+    expect(removeFiles).toHaveBeenCalledWith([own]);
+  });
+
+  it('reports the database’s refusal of someone else’s upload, and deletes nothing', async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: 'P0001', message: 'Attach a receipt you uploaded yourself' } });
+    expect(await actions.createExpenseAction({ ...expense, receipts: [receipt(1)] })).toEqual({ success: false, error: 'errors.db.expenseReceiptOwn' });
+    expect(removeFiles).not.toHaveBeenCalled();
   });
 });
 

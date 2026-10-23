@@ -26,6 +26,7 @@ import { getProfileAccountType, getProfileName } from '@/services/profiles/get-p
 import { getStaffActionContext, listStaffShipmentEvents } from '@/services/shipments/get-staff-actions';
 import { getBatchLabel } from '@/services/bulk/list-batches';
 import { getInvoiceNumberFor } from '@/services/invoices/get-invoice';
+import DownloadInvoiceButton from '@/components/invoices/download-invoice-button';
 import { getCurrentProfile } from '@/lib/auth/session';
 import { correctionTargets } from '@/lib/shipment/status-corrections';
 import { getFormat } from '@/i18n/server';
@@ -54,7 +55,8 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
     getTranslations('shipments'),
     getTranslations('invoices.actions'),
     getFormat(),
-    // Staff can read invoices but never issue them (migration 0031).
+    // Staff read every invoice; they issue one only for a guest booking,
+    // which has no customer account to do it (migrations 0031, 0054).
     getInvoiceNumberFor({ shipmentId: shipment.id }),
     // Price changes and cancellation by operations (migration 0046).
     getStaffActionContext(shipment.id),
@@ -71,6 +73,9 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
         ? shipment.deliveryFailedReason
         : null;
   const canAssign = shipment.status === 'confirmed' && !shipment.driverId;
+  // A guest booking has no customer account to issue its invoice, so staff
+  // do (the database checks it again, migration 0054).
+  const canIssueInvoice = shipment.guestCustomer !== null && shipment.status !== 'cancelled';
   const canReassign = shipment.status === 'assigned' || shipment.status === 'delivery_failed';
   // Correcting a status a driver set by mistake (migration 0041).
   const correctTo = correctionTargets(shipment.status, {
@@ -109,6 +114,7 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
               <Link href={`${basePath}/invoices/${invoiceNumber}`}>{tInvoices('view')}</Link>
             </Button>
           ) : null}
+          {invoiceNumber || canIssueInvoice ? <DownloadInvoiceButton shipmentId={shipment.id} invoiceNumber={invoiceNumber} /> : null}
           <ShipmentStatusBadge status={shipment.status} />
           {shipment.status === 'delivery_failed' ? <MarkReturnedButton shipmentId={shipment.id} /> : null}
           {correctTo.length > 0 ? (

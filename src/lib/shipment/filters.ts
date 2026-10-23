@@ -57,9 +57,20 @@ export type ShipmentFilters = {
   // Booking date, YYYY-MM-DD in UAE time; either end may be open.
   from: string | null;
   to: string | null;
+  // Delivery date, YYYY-MM-DD in UAE time; used by staff shipment search.
+  deliveredFrom: string | null;
+  deliveredTo: string | null;
 };
 
-export const NO_FILTERS: ShipmentFilters = { scope: 'mine', q: '', status: 'all', from: null, to: null };
+export const NO_FILTERS: ShipmentFilters = {
+  scope: 'mine',
+  q: '',
+  status: 'all',
+  from: null,
+  to: null,
+  deliveredFrom: null,
+  deliveredTo: null,
+};
 
 export const MAX_QUERY_LENGTH = 100;
 
@@ -83,8 +94,11 @@ export const parseShipmentFilters = (
     status?: RawParam;
     from?: RawParam;
     to?: RawParam;
+    deliveredFrom?: RawParam;
+    deliveredTo?: RawParam;
   },
   statuses: readonly StatusFilter[] = STATUS_FILTERS,
+  { includeDeliveredDate = false }: { includeDeliveredDate?: boolean } = {},
 ): ShipmentFilters => {
   // Whether the caller may use 'business' is the page's decision.
   const scope = first(params.scope) === 'business' ? 'business' : 'mine';
@@ -92,14 +106,22 @@ export const parseShipmentFilters = (
   const status = statuses.find((s) => s === first(params.status)) ?? 'all';
   let from = parseDate(params.from);
   let to = parseDate(params.to);
+  let deliveredFrom = includeDeliveredDate ? parseDate(params.deliveredFrom) : null;
+  let deliveredTo = includeDeliveredDate ? parseDate(params.deliveredTo) : null;
   // A range typed backwards still means the days between them.
   if (from && to && from > to) [from, to] = [to, from];
-  return { scope, q, status, from, to };
+  if (deliveredFrom && deliveredTo && deliveredFrom > deliveredTo) [deliveredFrom, deliveredTo] = [deliveredTo, deliveredFrom];
+  return { scope, q, status, from, to, deliveredFrom, deliveredTo };
 };
 
 // Narrowing filters only: the scope picks whose list it is.
 export const hasFilters = (filters: ShipmentFilters) =>
-  filters.q !== '' || filters.status !== 'all' || filters.from !== null || filters.to !== null;
+  filters.q !== '' ||
+  filters.status !== 'all' ||
+  filters.from !== null ||
+  filters.to !== null ||
+  filters.deliveredFrom !== null ||
+  filters.deliveredTo !== null;
 
 // The statuses a filter matches; null for all of them.
 export const statusesFor = (status: StatusFilter): ShipmentStatus[] | null => {
@@ -133,6 +155,8 @@ export const shipmentListHref = (
   if (filters.status && filters.status !== 'all') params.set('status', filters.status);
   if (filters.from) params.set('from', filters.from);
   if (filters.to) params.set('to', filters.to);
+  if (filters.deliveredFrom) params.set('deliveredFrom', filters.deliveredFrom);
+  if (filters.deliveredTo) params.set('deliveredTo', filters.deliveredTo);
   if (page > 1) params.set('page', String(page));
   const query = params.toString();
   return query ? `${basePath}?${query}` : basePath;

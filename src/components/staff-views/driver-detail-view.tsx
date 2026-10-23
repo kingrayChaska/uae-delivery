@@ -180,7 +180,6 @@ const DriverDetailView = async ({ basePath, driverId, state, page }: DriverDetai
             {now.expectedCod > 0 || now.expectedFee > 0 ? (
               <li>{t('expectedNote', { cod: aed(now.expectedCod), fee: aed(now.expectedFee) })}</li>
             ) : null}
-            {now.unverified > 0 ? <li>{t('unverifiedNote', { amount: aed(now.unverified) })}</li> : null}
           </ul>
         </div>
       </section>

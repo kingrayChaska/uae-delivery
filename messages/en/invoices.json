@@ -82,14 +82,41 @@
     "generateBulk": "Generate bulk invoice",
     "viewBulk": "View bulk invoice",
     "onBulk": "Billed on bulk invoice",
-    "print": "Print / Download PDF",
+    "print": "Print",
     "openShipment": "Open shipment",
-    "openBulk": "Open bulk shipment"
+    "openBulk": "Open bulk shipment",
+    "download": "Download PDF",
+    "downloadInvoice": "Download invoice",
+    "preparing": "Preparing invoice…"
   },
   "generated": "Invoice generated successfully.",
-  "printHint": "To download, choose “Save as PDF” in the print dialog.",
+  "printHint": "Download the invoice as a PDF, or print it.",
   "errors": {
     "generateFailed": "Unable to generate invoice. Please try again.",
     "loadFailed": "Unable to load this invoice. Please try again."
-  }
+  },
+  "walkIn": "Walk-in customer · no ParcelLink account",
+  "cod": {
+    "heading": "Cash on delivery — collected for the sender",
+    "single": "The driver collects {amount} from the recipient for the goods, on the sender’s behalf. It is not a ParcelLink charge and is not included in this invoice’s total.",
+    "bulk": "Drivers collect {amount} in total from recipients for the goods, on the merchant’s behalf. It is not a ParcelLink charge and is not included in this invoice’s total."
+  },
+  "payment": {
+    "heading": "Payment status",
+    "asOf": "As recorded on {date}. The payment status is read from ParcelLink’s payment records and is not part of the issued invoice.",
+    "amountDue": "Amount due",
+    "states": {
+      "paid": "Paid",
+      "refunded": "Refunded",
+      "billed_to_account": "Billed to the merchant account — settled on the account statement",
+      "cash_collected": "Delivery fee collected in cash by the driver",
+      "cancelled": "Shipment cancelled",
+      "unpaid": "Not yet paid"
+    }
+  },
+  "pdf": {
+    "page": "Page {page} of {pages}",
+    "characters": "Some characters in names or addresses can’t be shown in this PDF and appear as “?”. The invoice in ParcelLink shows them in full."
+  },
+  "downloadStarted": "Invoice {number} is ready. Your download should start now."
 }

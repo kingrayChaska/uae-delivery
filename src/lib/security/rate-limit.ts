@@ -25,6 +25,8 @@ export const RATE_LIMITS = {
   // Issuing is idempotent (a second request returns the same invoice), so
   // this only stops a script hammering the issuing functions.
   invoicePerUser: { max: 60, windowSeconds: 60 * 60 },
+  // Expense receipt pictures (migration 0053): up to ten per expense.
+  receiptUploadPerUser: { max: 120, windowSeconds: 60 * 60 },
 } as const;
 
 export type RateLimitName = keyof typeof RATE_LIMITS;

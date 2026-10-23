@@ -26,6 +26,7 @@ export type Expense = {
   status: 'active' | 'void';
   voidReason: string | null;
   voidedAt: string | null;
+  createdById: string;
   createdByName: string | null;
   updatedByName: string | null;
   createdAt: string;
@@ -74,6 +75,7 @@ type ExpenseRow = {
   voided_at: string | null;
   created_at: string;
   updated_at: string;
+  created_by: string;
   category: { name: string } | null;
   creator: { full_name: string | null } | null;
   updater: { full_name: string | null } | null;
@@ -91,7 +93,7 @@ export const listExpenses = async (
   let query = supabase
     .from('expenses')
     .select(
-      'id, category_id, description, amount, currency, incurred_on, payment_status, paid_on, vendor, reference, notes, status, void_reason, voided_at, created_at, updated_at, category:expense_categories(name), creator:profiles!expenses_created_by_fkey(full_name), updater:profiles!expenses_updated_by_fkey(full_name), source, report_id, report:expense_reports(report_number, status)',
+      'id, category_id, description, amount, currency, incurred_on, payment_status, paid_on, vendor, reference, notes, status, void_reason, voided_at, created_at, updated_at, created_by, category:expense_categories(name), creator:profiles!expenses_created_by_fkey(full_name), updater:profiles!expenses_updated_by_fkey(full_name), source, report_id, report:expense_reports(report_number, status)',
       { count: 'exact' },
     )
     .gte('incurred_on', filters.from)
@@ -122,6 +124,7 @@ export const listExpenses = async (
       status: row.status,
       voidReason: row.void_reason,
       voidedAt: row.voided_at,
+      createdById: row.created_by,
       createdByName: row.creator?.full_name ?? null,
       updatedByName: row.updater?.full_name ?? null,
       createdAt: row.created_at,

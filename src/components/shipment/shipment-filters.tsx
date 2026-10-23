@@ -29,6 +29,9 @@ type ShipmentFiltersProps = {
   // The list's own parameters that aren't filters (e.g. the staff list's
   // ?type=), kept through searching and clearing.
   keep?: Record<string, string>;
+  // Staff can filter by when a shipment was delivered, independently of
+  // its booking date.
+  includeDeliveredDate?: boolean;
 };
 
 // Search and filters for a customer's, a driver's or staff's shipments. A plain
@@ -43,6 +46,7 @@ const ShipmentFilters = ({
   today,
   collapsible = false,
   keep = {},
+  includeDeliveredDate = false,
 }: ShipmentFiltersProps) => {
   const t = useTranslations(messages);
   const tStatus = useTranslations('shipments.status');
@@ -60,15 +64,22 @@ const ShipmentFilters = ({
       status: String(data.get('status') ?? ''),
       from: String(data.get('from') ?? ''),
       to: String(data.get('to') ?? ''),
-    }, statuses);
+      deliveredFrom: String(data.get('deliveredFrom') ?? ''),
+      deliveredTo: String(data.get('deliveredTo') ?? ''),
+    }, statuses, { includeDeliveredDate });
     // New filters start again from page 1.
     startTransition(() => router.push(shipmentListHref(basePath, next, 1, keep)));
   };
 
-  const narrowed = filters.status !== 'all' || filters.from !== null || filters.to !== null;
+  const narrowed =
+    filters.status !== 'all' ||
+    filters.from !== null ||
+    filters.to !== null ||
+    filters.deliveredFrom !== null ||
+    filters.deliveredTo !== null;
   const dateAndStatus = (
     <>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className={`grid gap-3 ${includeDeliveredDate ? 'sm:grid-cols-2 xl:grid-cols-5' : 'sm:grid-cols-3'}`}>
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="shipment-from">{t('from')}</Label>
           <Input id="shipment-from" name="from" type="date" defaultValue={filters.from ?? ''} className="min-w-0" />
@@ -77,6 +88,30 @@ const ShipmentFilters = ({
           <Label htmlFor="shipment-to">{t('to')}</Label>
           <Input id="shipment-to" name="to" type="date" defaultValue={filters.to ?? ''} className="min-w-0" />
         </div>
+        {includeDeliveredDate ? (
+          <>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <Label htmlFor="shipment-delivered-from">{t('deliveredFrom')}</Label>
+              <Input
+                id="shipment-delivered-from"
+                name="deliveredFrom"
+                type="date"
+                defaultValue={filters.deliveredFrom ?? ''}
+                className="min-w-0"
+              />
+            </div>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <Label htmlFor="shipment-delivered-to">{t('deliveredTo')}</Label>
+              <Input
+                id="shipment-delivered-to"
+                name="deliveredTo"
+                type="date"
+                defaultValue={filters.deliveredTo ?? ''}
+                className="min-w-0"
+              />
+            </div>
+          </>
+        ) : null}
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="shipment-status">{t('status')}</Label>
           <Select id="shipment-status" name="status" defaultValue={filters.status}>

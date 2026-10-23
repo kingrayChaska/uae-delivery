@@ -34,17 +34,21 @@ const securityHeaders = [
     : []),
 ];
 
+const PDF_FONTS = [
+  "./node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-400-normal.woff",
+  "./node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-600-normal.woff",
+  "./node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-400-normal.woff",
+  "./node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-600-normal.woff",
+];
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  // The statement PDF reads these fonts at runtime (lib/finance/pdf-text.ts);
-  // file tracing can't see a computed path, so include them explicitly.
+  // The statement and invoice PDFs read these fonts at runtime
+  // (lib/finance/pdf-text.ts); file tracing can't see a computed path, so
+  // include them explicitly.
   outputFileTracingIncludes: {
-    "/api/statements/[id]/pdf": [
-      "./node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-400-normal.woff",
-      "./node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-600-normal.woff",
-      "./node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-400-normal.woff",
-      "./node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-600-normal.woff",
-    ],
+    "/api/statements/[id]/pdf": PDF_FONTS,
+    "/api/invoices/[number]/pdf": PDF_FONTS,
   },
   compress: true,
   images: {

@@ -164,7 +164,7 @@ describe('cash filters', () => {
       collection: 'collected',
       remittance: 'all',
     });
-    expect(parseDriverLedgerFilters({ collection: 'unverified' }).collection).toBe('unverified');
+    expect(parseDriverLedgerFilters({ collection: 'unverified' }).collection).toBe('all');
   });
 
   it('builds tidy URLs', () => {

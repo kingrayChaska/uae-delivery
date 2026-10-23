@@ -16,6 +16,8 @@ const OperatorShipmentsPage = async ({
     status?: string | string[];
     from?: string | string[];
     to?: string | string[];
+    deliveredFrom?: string | string[];
+    deliveredTo?: string | string[];
   }>;
 }) => {
   await requireRoleOrRedirect('operator');
@@ -27,8 +29,20 @@ const OperatorShipmentsPage = async ({
       page={parsePage(page)}
       batchId={isUuid(batch) ? batch : null}
       category={parseShipmentCategory(type)}
-      // Search, status and booking date, as on the merchant and driver lists.
-      filters={parseShipmentFilters({ q: params.q, status: params.status, from: params.from, to: params.to })}
+      includeDeliveredDate
+      // Search, status, booking date and delivery date.
+      filters={parseShipmentFilters(
+        {
+          q: params.q,
+          status: params.status,
+          from: params.from,
+          to: params.to,
+          deliveredFrom: params.deliveredFrom,
+          deliveredTo: params.deliveredTo,
+        },
+        undefined,
+        { includeDeliveredDate: true },
+      )}
     />
   );
 };

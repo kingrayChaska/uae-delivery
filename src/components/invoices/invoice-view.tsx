@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, CircleAlert, CircleCheck } from 'lucide-react';
+import { ArrowLeft, CircleAlert, CircleCheck, Download } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 import InvoiceDocument from '@/components/invoices/invoice-document';
+import Button from '@/components/ui/button';
 import PrintButton from '@/components/shipment/label/print-button';
-import { getInvoiceByNumber } from '@/services/invoices/get-invoice';
+import { getInvoiceByNumber, getInvoicePayment } from '@/services/invoices/get-invoice';
 
 type InvoiceViewProps = {
   invoiceNumber: string;
@@ -21,10 +22,13 @@ type InvoiceViewProps = {
 // not found.
 const InvoiceView = async ({ invoiceNumber, issued, shipmentHref, batchHref }: InvoiceViewProps) => {
   const t = await getTranslations('invoices');
-  const invoice = await getInvoiceByNumber(invoiceNumber).catch((error: unknown) => {
-    console.error('Invoice could not be loaded', error instanceof Error ? error.message : error);
-    return undefined;
-  });
+  const [invoice, payment] = await Promise.all([
+    getInvoiceByNumber(invoiceNumber).catch((error: unknown) => {
+      console.error('Invoice could not be loaded', error instanceof Error ? error.message : error);
+      return undefined;
+    }),
+    getInvoicePayment(invoiceNumber),
+  ]);
   if (invoice === null) notFound();
 
   if (invoice === undefined) {
@@ -57,7 +61,16 @@ const InvoiceView = async ({ invoiceNumber, issued, shipmentHref, batchHref }: I
         ) : (
           <span />
         )}
-        <PrintButton label={t('actions.print')} />
+        <div className="flex flex-wrap gap-2">
+          {/* A server-drawn PDF (app/api/invoices/[number]/pdf): same access as this page. */}
+          <Button asChild size="lg" variant="outline">
+            <a href={`/api/invoices/${invoice.invoiceNumber}/pdf`} download={`${invoice.invoiceNumber}.pdf`}>
+              <Download aria-hidden />
+              {t('actions.download')}
+            </a>
+          </Button>
+          <PrintButton label={t('actions.print')} />
+        </div>
       </div>
 
       {issued ? (
@@ -72,7 +85,7 @@ const InvoiceView = async ({ invoiceNumber, issued, shipmentHref, batchHref }: I
       )}
 
       <div className="min-w-0">
-        <InvoiceDocument invoice={invoice} />
+        <InvoiceDocument invoice={invoice} payment={payment} />
       </div>
     </main>
   );

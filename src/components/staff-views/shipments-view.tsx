@@ -23,6 +23,7 @@ type ShipmentsViewProps = StaffListViewProps & {
   batchId?: string | null;
   category?: ShipmentCategory;
   filters?: Filters;
+  includeDeliveredDate?: boolean;
 };
 
 // Either one bulk batch's shipments (?batch=<id>), or the categorised list:
@@ -30,7 +31,14 @@ type ShipmentsViewProps = StaffListViewProps & {
 // single entry that opens to its own shipments. Searching or filtering
 // (?q=&status=&from=&to=, as on the merchant and driver lists) lists the
 // matching shipments one by one instead, within the tab or batch.
-const ShipmentsView = async ({ basePath, page, batchId = null, category = 'all', filters = NO_FILTERS }: ShipmentsViewProps) => {
+const ShipmentsView = async ({
+  basePath,
+  page,
+  batchId = null,
+  category = 'all',
+  filters = NO_FILTERS,
+  includeDeliveredDate = false,
+}: ShipmentsViewProps) => {
   const t = await getTranslations('operator.shipments');
   const listPath = `${basePath}/shipments`;
   // The tab or batch isn't a filter: kept through searching, clearing and paging.
@@ -185,7 +193,14 @@ const ShipmentsView = async ({ basePath, page, batchId = null, category = 'all',
       ) : (
         <ShipmentCategoryTabs basePath={basePath} current={category} filters={filters} />
       )}
-      <ShipmentFilters basePath={listPath} filters={filters} messages="operator.shipments.filters" today={todayInUae()} keep={keep} />
+      <ShipmentFilters
+        basePath={listPath}
+        filters={filters}
+        messages="operator.shipments.filters"
+        today={todayInUae()}
+        keep={keep}
+        includeDeliveredDate={includeDeliveredDate}
+      />
       {list}
     </main>
   );

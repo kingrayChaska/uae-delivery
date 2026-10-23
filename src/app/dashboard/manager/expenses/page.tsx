@@ -12,6 +12,7 @@ import ExpenseCategories from '@/components/finance/expense-categories';
 import ExpenseForm from '@/components/finance/expense-form';
 import ExpenseRowActions from '@/components/finance/expense-row-actions';
 import ExpenseReportStatusBadge from '@/components/finance/expense-report-status-badge';
+import ReceiptThumbnails from '@/components/finance/receipt-thumbnails';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { failedLoad } from '@/lib/finance/load-error';
@@ -19,6 +20,7 @@ import { parseExpenseFilters, todayInDubai } from '@/lib/finance/schemas';
 import { parsePage } from '@/lib/pagination';
 import { EXPENSE_PAGE_SIZE, listExpenseCategories, listExpenses } from '@/services/finance/expenses';
 import { getCategoryTotals } from '@/services/finance/performance';
+import { getExpenseReceiptsOrEmpty } from '@/services/finance/expense-receipts';
 import { getFormat } from '@/i18n/server';
 
 import type { Metadata } from 'next';
@@ -32,7 +34,7 @@ type SearchParams = Promise<{ from?: string; to?: string; category?: string; voi
 // Operating expenses for the business performance report. Managers only:
 // the layout, the server actions and RLS (migration 0044) all check it.
 const ExpensesPage = async ({ searchParams }: { searchParams: SearchParams }) => {
-  await requireRoleOrRedirect('manager');
+  const profile = await requireRoleOrRedirect('manager');
   const params = await searchParams;
   const filters = parseExpenseFilters(params);
   const page = parsePage(params.page);
@@ -45,6 +47,8 @@ const ExpensesPage = async ({ searchParams }: { searchParams: SearchParams }) =>
     listExpenses(filters, page).catch(failedLoad('Expenses')),
     getCategoryTotals(filters).catch(failedLoad('Expense totals')),
   ]);
+  // Every listed expense's receipt pictures, managers' and operators' alike.
+  const receipts = await getExpenseReceiptsOrEmpty((list?.rows ?? []).map((e) => e.id));
 
   const shownTotals = (totals ?? []).filter((row) => !filters.category || row.categoryId === filters.category);
   // Summed in fils, so no floating-point drift.
@@ -161,6 +165,7 @@ const ExpensesPage = async ({ searchParams }: { searchParams: SearchParams }) =>
             <ul className="flex flex-col gap-2">
               {list.rows.map((expense) => {
                 const isVoid = expense.status === 'void';
+                const expenseReceipts = receipts?.get(expense.id) ?? [];
                 return (
                   <li
                     key={expense.id}
@@ -186,6 +191,11 @@ const ExpensesPage = async ({ searchParams }: { searchParams: SearchParams }) =>
                         {expense.reference ? ` · ${t('expenses.list.reference', { reference: expense.reference })}` : ''}
                       </p>
                       {expense.notes ? <p className="text-sm wrap-break-word">{expense.notes}</p> : null}
+                      {expenseReceipts.length > 0 ? (
+                        <ReceiptThumbnails receipts={expenseReceipts} />
+                      ) : receipts ? (
+                        <p className="text-xs text-muted-foreground">{t('receipts.none')}</p>
+                      ) : null}
                       <p className="text-xs text-muted-foreground">
                         {t('expenses.list.recorded', { name: expense.createdByName ?? '—', date: format.date(expense.createdAt) })}
                         {expense.updatedByName ? ` · ${t('expenses.list.edited', { name: expense.updatedByName, date: format.date(expense.updatedAt) })}` : ''}
@@ -204,6 +214,7 @@ const ExpensesPage = async ({ searchParams }: { searchParams: SearchParams }) =>
                         </Link>
                       ) : null}
                       {/* An operator's expense is reviewed through its report (migration 0052). */}
+                      {/* Receipts are the recorder's own files, so only they edit them. */}
                       {!isVoid && categories && expense.source === 'manager' ? (
                         <ExpenseRowActions
                           expenseId={expense.id}
@@ -218,9 +229,11 @@ const ExpensesPage = async ({ searchParams }: { searchParams: SearchParams }) =>
                             paymentStatus: expense.paymentStatus,
                             paidOn: expense.paidOn ?? '',
                             vendor: expense.vendor ?? '',
-                            reference: expense.reference ?? '',
                             notes: expense.notes ?? '',
+                            legacyReference: expense.reference,
+                            receipts: expenseReceipts,
                           }}
+                          canEditReceipts={expense.createdById === profile.id}
                         />
                       ) : null}
                     </div>

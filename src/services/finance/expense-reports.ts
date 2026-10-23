@@ -1,9 +1,11 @@
 import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
+import { getExpenseReceipts } from '@/services/finance/expense-receipts';
 
 import type { ExpenseReportStatus, ExpensePeriodKind, ExpenseReviewState, OperatorExpenseFilters } from '@/lib/finance/expense-reports';
 import type { Period, ProfitGroup } from '@/lib/finance/schemas';
+import type { ExpenseReceipt } from '@/services/finance/expense-receipts';
 
 // Operator expense reports (migration 0052). Every total is summed by the
 // database; who may see what is decided there too (RLS, and each function
@@ -11,10 +13,6 @@ import type { Period, ProfitGroup } from '@/lib/finance/schemas';
 
 type Numeric = number | string;
 const money = (value: Numeric | null | undefined) => (value === null || value === undefined ? null : Number(value));
-
-// Signed links to receipts last ten minutes; storage RLS decides who gets one.
-const RECEIPT_LINK_SECONDS = 600;
-export const RECEIPT_BUCKET = 'expense-receipts';
 
 export type ExpenseReportSummary = {
   id: string;
@@ -88,7 +86,6 @@ export type OperatorExpense = {
   notes: string | null;
   status: 'active' | 'void';
   voidReason: string | null;
-  receiptPath: string | null;
   reportId: string | null;
   reportNumber: string | null;
   // The report's status, or 'unreported'.
@@ -98,7 +95,7 @@ export type OperatorExpense = {
 };
 
 const EXPENSE_COLUMNS =
-  'id, category_id, description, amount, currency, incurred_on, payment_status, paid_on, vendor, reference, notes, status, void_reason, receipt_path, report_id, created_at, updated_at, category:expense_categories(name), report:expense_reports(report_number, status)';
+  'id, category_id, description, amount, currency, incurred_on, payment_status, paid_on, vendor, reference, notes, status, void_reason, report_id, created_at, updated_at, category:expense_categories(name), report:expense_reports(report_number, status)';
 
 const toExpense = (row: Record<string, unknown>): OperatorExpense => {
   const report = row.report as { report_number: string; status: ExpenseReportStatus } | null;
@@ -118,7 +115,6 @@ const toExpense = (row: Record<string, unknown>): OperatorExpense => {
     notes: (row.notes as string | null) ?? null,
     status: row.status as 'active' | 'void',
     voidReason: (row.void_reason as string | null) ?? null,
-    receiptPath: (row.receipt_path as string | null) ?? null,
     reportId: (row.report_id as string | null) ?? null,
     reportNumber: report?.report_number ?? null,
     state: report?.status ?? 'unreported',
@@ -192,7 +188,8 @@ export const getOperatorExpenseTotals = async ({ from, to }: Period): Promise<Op
 };
 
 export type ReportEntry = OperatorExpense & {
-  receiptUrl: string | null;
+  // Receipt pictures (migration 0053), with short-lived signed links.
+  receipts: ExpenseReceipt[];
   corrections: { originalAmount: number; correctedAmount: number; reason: string; createdAt: string }[];
 };
 
@@ -220,12 +217,7 @@ export const getExpenseReport = async (reportId: string): Promise<ExpenseReportD
   for (const result of [categories, entries, history, corrections]) if (result.error) throw new Error(result.error.message);
 
   const expenses = ((entries.data ?? []) as unknown as Record<string, unknown>[]).map(toExpense);
-  const paths = expenses.map((e) => e.receiptPath).filter((p): p is string => Boolean(p));
-  const links = new Map<string, string>();
-  if (paths.length > 0) {
-    const { data: signed } = await supabase.storage.from(RECEIPT_BUCKET).createSignedUrls(paths, RECEIPT_LINK_SECONDS);
-    for (const item of signed ?? []) if (item.path && item.signedUrl) links.set(item.path, item.signedUrl);
-  }
+  const receipts = await getExpenseReceipts(expenses.map((e) => e.id));
   const fixes = new Map<string, ReportEntry['corrections']>();
   for (const c of (corrections.data ?? []) as { expense_id: string; original_amount: Numeric; corrected_amount: Numeric; reason: string; created_at: string }[]) {
     const list = fixes.get(c.expense_id) ?? [];
@@ -242,7 +234,7 @@ export const getExpenseReport = async (reportId: string): Promise<ExpenseReportD
       total: Number(c.total),
       count: Number(c.expense_count),
     })),
-    entries: expenses.map((e) => ({ ...e, receiptUrl: e.receiptPath ? (links.get(e.receiptPath) ?? null) : null, corrections: fixes.get(e.id) ?? [] })),
+    entries: expenses.map((e) => ({ ...e, receipts: receipts.get(e.id) ?? [], corrections: fixes.get(e.id) ?? [] })),
     history: ((history.data ?? []) as { action: string; actor_name: string | null; note: string | null; total: Numeric | null; created_at: string }[]).map((h) => ({
       action: h.action,
       actorName: h.actor_name,

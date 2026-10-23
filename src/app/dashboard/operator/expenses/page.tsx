@@ -12,6 +12,7 @@ import ExpenseForm from '@/components/finance/expense-form';
 import ExpenseRowActions from '@/components/finance/expense-row-actions';
 import ExpenseReportStatusBadge from '@/components/finance/expense-report-status-badge';
 import PrepareExpenseReportForm from '@/components/finance/prepare-expense-report-form';
+import ReceiptThumbnails from '@/components/finance/receipt-thumbnails';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { failedLoad } from '@/lib/finance/load-error';
@@ -25,6 +26,7 @@ import {
   listExpenseReports,
   listOperatorExpenses,
 } from '@/services/finance/expense-reports';
+import { getExpenseReceiptsOrEmpty } from '@/services/finance/expense-receipts';
 import { getFormat } from '@/i18n/server';
 
 import type { Metadata } from 'next';
@@ -38,7 +40,7 @@ type SearchParams = Promise<{ from?: string; to?: string; category?: string; sta
 const PATH = '/dashboard/operator/expenses';
 
 // The operator's own operational expenses (migration 0052): record them
-// with a receipt, see them by category and review state for any week,
+// with receipt pictures (0053), see them by category and review state for any week,
 // month or range, and gather them into reports for a manager to review.
 // RLS returns this operator's records only.
 const OperatorExpensesPage = async ({ searchParams }: { searchParams: SearchParams }) => {
@@ -57,6 +59,7 @@ const OperatorExpensesPage = async ({ searchParams }: { searchParams: SearchPara
     getOperatorExpenseTotals(filters).catch(failedLoad('Operator expense totals')),
     listExpenseReports().catch(failedLoad('Expense reports')),
   ]);
+  const receipts = await getExpenseReceiptsOrEmpty((list?.rows ?? []).map((e) => e.id));
 
   const query = new URLSearchParams({ from: filters.from, to: filters.to });
   if (filters.category) query.set('category', filters.category);
@@ -185,7 +188,7 @@ const OperatorExpensesPage = async ({ searchParams }: { searchParams: SearchPara
             <CardDescription>{t('addHint')}</CardDescription>
           </CardHeader>
           <CardContent>
-            {categories ? <ExpenseForm categories={categoryOptions} today={today} receiptFolder={profile.id} /> : loadError}
+            {categories ? <ExpenseForm categories={categoryOptions} today={today} /> : loadError}
           </CardContent>
         </Card>
         <Card>
@@ -246,6 +249,7 @@ const OperatorExpensesPage = async ({ searchParams }: { searchParams: SearchPara
               {list.rows.map((expense) => {
                 const isVoid = expense.status === 'void';
                 const editable = !isVoid && operatorCanEdit(expense.state === 'unreported' ? null : expense.state);
+                const expenseReceipts = receipts?.get(expense.id) ?? [];
                 return (
                   <li
                     key={expense.id}
@@ -256,7 +260,7 @@ const OperatorExpensesPage = async ({ searchParams }: { searchParams: SearchPara
                         <span className={`font-medium wrap-break-word ${isVoid ? 'line-through' : ''}`}>{expense.description}</span>
                         <Badge variant="secondary">{expense.categoryName}</Badge>
                         {isVoid ? <Badge variant="destructive">{t('void')}</Badge> : <ExpenseReportStatusBadge status={expense.state} />}
-                        {expense.receiptPath ? <Badge variant="outline">{t('hasReceipt')}</Badge> : null}
+                        {expenseReceipts.length > 0 ? <Badge variant="outline">{t('receiptCount', { count: expenseReceipts.length })}</Badge> : null}
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {format.calendarDate(expense.incurredOn)}
@@ -271,6 +275,7 @@ const OperatorExpensesPage = async ({ searchParams }: { searchParams: SearchPara
                         ) : null}
                       </p>
                       {isVoid && expense.voidReason ? <p className="text-xs text-destructive">{t('voidReason', { reason: expense.voidReason })}</p> : null}
+                      <ReceiptThumbnails receipts={expenseReceipts} />
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       <span dir="ltr" className="font-brand-mono text-base font-semibold">
@@ -282,7 +287,6 @@ const OperatorExpensesPage = async ({ searchParams }: { searchParams: SearchPara
                           description={expense.description}
                           categories={categoryOptions}
                           today={today}
-                          receiptFolder={profile.id}
                           initial={{
                             categoryId: expense.categoryId,
                             description: expense.description,
@@ -291,9 +295,9 @@ const OperatorExpensesPage = async ({ searchParams }: { searchParams: SearchPara
                             paymentStatus: expense.paymentStatus,
                             paidOn: expense.paidOn ?? '',
                             vendor: expense.vendor ?? '',
-                            reference: expense.reference ?? '',
                             notes: expense.notes ?? '',
-                            receiptPath: expense.receiptPath,
+                            legacyReference: expense.reference,
+                            receipts: expenseReceipts,
                           }}
                         />
                       ) : !isVoid ? (

@@ -81,7 +81,6 @@ const CashView = async ({ basePath, page, filters }: StaffListViewProps & { filt
           <StatCard label={t('cards.outstanding')} value={aed(totals.outstanding)} />
           <StatCard label={t('cards.expected')} value={aed(totals.expected)} />
           <StatCard label={t('cards.pending')} value={aed(totals.pending)} />
-          <StatCard label={t('cards.unverified')} value={aed(totals.unverified)} />
         </div>
       </section>
 
@@ -152,11 +151,6 @@ const CashView = async ({ basePath, page, filters }: StaffListViewProps & { filt
                       <span dir="ltr" className="block font-brand-mono text-xs text-muted-foreground rtl:text-right">
                         {row.driverPhone}
                       </span>
-                      {row.unverified > 0 ? (
-                        <span className="block text-xs text-muted-foreground">
-                          {t('unverifiedNote', { amount: aed(row.unverified) })}
-                        </span>
-                      ) : null}
                     </th>
                     <td className="px-3 py-2 text-end font-brand-mono">{format.number(row.shipments)}</td>
                     <td className="px-3 py-2 text-end font-brand-mono whitespace-nowrap">{aed(row.expected)}</td>
@@ -195,7 +189,7 @@ const CashView = async ({ basePath, page, filters }: StaffListViewProps & { filt
       <details className="rounded-md border p-4 text-sm">
         <summary className="cursor-pointer font-medium">{t('definitions.title')}</summary>
         <dl className="mt-3 grid gap-2 sm:grid-cols-[max-content_1fr] sm:gap-x-4">
-          {(['expected', 'collected', 'remitted', 'outstanding', 'pending', 'unverified'] as const).map((key) => (
+          {(['expected', 'collected', 'remitted', 'outstanding', 'pending'] as const).map((key) => (
             <div key={key} className="contents">
               <dt className="font-medium">{t(`definitions.${key}.term`)}</dt>
               <dd className="text-muted-foreground">{t(`definitions.${key}.meaning`)}</dd>

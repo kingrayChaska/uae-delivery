@@ -2,6 +2,8 @@
 
 import { requireRole } from '@/lib/auth/guards';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { RECEIPT_BUCKET, isReceiptPath } from '@/lib/finance/receipt-files';
 import { safeErrorMessage } from '@/lib/security/errors';
 import { isUuid } from '@/lib/security/validate';
 import {
@@ -174,59 +176,59 @@ export const discardStatementAction = async (statementId: string): Promise<Finan
 
 // ── Expenses ──────────────────────────────────────────────────────────────
 // Written with the caller's own session — a manager's, or (since 0052) an
-// operator's: expenses_insert/update (RLS) admit a manager for any expense
-// and an operator for their own, and the database triggers record who
-// created, changed or voided each expense, set whether it is a manager's
-// or an operator's, put an operator's expense into the report for its
-// date, refuse changes once that report is submitted or approved, keep
-// void expenses unchanged, refuse deletion and write the audit trail. The
-// column list below is the only thing a request can set.
+// operator's — through save_expense() (migration 0053), which writes the
+// expense under the caller's RLS and triggers as a table write would and
+// attaches its receipt pictures in the same transaction: expenses_insert/
+// update admit a manager for any expense and an operator for their own,
+// and the database records who created, changed or voided each expense,
+// sets whether it is a manager's or an operator's, puts an operator's
+// expense into the report for its date, refuses changes once that report
+// is submitted or approved, keeps void expenses unchanged, refuses deletion,
+// checks every receipt is the recorder's own checked upload and writes the
+// audit trail. The arguments below are the only thing a request can set.
 
-const expenseColumns = (values: ExpenseValues) => ({
-  category_id: values.categoryId,
-  description: values.description,
-  amount: values.amount,
-  incurred_on: values.incurredOn,
-  payment_status: values.paymentStatus,
-  paid_on: values.paymentStatus === 'paid' ? values.paidOn : null,
-  vendor: values.vendor,
-  reference: values.reference,
-  notes: values.notes,
-  ...(values.receiptPath !== undefined ? { receipt_path: values.receiptPath } : {}),
+const expenseArgs = (expenseId: string | null, values: ExpenseValues) => ({
+  p_expense_id: expenseId,
+  p_category_id: values.categoryId,
+  p_description: values.description,
+  p_amount: values.amount,
+  p_incurred_on: values.incurredOn,
+  p_payment_status: values.paymentStatus,
+  p_paid_on: values.paymentStatus === 'paid' ? values.paidOn : null,
+  p_vendor: values.vendor,
+  p_notes: values.notes,
+  p_receipts: values.receipts ? values.receipts.map((r) => ({ path: r.path, name: r.name ?? null })) : null,
 });
 
-export const createExpenseAction = async (input: ExpenseInput): Promise<FinanceActionResult> => {
+// Receipt files taken off an expense: removed from storage too, so none is
+// left behind. Only ever the caller's own folder (the database only takes
+// off receipts of an expense the caller recorded).
+const removeReceiptFiles = async (paths: unknown, folder: string) => {
+  const own = Array.isArray(paths) ? paths.filter((p): p is string => isReceiptPath(p) && p.split('/')[0] === folder) : [];
+  if (own.length === 0) return;
+  const { error } = await createAdminClient().storage.from(RECEIPT_BUCKET).remove(own);
+  if (error) console.error('Removed receipts could not be deleted from storage', error.message);
+};
+
+const saveExpense = async (expenseId: string | null, input: ExpenseInput): Promise<FinanceActionResult> => {
   const profile = await requireRole('manager', 'operator');
+  if (expenseId !== null && !isUuid(expenseId)) return { success: false, error: 'errors.notFound' };
   const parsed = expenseSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: firstIssue(parsed.error.issues) };
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('expenses')
-    .insert({ ...expenseColumns(parsed.data), created_by: profile.id })
-    .select('id')
-    .single();
-  if (error || !data) return { success: false, error: safeErrorMessage(error, 'finance.errors.saveFailed') };
-  return { success: true, id: data.id as string };
+  const { data, error } = await supabase.rpc('save_expense', expenseArgs(expenseId, parsed.data));
+  const saved = data as { id?: unknown; removed?: unknown } | null;
+  if (error || !saved || !isUuid(saved.id)) {
+    return { success: false, error: safeErrorMessage(error, 'finance.errors.saveFailed') };
+  }
+  await removeReceiptFiles(saved.removed, profile.id);
+  return { success: true, id: saved.id };
 };
 
-export const updateExpenseAction = async (expenseId: string, input: ExpenseInput): Promise<FinanceActionResult> => {
-  await requireRole('manager', 'operator');
-  if (!isUuid(expenseId)) return { success: false, error: 'errors.notFound' };
-  const parsed = expenseSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: firstIssue(parsed.error.issues) };
+export const createExpenseAction = async (input: ExpenseInput): Promise<FinanceActionResult> => saveExpense(null, input);
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('expenses')
-    .update(expenseColumns(parsed.data))
-    .eq('id', expenseId)
-    .eq('status', 'active')
-    .select('id');
-  if (error) return { success: false, error: safeErrorMessage(error, 'finance.errors.saveFailed') };
-  if (!data?.length) return { success: false, error: 'finance.errors.expenseNotEditable' };
-  return { success: true, id: expenseId };
-};
+export const updateExpenseAction = async (expenseId: string, input: ExpenseInput): Promise<FinanceActionResult> => saveExpense(expenseId, input);
 
 export const voidExpenseAction = async (input: VoidExpenseInput): Promise<FinanceActionResult> => {
   await requireRole('manager', 'operator');

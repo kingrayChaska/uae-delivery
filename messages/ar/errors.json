@@ -204,6 +204,10 @@
     "expenseCorrectionSame": "المبلغ المصحَّح مطابق للمبلغ الحالي.",
     "expenseReportOverlap": "تتداخل هذه الفترة مع تقريرك {number} ({from} إلى {to}).",
     "expenseReportLocked": "تقريرك عن {date} أصبح {status}. اختر تاريخًا خارجه.",
-    "expenseReportNotSubmitted": "يمكن مراجعة التقرير المُرسل فقط (هذا التقرير {status})."
+    "expenseReportNotSubmitted": "يمكن مراجعة التقرير المُرسل فقط (هذا التقرير {status}).",
+    "expenseReceiptStaffOnly": "يمكن للمديرين والمشغّلين فقط إرفاق إيصالات المصروفات.",
+    "expenseReceiptRecorderOnly": "لا يغيّر إيصالات هذا المصروف إلا من سجّله.",
+    "expenseReceiptTaken": "هذا الإيصال مرفق بمصروف آخر. ارفعه مرة أخرى.",
+    "expenseReceiptMissing": "لم يُعثر على أحد الإيصالات المرفوعة. أزله وارفعه مرة أخرى."
   }
 }

@@ -210,9 +210,7 @@ export const listDriverCollections = async (
     )
     .eq('driver_id', driverId);
 
-  if (filters.collection === 'unverified') {
-    query = query.eq('status', 'collected').is('collected_amount', null);
-  } else if (filters.collection !== 'all') {
+  if (filters.collection !== 'all') {
     query = query.eq('status', filters.collection);
   }
   if (filters.q) {

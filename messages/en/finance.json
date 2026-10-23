@@ -364,22 +364,21 @@
       "unpaid": "Not paid yet",
       "paidOn": "Date paid",
       "vendor": "Vendor or payee",
-      "reference": "Reference or receipt no.",
       "notes": "Notes",
       "optional": "optional",
       "submit": "Save expense",
       "saving": "Saving…",
       "saved": "Expense saved.",
       "cancel": "Cancel",
-      "receipt": "Receipt or supporting document",
-      "receiptHint": "PDF, JPG, PNG or WebP, up to 5 MB. Only you and managers can open it.",
-      "receiptUploading": "Uploading…",
-      "receiptAttached": "Attached: {name}",
-      "receiptExisting": "the current receipt",
-      "receiptRemove": "Remove receipt",
       "receiptType": "Upload a PDF, JPG, PNG or WebP file.",
-      "receiptSize": "The file is larger than 5 MB.",
-      "receiptFailed": "The receipt couldn’t be uploaded. Please try again."
+      "receiptSize": "The file is larger than 4 MB.",
+      "receiptFailed": "The receipt couldn’t be uploaded. Please try again.",
+      "receiptOffline": "No connection. Check your internet, then retry.",
+      "receiptInUse": "This receipt is attached to a saved expense.",
+      "receiptRemoveFailed": "The receipt couldn’t be removed. Please try again.",
+      "legacyReference": "Reference recorded earlier: {reference}",
+      "receiptsReadOnly": "Receipt pictures (only the person who recorded this expense can change them)",
+      "noReceipts": "No receipt pictures attached."
     },
     "list": {
       "heading": "Expenses",
@@ -445,7 +444,8 @@
     "method": "Choose how the money was paid.",
     "paidOnFuture": "The payment date can’t be in the future.",
     "moreThanOutstanding": "That’s more than is outstanding on this statement.",
-    "receipt": "Attach the receipt again: that file can’t be used."
+    "receipt": "Attach the receipt again: that file can’t be used.",
+    "tooManyReceipts": "Attach at most 10 receipts to one expense."
   },
   "errors": {
     "generateFailed": "The statement couldn’t be generated. Try again.",
@@ -511,10 +511,10 @@
     "listHeading": "Expenses",
     "empty": "No expenses match these filters.",
     "void": "Void",
-    "hasReceipt": "Receipt",
     "voidReason": "Voided: {reason}",
     "locked": "In review",
-    "loadFailed": "This couldn’t be loaded. Please refresh the page."
+    "loadFailed": "This couldn’t be loaded. Please refresh the page.",
+    "receiptCount": "{count, plural, one {# receipt} other {# receipts}}"
   },
   "reports": {
     "meta": "Expense report · ParcelLink",
@@ -606,7 +606,6 @@
     "entriesHeading": "Expenses",
     "noEntries": "No expenses in this report yet.",
     "void": "Void",
-    "viewReceipt": "View receipt",
     "noReceipt": "No receipt attached",
     "corrected": "Corrected from {from} to {to} on {date}: {reason}",
     "historyHeading": "History",
@@ -633,6 +632,31 @@
         "submitted": "Submitted"
       },
       "entries": "{count, plural, =0 {No expenses} one {# expense} other {# expenses}} · {receipts} receipts"
-    }
+    },
+    "legacyReference": "ref. {reference}"
+  },
+  "receipts": {
+    "heading": "Upload receipt pictures",
+    "hint": "Photos of the receipt (JPG, PNG or WebP) or a PDF — up to {max} files, 4 MB each. Only you and managers can open them.",
+    "choose": "Choose pictures",
+    "camera": "Take photo",
+    "empty": "No receipt pictures yet.",
+    "untitled": "Receipt {number}",
+    "previewAlt": "Receipt picture {number}",
+    "uploading": "Uploading {name}",
+    "progress": "Uploading… {percent}%",
+    "uploaded": "Uploaded — attached when you save",
+    "attached": "Attached",
+    "retry": "Retry",
+    "replace": "Replace",
+    "replaceLabel": "Replace {name}",
+    "remove": "Remove",
+    "removeLabel": "Remove {name}",
+    "wait": "Wait for the receipt pictures to finish uploading.",
+    "fixFailed": "Retry or remove the receipt pictures that didn’t upload.",
+    "listLabel": "{count, plural, one {# receipt} other {# receipts}}",
+    "open": "Open receipt {number} of {count} {name}",
+    "unavailable": "This receipt can’t be opened right now. Reload the page.",
+    "none": "No receipt pictures"
   }
 }
