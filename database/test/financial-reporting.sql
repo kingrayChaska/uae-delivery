@@ -18,8 +18,8 @@
 --   a9  in transit                                → not on the statement
 --   a10 delivered  postpaid COD 300 (verified, already paid out to the merchant)
 --   a11 delivered  postpaid COD 250, never recorded as collected → excluded, flagged
---   COD 3,300 − paid out 300 − service 92 − returns 17.50 + fee already paid
---   17 = 2,907.50 to the merchant. (No cash-handling charge since 0051.)
+--   COD 3,300 − paid out 300 − (service 92 − fee already paid 17)
+--   − returns 17.50 = 2,907.50 to the merchant. (No cash-handling charge since 0051.)
 --
 -- Merchant B — the brief's example: COD 10,000, service 1,500, return 200
 --   → remittance 8,300.00 (the 1.5% cash-handling charge was removed, 0051).
@@ -212,6 +212,9 @@ select t_collect('g1', 'verified');
 -- a11's cash record stays 'expected': delivered, but never confirmed collected.
 
 insert into payments (shipment_id, customer_id, amount, method, status) values
+  -- The same a02 fee exists in both the verified cash record and payment
+  -- table; it is still one paid service charge, not two.
+  ((select id from ship where label = 'a02'), '00000000-0000-0000-0000-0000000000a3', 17, 'card', 'paid'),
   ((select id from ship where label = 'c3'), '00000000-0000-0000-0000-0000000000a5', 100, 'card', 'failed'),
   ((select id from ship where label = 'c3'), '00000000-0000-0000-0000-0000000000a5', 100, 'card', 'paid');
 -- A repeated delivery event must not list b1 twice.
@@ -249,6 +252,12 @@ select t_check('flags: unverified a08 500, uncollected a11 250',
 select t_check('individual returns carry no return charge',
   (select return_charge::text from financial_shipment_lines('2026-01-01', '2026-01-31', null) l
    where l.shipment_id = (select id from ship where label = 'i2')), '0.00');
+select t_check('same fee from cash and card sources is counted once',
+  (select payments_received::text from financial_shipment_lines('2026-01-01', '2026-01-31', '00000000-0000-0000-0000-00000000b0a0') l
+   where l.shipment_id = (select id from ship where label = 'a02')), '17.00');
+select t_check('missing payment evidence leaves the service fee unpaid',
+  (select payments_received::text from financial_shipment_lines('2026-01-01', '2026-01-31', '00000000-0000-0000-0000-00000000b0a0') l
+   where l.shipment_id = (select id from ship where label = 'a03')), '0.00');
 
 \echo '── Merchant A statement (mixed account) ──'
 select set_config('t.sa', generate_merchant_statement('00000000-0000-0000-0000-00000000b0a0', '2026-01-01', '2026-01-31')::text, false);
@@ -262,8 +271,8 @@ select t_check('A totals',
   t_totals(current_setting('t.sa')::uuid),
   '3300.00/300.00/92.00/17.50/3300.00/0.00/17.00 = 2907.50 payable_to_merchant cod_remittance');
 select t_check('A draft: no number, still a draft, rates recorded',
-  (select coalesce(statement_number, 'none') || ' ' || status || ' ' || return_charge_rate || ' ' || cash_handling_rate
-   from merchant_statements where id = current_setting('t.sa')::uuid), 'none draft 0.5000 0.0000');
+  (select coalesce(statement_number, 'none') || ' ' || status || ' ' || return_charge_rate || ' ' || cash_handling_rate || ' accounting-v' || accounting_version
+   from merchant_statements where id = current_setting('t.sa')::uuid), 'none draft 0.5000 0.0000 accounting-v2');
 select t_check('A merchant snapshot', (select merchant ->> 'name' from merchant_statements where id = current_setting('t.sa')::uuid), 'Alpha Trading LLC');
 reset role;
 
@@ -334,6 +343,8 @@ select t_fails('ATTACK: edit a published line',
   format('update merchant_statement_lines set service_charge = 0 where statement_id = %L', current_setting('t.sa')), '%cannot be changed%');
 select t_fails('ATTACK: delete a published line',
   format('delete from merchant_statement_lines where statement_id = %L', current_setting('t.sa')), '%cannot be changed%');
+select t_fails('ATTACK: change the accounting version of an issued statement',
+  format('update merchant_statements set accounting_version = 1 where id = %L', current_setting('t.sa')), '%cannot be changed%');
 
 -- The source records change after publication: a03's fee is corrected
 -- from 15 to 20 (by staff) and a new card payment arrives for a01.

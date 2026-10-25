@@ -38,6 +38,7 @@ const base: Omit<Statement, 'balance' | 'lines' | 'kind' | 'outcome' | 'netAmoun
   periodStart: '2026-01-01',
   periodEnd: '2026-01-31',
   status: 'published',
+  accountingVersion: 2,
   version: 1,
   currency: 'AED',
   generatedAt: '2026-02-01T08:00:00.000Z',

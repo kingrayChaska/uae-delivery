@@ -76,6 +76,7 @@ export const statementPdfModel = (statement: Statement, locale: Locale = 'en', n
   const m = statement.merchant;
 
   const summaryLabel = (row: SummaryRow) => {
+    if (row.key === 'totalCod' && statement.accountingVersion === 2) return doc.summary.totalCodV2;
     if (row.key === 'cashHandlingFee') {
       return fill(statement.ratesVary ? doc.summary.cashHandlingFeeVaried : doc.summary.cashHandlingFee, {
         rate: percent(statement.cashHandlingRate),
@@ -158,10 +159,12 @@ export const statementPdfModel = (statement: Statement, locale: Locale = 'en', n
     notices.push(fill(doc.correctionNotice, { number: statement.supersedesNumber ?? '-', reason: text(statement.correctionReason) }));
   }
 
-  const notes = [doc.notes.basis, doc.notes.serviceRule, fill(doc.notes.returnRule, { rate: percent(statement.returnChargeRate) })];
+  const notes = [doc.notes.basis, doc.notes.serviceRule];
+  if (statement.accountingVersion === 2) notes.push(doc.notes.codPrincipalRule);
+  notes.push(fill(doc.notes.returnRule, { rate: percent(statement.returnChargeRate) }));
   if (handling) notes.push(fill(doc.notes.handlingRule, { rate: percent(statement.cashHandlingRate) }));
   if (statement.ratesVary) notes.push(doc.notes.ratesVary);
-  notes.push(doc.notes.paidRule);
+  notes.push(statement.accountingVersion === 2 ? doc.notes.paidRuleV2 : doc.notes.paidRule);
   if (statement.codAlreadyRemitted > 0) notes.push(doc.notes.remittedRule);
   if (statement.codUnverified > 0) notes.push(fill(doc.notes.unverified, { amount: money(statement.codUnverified, currency) }));
   if (statement.codUncollected > 0) notes.push(fill(doc.notes.uncollected, { amount: money(statement.codUncollected, currency) }));

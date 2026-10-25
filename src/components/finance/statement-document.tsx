@@ -16,7 +16,7 @@ import type { Statement } from '@/lib/finance/statements';
 
 type Format = ReturnType<typeof useFormat>;
 
-const Money = ({ amount, currency, format, sign = '' }: { amount: number; currency: string; format: Format; sign?: '' | '+' | '-' }) => (
+const Money = ({ amount, currency, format, sign = '' }: { amount: number; currency: string; format: Format; sign?: '' | '+' | '-' | 'info' }) => (
   <span dir="ltr" className="font-brand-mono tabular-nums whitespace-nowrap">
     {sign === '-' && amount > 0 ? '− ' : sign === '+' && amount > 0 ? '+ ' : ''}
     {format.money(amount, currency)}
@@ -170,7 +170,9 @@ const Calculation = ({ statement, format }: { statement: Statement; format: Form
           rate: percent(statement.cashHandlingRate),
           base: format.money(statement.cashHandlingBase, statement.currency),
         })
-      : t(`summary.${statement.kind === 'service_charges' && key === 'paymentsReceived' ? 'paymentsReceivedDeducted' : key}`);
+      : key === 'totalCod' && statement.accountingVersion === 2
+        ? t('summary.totalCodV2')
+        : t(`summary.${statement.kind === 'service_charges' && key === 'paymentsReceived' ? 'paymentsReceivedDeducted' : key}`);
 
   return (
     <section aria-labelledby="statement-calculation" className="flex flex-col items-end gap-3" data-print-keep>
@@ -265,12 +267,13 @@ const Notes = ({ statement, format }: { statement: Statement; format: Format }) 
       </h2>
       <p>{t('basis')}</p>
       <p>{t('serviceRule')}</p>
+      {statement.accountingVersion === 2 ? <p>{t('codPrincipalRule')}</p> : null}
       <p>{t('returnRule', { rate: percent(statement.returnChargeRate) })}</p>
       {statement.kind === 'cod_remittance' && statement.cashHandlingFee > 0 ? (
         <p>{t('handlingRule', { rate: percent(statement.cashHandlingRate) })}</p>
       ) : null}
       {statement.ratesVary ? <p>{t('ratesVary')}</p> : null}
-      <p>{t('paidRule')}</p>
+      <p>{t(statement.accountingVersion === 2 ? 'paidRuleV2' : 'paidRule')}</p>
       {statement.codAlreadyRemitted > 0 ? <p>{t('remittedRule')}</p> : null}
       {statement.codUnverified > 0 ? <p className="text-amber-800">{t('unverified', { amount: money(statement.codUnverified) })}</p> : null}
       {statement.codUncollected > 0 ? <p className="text-amber-800">{t('uncollected', { amount: money(statement.codUncollected) })}</p> : null}

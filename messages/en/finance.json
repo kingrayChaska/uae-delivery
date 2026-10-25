@@ -163,7 +163,7 @@
         "service": "Service charge",
         "return": "Return charge",
         "handling": "Cash handling",
-        "paid": "Fee paid"
+        "paid": "Fee paid separately"
       }
     },
     "summary": {
@@ -172,8 +172,11 @@
         "service_charges": "Amount due"
       },
       "totalCod": "Total COD collected",
+      "totalCodV2": "COD collected for you (not ParcelLink revenue)",
       "codAlreadyRemitted": "Less: COD already paid out to you",
       "serviceCharges": "ParcelLink service charges",
+      "serviceChargesPaid": "Service charges paid separately (not deducted)",
+      "serviceChargesDue": "Less: unpaid service charges deducted from COD",
       "returnCharges": "Return charges",
       "cashHandlingFee": "Cash-handling fee ({rate} of {base})",
       "paymentsReceived": "Add: delivery fees you already paid",
@@ -191,9 +194,11 @@
       "heading": "How this statement is calculated",
       "basis": "Lists every delivery completed and every return made in the period (UAE time), once each. Cancelled and in-progress shipments are not included. All amounts are in UAE Dirhams.",
       "serviceRule": "Service charge: the delivery price recorded when the shipment was booked.",
+      "codPrincipalRule": "COD principal belongs to the merchant and is not ParcelLink revenue.",
       "returnRule": "Return charge: {rate} of the original delivery service cost (the booked price without any cash-on-delivery fee), for returned shipments only.",
       "handlingRule": "Cash-handling fee: {rate} of the cash on delivery collected for you, per shipment. It is not charged on delivery fees or prepaid shipments.",
       "paidRule": "Delivery fees already paid — in cash to the driver or by card — are credited, so no fee is charged twice.",
+      "paidRuleV2": "A delivery fee is marked paid only when supported by a verified cash collection or successful payment record. Paid fees are not deducted from COD; any unpaid service fee is deducted once.",
       "remittedRule": "Cash on delivery already paid out to you is deducted, so it isn’t paid twice.",
       "unverified": "{amount} of cash on delivery was marked collected before collections were verified and is not included. ParcelLink will confirm it separately.",
       "uncollected": "{amount} of cash on delivery on delivered shipments has no recorded collection yet and is not included.",

@@ -73,6 +73,7 @@ export type StatementSummaryRecord = {
 };
 
 export type Statement = StatementSummaryRecord & {
+  accountingVersion: 1 | 2;
   merchant: StatementMerchant;
   supersedesId: string | null;
   supersedesNumber: string | null;
@@ -144,13 +145,14 @@ export type SummaryRowKey =
   | 'totalCod'
   | 'codAlreadyRemitted'
   | 'serviceCharges'
+  | 'serviceChargesPaid'
+  | 'serviceChargesDue'
   | 'returnCharges'
   | 'cashHandlingFee'
   | 'paymentsReceived';
 
-// sign: how the row moves the final figure as it is presented ('+' adds,
-// '-' deducts, '' is the starting figure).
-export type SummaryRow = { key: SummaryRowKey; amount: number; sign: '' | '+' | '-' };
+// "info" reports a settled charge without changing the remittance total.
+export type SummaryRow = { key: SummaryRowKey; amount: number; sign: '' | '+' | '-' | 'info' };
 
 export type StatementTotal = {
   // Which heading the final figure takes.
@@ -164,6 +166,7 @@ type SummaryInput = Pick<
   Statement,
   | 'kind'
   | 'outcome'
+  | 'accountingVersion'
   | 'netAmount'
   | 'totalCod'
   | 'codAlreadyRemitted'
@@ -181,6 +184,16 @@ export const statementSummary = (s: SummaryInput): SummaryRow[] => {
   if (s.kind === 'cod_remittance') {
     const rows: SummaryRow[] = [{ key: 'totalCod', amount: s.totalCod, sign: '' }];
     if (s.codAlreadyRemitted > 0) rows.push({ key: 'codAlreadyRemitted', amount: s.codAlreadyRemitted, sign: '-' });
+    if (s.accountingVersion === 2) {
+      const serviceCents = Math.round(s.serviceCharges * 100);
+      const paidCents = Math.min(serviceCents, Math.round(s.paymentsReceived * 100));
+      const dueCents = Math.max(serviceCents - paidCents, 0);
+      if (paidCents > 0) rows.push({ key: 'serviceChargesPaid', amount: paidCents / 100, sign: 'info' });
+      if (dueCents > 0) rows.push({ key: 'serviceChargesDue', amount: dueCents / 100, sign: '-' });
+      if (s.returnCharges > 0) rows.push({ key: 'returnCharges', amount: s.returnCharges, sign: '-' });
+      if (s.cashHandlingFee > 0) rows.push({ key: 'cashHandlingFee', amount: s.cashHandlingFee, sign: '-' });
+      return rows;
+    }
     rows.push({ key: 'serviceCharges', amount: s.serviceCharges, sign: '-' });
     rows.push({ key: 'returnCharges', amount: s.returnCharges, sign: '-' });
     // Removed by migration 0051; only statements issued before it carry one.
@@ -212,6 +225,11 @@ export const statementTotal = (s: SummaryInput): StatementTotal => {
 // didn't, the statement would be showing something it doesn't hold.
 export const summaryMatchesNet = (s: SummaryInput): boolean => {
   const cents = (value: number) => Math.round(value * 100);
+  if (s.kind === 'cod_remittance' && s.accountingVersion === 2) {
+    const service = cents(s.serviceCharges);
+    const paid = Math.min(service, cents(s.paymentsReceived));
+    return cents(s.totalCod) - cents(s.codAlreadyRemitted) - Math.max(service - paid, 0) - cents(s.returnCharges) - cents(s.cashHandlingFee) === cents(s.netAmount);
+  }
   const sumCod =
     cents(s.totalCod) - cents(s.codAlreadyRemitted) - cents(s.serviceCharges) - cents(s.returnCharges) - cents(s.cashHandlingFee) + cents(s.paymentsReceived);
   return sumCod === cents(s.netAmount);

@@ -38,22 +38,22 @@ const drawnText = (render: () => ArrayBuffer) => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('statementSummary / statementTotal', () => {
-  // Migration 0051: no cash-handling charge — the COD is paid out less only
-  // the delivery and return charges.
-  it('COD statement since 0051: no cash-handling line, the COD paid out less the flat charges', () => {
+  // New statements show separately paid service charges without adding them
+  // back to COD; only unpaid service charges reduce the remittance.
+  it('COD statement: unpaid delivery and return charges reduce COD once', () => {
     const s = { ...codStatement(), cashHandlingFee: 0, netAmount: 8300, lines: codStatement().lines.map((l) => ({ ...l, cashHandlingFee: 0 })) };
     expect(statementSummary(s)).toEqual([
       { key: 'totalCod', amount: 10000, sign: '' },
-      { key: 'serviceCharges', amount: 1500, sign: '-' },
+      { key: 'serviceChargesDue', amount: 1500, sign: '-' },
       { key: 'returnCharges', amount: 200, sign: '-' },
     ]);
     expect(statementTotal(s).amount).toBe(8300);
     expect(summaryMatchesNet(s)).toBe(true);
   });
 
-  // A statement issued before 0051 keeps the charge it was issued with.
-  it('COD statement issued before 0051: COD less charges and fees, payable to the merchant', () => {
-    const s = codStatement();
+  // Statements issued before accounting version 2 retain their original rows.
+  it('legacy COD statement retains its original calculation presentation', () => {
+    const s = { ...codStatement(), accountingVersion: 1 as const };
     expect(statementSummary(s)).toEqual([
       { key: 'totalCod', amount: 10000, sign: '' },
       { key: 'serviceCharges', amount: 1500, sign: '-' },
@@ -100,15 +100,72 @@ describe('statementSummary / statementTotal', () => {
       paymentsReceived: 17,
       netAmount: 8150 - 300 + 17,
     };
-    expect(statementSummary(s).map((row) => `${row.sign}${row.key}`)).toEqual([
+    expect(statementSummary(s).map((row) => `${row.sign === 'info' ? 'info-' : row.sign}${row.key}`)).toEqual([
       'totalCod',
       '-codAlreadyRemitted',
-      '-serviceCharges',
+      'info-serviceChargesPaid',
+      '-serviceChargesDue',
       '-returnCharges',
       '-cashHandlingFee',
-      '+paymentsReceived',
     ]);
     expect(summaryMatchesNet(s)).toBe(true);
+  });
+
+  it('separately paid service fees are informational and are not deducted or added back', () => {
+    const s = {
+      ...codStatement(),
+      accountingVersion: 2 as const,
+      totalCod: 3043.99,
+      serviceCharges: 405,
+      returnCharges: 37.5,
+      cashHandlingFee: 0,
+      paymentsReceived: 405,
+      netAmount: 3006.49,
+    };
+    expect(statementSummary(s)).toEqual([
+      { key: 'totalCod', amount: 3043.99, sign: '' },
+      { key: 'serviceChargesPaid', amount: 405, sign: 'info' },
+      { key: 'returnCharges', amount: 37.5, sign: '-' },
+    ]);
+    expect(statementTotal(s)).toMatchObject({
+      amount: 3006.49,
+      words: 'Three Thousand Six UAE Dirhams and Forty-Nine Fils Only',
+    });
+    expect(summaryMatchesNet(s)).toBe(true);
+  });
+
+  it('unpaid service fees are deducted once, with no paid-fee add-back', () => {
+    const s = {
+      ...codStatement(),
+      accountingVersion: 2 as const,
+      totalCod: 3043.99,
+      serviceCharges: 405,
+      returnCharges: 37.5,
+      cashHandlingFee: 0,
+      paymentsReceived: 0,
+      netAmount: 2601.49,
+    };
+    expect(statementSummary(s)).toEqual([
+      { key: 'totalCod', amount: 3043.99, sign: '' },
+      { key: 'serviceChargesDue', amount: 405, sign: '-' },
+      { key: 'returnCharges', amount: 37.5, sign: '-' },
+    ]);
+    expect(statementTotal(s)).toMatchObject({
+      amount: 2601.49,
+      words: 'Two Thousand Six Hundred One UAE Dirhams and Forty-Nine Fils Only',
+    });
+    expect(summaryMatchesNet(s)).toBe(true);
+  });
+
+  it('does not treat missing payment evidence as paid and caps paid fees at service charges', () => {
+    const unpaid = { ...codStatement(), accountingVersion: 2 as const, paymentsReceived: 0, netAmount: 8150 };
+    expect(statementSummary(unpaid).map((row) => row.key)).toContain('serviceChargesDue');
+    expect(summaryMatchesNet(unpaid)).toBe(true);
+
+    const capped = { ...unpaid, paymentsReceived: 2000, netAmount: 10000 - 200 - 150 };
+    expect(statementSummary(capped)).toContainEqual({ key: 'serviceChargesPaid', amount: 1500, sign: 'info' });
+    expect(statementSummary(capped).map((row) => row.key)).not.toContain('serviceChargesDue');
+    expect(summaryMatchesNet(capped)).toBe(true);
   });
 
   it('settled and credit balances', () => {
@@ -142,6 +199,48 @@ describe('statement PDF', () => {
     );
     expect(model.rows).toHaveLength(s.lines.length);
     expect(model.number).toBe(s.statementNumber);
+  });
+
+  it('exports the corrected paid-fee and unpaid-fee calculation without changing its total or words', () => {
+    for (const s of [
+      {
+        ...codStatement(),
+        accountingVersion: 2 as const,
+        totalCod: 3043.99,
+        serviceCharges: 405,
+        returnCharges: 37.5,
+        cashHandlingFee: 0,
+        paymentsReceived: 405,
+        netAmount: 3006.49,
+      },
+      {
+        ...codStatement(),
+        accountingVersion: 2 as const,
+        totalCod: 3043.99,
+        serviceCharges: 405,
+        returnCharges: 37.5,
+        cashHandlingFee: 0,
+        paymentsReceived: 0,
+        netAmount: 2601.49,
+      },
+    ]) {
+      const model = statementPdfModel(s);
+      expect(model.summary.map((row) => row.label)).toEqual(
+        statementSummary(s).map((row) =>
+          row.key === 'totalCod'
+            ? 'COD collected for you (not ParcelLink revenue)'
+            : row.key === 'serviceChargesPaid'
+              ? 'Service charges paid separately (not deducted)'
+              : row.key === 'serviceChargesDue'
+                ? 'Less: unpaid service charges deducted from COD'
+                : row.key === 'returnCharges'
+                  ? 'Return charges'
+                  : row.key,
+        ),
+      );
+      expect(model.total.value).toBe(`AED ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(statementTotal(s).amount)}`);
+      expect(model.words).toBe(statementTotal(s).words);
+    }
   });
 
   it('lists every line once, with column totals equal to the statement totals', () => {

@@ -43,6 +43,7 @@ type StatementRow = {
 };
 
 type StatementDetailRow = StatementRow & {
+  accounting_version: 1 | 2;
   supersedes_id: string | null;
   superseded_by_id: string | null;
   superseded_at: string | null;
@@ -106,7 +107,7 @@ type SettlementRow = {
 const SUMMARY_SELECT =
   'id, statement_number, business_account_id, merchant, period_start, period_end, status, version, kind, outcome, net_amount, currency, line_count, generated_at, published_at';
 
-const DETAIL_SELECT = `${SUMMARY_SELECT}, supersedes_id, superseded_by_id, superseded_at, correction_reason, return_charge_rate, cash_handling_rate, rates_vary, delivered_count, returned_count, total_cod, cod_already_remitted, service_charges, return_charges, cash_handling_base, cash_handling_fee, payments_received, cod_unverified, cod_uncollected, fees_unverified`;
+const DETAIL_SELECT = `${SUMMARY_SELECT}, accounting_version, supersedes_id, superseded_by_id, superseded_at, correction_reason, return_charge_rate, cash_handling_rate, rates_vary, delivered_count, returned_count, total_cod, cod_already_remitted, service_charges, return_charges, cash_handling_base, cash_handling_fee, payments_received, cod_unverified, cod_uncollected, fees_unverified`;
 
 const LINE_SELECT =
   'line_number, shipment_id, tracking_number, event, event_at, recipient_name, delivery_type, payment_method, recipient_payment_type, price, service_charge, return_charge, cod_collected, cod_unverified, cod_uncollected, cash_handling_fee, payments_received, fees_unverified, cod_remitted, currency, return_charge_rate, cash_handling_rate';
@@ -243,6 +244,7 @@ export const getStatement = async (id: string): Promise<Statement | null> => {
 
   return {
     ...toSummary(row),
+    accountingVersion: row.accounting_version,
     merchant: row.merchant,
     supersedesId: row.supersedes_id,
     supersedesNumber: row.supersedes_id ? (numbers.get(row.supersedes_id) ?? null) : null,
