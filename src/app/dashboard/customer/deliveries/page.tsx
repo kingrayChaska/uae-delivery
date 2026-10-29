@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 
 import Button from '@/components/ui/button';
 import ShipmentListItem from '@/components/shipment/shipment-list-item';
+import DownloadInvoiceButton from '@/components/invoices/download-invoice-button';
 import Pagination from '@/components/dashboard/pagination';
 import ShipmentFilters from '@/components/shipment/shipment-filters';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
@@ -117,7 +118,17 @@ const DeliveriesPage = async ({
           ) : null}
           <div className="flex flex-col gap-2">
             {booking.shipments.map((shipment) => (
-              <ShipmentListItem key={shipment.id} shipment={shipment} showRecipientName={business !== null} />
+              <div key={shipment.id} className="flex flex-col gap-2 rounded-xl border p-3">
+                <ShipmentListItem shipment={shipment} showRecipientName={business !== null} />
+                <DownloadInvoiceButton
+                  subject={
+                    profile.accountType === 'merchant' && shipment.batchId
+                      ? { batchId: shipment.batchId }
+                      : { shipmentId: shipment.id }
+                  }
+                  invoiceNumber={null}
+                />
+              </div>
             ))}
           </div>
         </section>
@@ -199,11 +210,22 @@ const DeliveriesPage = async ({
         <section aria-label={t('all')} className="flex flex-col gap-2">
           {booking ? <h2 className="mt-2 text-lg font-medium">{t('all')}</h2> : null}
           {shipments.items.map((shipment) => (
-            <ShipmentListItem
-              key={shipment.id}
-              shipment={shipment}
-              showRecipientName={filters.scope === 'business' && business !== null}
-            />
+            <div key={shipment.id} className="flex flex-col gap-2 rounded-xl border p-3">
+              <ShipmentListItem
+                shipment={shipment}
+                showRecipientName={filters.scope === 'business' && business !== null}
+              />
+              {shipment.status !== 'cancelled' ? (
+                <DownloadInvoiceButton
+                  subject={
+                    profile.accountType === 'merchant' && shipment.batchId
+                      ? { batchId: shipment.batchId }
+                      : { shipmentId: shipment.id }
+                  }
+                  invoiceNumber={null}
+                />
+              ) : null}
+            </div>
           ))}
         </section>
       )}

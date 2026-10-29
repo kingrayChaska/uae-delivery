@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, CircleCheck, FileText, Printer } from 'lucide-react';
+import { ArrowLeft, CircleCheck, Printer } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import SwitchToCashButton from '@/components/shipment/switch-to-cash-button';
 import { awaitingCardPayment } from '@/lib/shipment/collection';
 import ProofOfDeliveryButton from '@/components/shipment/proof-of-delivery';
 import ShipmentChargesCard from '@/components/shipment/shipment-charges-card';
-import InvoiceButton from '@/components/invoices/invoice-button';
+import DownloadInvoiceButton from '@/components/invoices/download-invoice-button';
 import RouteMap from '@/components/maps/lazy-route-map';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { isUuid } from '@/lib/security/validate';
@@ -55,12 +55,11 @@ const ShipmentDetailPage = async ({
   // A merchant's shipment that is part of a bulk shipment is billed on the
   // bulk shipment's one invoice (migration 0031), not on its own.
   const billedOnBulk = profile.accountType === 'merchant' && shipment.batchId !== null;
-  const [t, tShipments, tInvoices, format, invoiceNumber] = await Promise.all([
+  const [t, tShipments, format, invoiceNumber] = await Promise.all([
     getTranslations('customer.detail'),
     getTranslations('shipments'),
-    getTranslations('invoices.actions'),
     getFormat(),
-    billedOnBulk ? Promise.resolve(null) : getInvoiceNumberFor({ shipmentId: shipment.id }),
+    billedOnBulk ? getInvoiceNumberFor({ batchId: shipment.batchId }) : getInvoiceNumberFor({ shipmentId: shipment.id }),
   ]);
   const proof = shipment.status === 'delivered' ? await getProofOfDelivery(shipment.id) : null;
   const milestones = getTrackingMilestones(shipment.status, history);
@@ -105,14 +104,9 @@ const ShipmentDetailPage = async ({
             </Button>
           ) : null}
           {billedOnBulk ? (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/dashboard/customer/bulk/${shipment.batchId}`}>
-                <FileText aria-hidden />
-                {tInvoices('onBulk')}
-              </Link>
-            </Button>
+            <DownloadInvoiceButton subject={{ batchId: shipment.batchId! }} invoiceNumber={invoiceNumber} />
           ) : invoiceNumber || shipment.status !== 'cancelled' ? (
-            <InvoiceButton subject={{ shipmentId: shipment.id }} invoiceNumber={invoiceNumber} invoiceBasePath="/dashboard/customer/invoices" />
+            <DownloadInvoiceButton subject={{ shipmentId: shipment.id }} invoiceNumber={invoiceNumber} />
           ) : null}
           {ownShipment && CANCELLABLE_STATUSES.includes(shipment.status) ? <CancelShipmentButton shipmentId={shipment.id} /> : null}
         </div>

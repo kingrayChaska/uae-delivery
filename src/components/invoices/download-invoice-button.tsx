@@ -6,16 +6,20 @@ import { Download } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import Button from '@/components/ui/button';
-import { issueShipmentInvoiceAction } from '@/lib/invoices/actions';
+import { issueBatchInvoiceAction, issueShipmentInvoiceAction } from '@/lib/invoices/actions';
 import { useMessage } from '@/i18n/hooks';
 
 const pdfHref = (invoiceNumber: string) => `/api/invoices/${invoiceNumber}/pdf`;
 
-// "Download invoice" for one shipment. With an invoice already issued it is
-// a plain link to the PDF. Without one (a guest booking, migration 0054) it
-// first asks the server to issue it — from the stored shipment data; a
-// repeat returns the same invoice — then downloads it.
-const DownloadInvoiceButton = ({ shipmentId, invoiceNumber }: { shipmentId: string; invoiceNumber: string | null }) => {
+// A first download issues the invoice from stored booking data; repeats
+// return the same invoice before downloading its PDF.
+const DownloadInvoiceButton = ({
+  subject,
+  invoiceNumber,
+}: {
+  subject: { shipmentId: string } | { batchId: string };
+  invoiceNumber: string | null;
+}) => {
   const t = useTranslations('invoices');
   const translate = useMessage();
   const router = useRouter();
@@ -37,7 +41,12 @@ const DownloadInvoiceButton = ({ shipmentId, invoiceNumber }: { shipmentId: stri
   const issueAndDownload = async () => {
     setIsPending(true);
     setError(null);
-    const result = await issueShipmentInvoiceAction(shipmentId).catch(() => ({ success: false as const, error: 'invoices.errors.generateFailed' }));
+    const result = await ('batchId' in subject
+      ? issueBatchInvoiceAction(subject.batchId)
+      : issueShipmentInvoiceAction(subject.shipmentId)).catch(() => ({
+      success: false as const,
+      error: 'invoices.errors.generateFailed',
+    }));
     setIsPending(false);
     if (!result.success) {
       setError(result.error);

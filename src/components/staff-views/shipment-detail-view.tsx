@@ -114,7 +114,9 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
               <Link href={`${basePath}/invoices/${invoiceNumber}`}>{tInvoices('view')}</Link>
             </Button>
           ) : null}
-          {invoiceNumber || canIssueInvoice ? <DownloadInvoiceButton shipmentId={shipment.id} invoiceNumber={invoiceNumber} /> : null}
+          {invoiceNumber || canIssueInvoice ? (
+            <DownloadInvoiceButton subject={{ shipmentId: shipment.id }} invoiceNumber={invoiceNumber} />
+          ) : null}
           <ShipmentStatusBadge status={shipment.status} />
           {shipment.status === 'delivery_failed' ? <MarkReturnedButton shipmentId={shipment.id} /> : null}
           {correctTo.length > 0 ? (

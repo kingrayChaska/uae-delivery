@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import BatchDetail from '@/components/bulk/batch-detail';
 import BulkReview from '@/components/bulk/merchant/bulk-review';
 import RefreshWhile from '@/components/bulk/merchant/refresh-while';
-import InvoiceButton from '@/components/invoices/invoice-button';
+import DownloadInvoiceButton from '@/components/invoices/download-invoice-button';
 import { requireRoleOrRedirect } from '@/lib/auth/require-role-or-redirect';
 import { isUuid } from '@/lib/security/validate';
 import { parsePage } from '@/lib/pagination';
@@ -130,7 +130,7 @@ const MerchantBatchPage = async ({
           <>
             {/* One invoice for the whole bulk shipment (migration 0031). */}
             {invoiceNumber || detail.shipmentCount > 0 ? (
-              <InvoiceButton subject={{ batchId: id }} invoiceNumber={invoiceNumber} invoiceBasePath="/dashboard/customer/invoices" />
+              <DownloadInvoiceButton subject={{ batchId: id }} invoiceNumber={invoiceNumber} />
             ) : null}
             {/* Every label in one PDF file. Only the merchant who booked
                 it: QR codes are the booking customer's alone. */}
