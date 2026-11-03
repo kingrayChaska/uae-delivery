@@ -130,6 +130,17 @@ export const DATABASE_MESSAGES: Record<string, string> = {
     "errors.db.correctionManagerReopens",
   "Assign a driver before correcting this shipment's delivery status":
     "errors.db.correctionNeedsDriver",
+  "Assign a driver before correcting this shipment to a driver status":
+    "errors.db.correctionNeedsDriver",
+  "A shipment with an assigned driver cannot be corrected to a dispatch status":
+    "errors.db.correctionHasDriver",
+  "A shipment with an existing payment cannot be corrected to pending payment":
+    "errors.db.correctionPaymentExists",
+  "Deliveries can only be corrected to delivered when required proof and COD confirmation exist":
+    "errors.db.correctionDeliveryProof",
+  "A shipment needs a failed attempt or recorded return evidence before it can be marked returned":
+    "errors.db.correctionReturnEvidence",
+  "Choose a valid shipment status": "errors.db.correctionInvalidTarget",
   // Driver cash (0042)
   "Only operators and managers can manage driver cash": "errors.db.cashStaffOnly",
   "Only a manager can confirm or reject a remittance": "errors.db.remittanceManagerDecides",

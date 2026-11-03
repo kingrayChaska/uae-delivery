@@ -11,45 +11,47 @@ import { SHIPMENT_STATUSES } from '@/lib/types';
 
 import type { ShipmentStatus } from '@/lib/types';
 
-// The rule is written out again here, independently of the code, so the
-// test can disagree with it. It must also match the database
-// (shipment_status_correction_targets, migration 0041; database/test/status-corrections.sql).
-const IN_PROGRESS: ShipmentStatus[] = ['assigned', 'driver_accepted', 'arrived_pickup', 'picked_up', 'in_transit', 'arrived_destination'];
-const expectedTargets = (from: ShipmentStatus, isManager: boolean): ShipmentStatus[] => {
-  const correctable = [...IN_PROGRESS, 'delivery_failed'].includes(from) || (isManager && ['cancelled', 'returned'].includes(from));
-  return correctable ? IN_PROGRESS.filter((status) => status !== from) : [];
-};
+const DRIVER_STATUSES: ShipmentStatus[] = [
+  'assigned',
+  'driver_accepted',
+  'arrived_pickup',
+  'picked_up',
+  'in_transit',
+  'arrived_destination',
+  'delivered',
+  'delivery_failed',
+];
+const expectedTargets = (from: ShipmentStatus, hasDriver: boolean): ShipmentStatus[] =>
+  SHIPMENT_STATUSES.filter((status) => status !== from && (hasDriver || !DRIVER_STATUSES.includes(status)));
 
 describe('correctionTargets', () => {
   it.each(SHIPMENT_STATUSES.flatMap((status) => [[status, false], [status, true]] as const))(
-    'from %s (manager: %s)',
-    (from, isManager) => {
-      expect(correctionTargets(from, { isManager, hasDriver: true })).toEqual(expectedTargets(from, isManager));
+    'from %s (has driver: %s)',
+    (from, hasDriver) => {
+      expect(correctionTargets(from, { isManager: false, hasDriver })).toEqual(expectedTargets(from, hasDriver));
     },
   );
 
-  it('offers Assigned when a driver tapped In Transit by mistake', () => {
-    expect(correctionTargets('in_transit', { isManager: false, hasDriver: true })).toContain('assigned');
+  it('offers every other canonical status when a driver is assigned', () => {
+    expect(correctionTargets('in_transit', { isManager: false, hasDriver: true })).toEqual(
+      SHIPMENT_STATUSES.filter((status) => status !== 'in_transit'),
+    );
   });
 
-  it('never offers Delivered, and never corrects a delivered shipment', () => {
-    for (const status of SHIPMENT_STATUSES) {
-      expect(correctionTargets(status, { isManager: true, hasDriver: true })).not.toContain('delivered');
+  it('allows operators to correct mistakes from delivered, cancelled, and returned', () => {
+    for (const status of ['delivered', 'cancelled', 'returned'] as const) {
+      expect(correctionTargets(status, { isManager: false, hasDriver: true })).toEqual(
+        SHIPMENT_STATUSES.filter((target) => target !== status),
+      );
     }
-    expect(correctionTargets('delivered', { isManager: true, hasDriver: true })).toEqual([]);
   });
 
-  it('leaves cancelled and returned shipments to managers', () => {
-    expect(correctionTargets('cancelled', { isManager: false, hasDriver: true })).toEqual([]);
-    expect(correctionTargets('returned', { isManager: false, hasDriver: true })).toEqual([]);
-    expect(correctionTargets('returned', { isManager: true, hasDriver: true })).toEqual(IN_PROGRESS);
+  it('offers non-driver statuses when no driver is assigned', () => {
+    const targets = correctionTargets('pending_payment', { isManager: false, hasDriver: false });
+    expect(targets).toEqual(['confirmed', 'cancelled', 'returned']);
   });
 
-  it('needs a driver', () => {
-    expect(correctionTargets('in_transit', { isManager: true, hasDriver: false })).toEqual([]);
-  });
-
-  it('never offers the current status or anything outside the driver workflow', () => {
+  it('never offers the current status and only offers canonical statuses', () => {
     for (const status of SHIPMENT_STATUSES) {
       const targets = correctionTargets(status, { isManager: true, hasDriver: true });
       expect(targets).not.toContain(status);

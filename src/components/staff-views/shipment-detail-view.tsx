@@ -11,7 +11,6 @@ import MarkReturnedButton from '@/components/operator/mark-returned-button';
 import CorrectStatusButton from '@/components/operator/correct-status-button';
 import EditPriceButton from '@/components/operator/edit-price-button';
 import StaffCancelShipmentButton from '@/components/operator/staff-cancel-shipment-button';
-import OperatorStatusChangeButton from '@/components/operator/operator-status-change-button';
 import SwitchToCashButton from '@/components/shipment/switch-to-cash-button';
 import { awaitingCardPayment } from '@/lib/shipment/collection';
 import RealtimeRefresh from '@/components/dashboard/realtime-refresh';
@@ -120,18 +119,10 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
             <DownloadInvoiceButton subject={{ shipmentId: shipment.id }} invoiceNumber={invoiceNumber} />
           ) : null}
           <ShipmentStatusBadge status={shipment.status} />
-          {isOperator ? (
-            <OperatorStatusChangeButton
-              shipment={shipment}
-              customerName={customerName}
-              driverName={driverName}
-              context={actionContext}
-            />
-          ) : null}
-          {!isOperator && shipment.status === 'delivery_failed' ? <MarkReturnedButton shipmentId={shipment.id} /> : null}
-          {!isOperator && correctTo.length > 0 ? (
+          {correctTo.length > 0 ? (
             <CorrectStatusButton shipmentId={shipment.id} currentStatus={shipment.status} targets={correctTo} />
           ) : null}
+          {!isOperator && shipment.status === 'delivery_failed' ? <MarkReturnedButton shipmentId={shipment.id} /> : null}
           {canOfferPriceEdit && actionContext ? (
             <EditPriceButton shipment={shipment} customerName={customerName} accountType={accountType} context={actionContext} />
           ) : null}
@@ -141,7 +132,7 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
         </div>
       </div>
 
-      {!isOperator && awaitingCardPayment(shipment) ? <SwitchToCashButton shipmentId={shipment.id} /> : null}
+      {awaitingCardPayment(shipment) ? <SwitchToCashButton shipmentId={shipment.id} /> : null}
 
       {refundOutstanding ? (
         <p role="status" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">

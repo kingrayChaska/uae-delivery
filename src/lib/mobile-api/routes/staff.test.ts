@@ -62,6 +62,8 @@ vi.mock('@/services/shipments/list-all-shipments', () => ({ listUnassignedShipme
 import { staffRoutes } from '@/lib/mobile-api/routes/staff';
 
 import type { RouteContext } from '@/lib/mobile-api/router';
+import { SHIPMENT_STATUSES } from '@/lib/types';
+
 import type { Profile, Shipment } from '@/lib/types';
 
 const ID = '33333333-3333-4333-8333-333333333333';
@@ -92,17 +94,14 @@ describe('staff routes', () => {
     }
   });
 
-  it.each([
-    ['operator', []],
-    ['manager', ['assigned', 'driver_accepted', 'arrived_pickup', 'picked_up', 'in_transit', 'arrived_destination']],
-  ] as const)('offers corrections of a cancelled shipment to a %s per the website rule', async (role, expected) => {
+  it.each(['operator', 'manager'] as const)('offers all valid canonical correction targets to a %s', async (role) => {
     m.getCurrentProfile.mockResolvedValue({ role });
     m.getShipmentDetail.mockResolvedValue({ shipment: shipment({}), history: [], packageImageUrl: null });
     m.getStaffActionContext.mockResolvedValue({ priceEditBlock: 'closed', cancelBlock: 'cancelled' });
     const result = await route('GET', 'staff/shipments/:id').handle(ctx({ id: ID }, {}, role));
     expect(result.status).toBe(200);
     const data = (result as { data: { allowed: Record<string, unknown>; refundOutstanding: boolean } }).data;
-    expect(data.allowed.correctTo).toEqual(expected);
+    expect(data.allowed.correctTo).toEqual(SHIPMENT_STATUSES.filter((status) => status !== 'cancelled'));
     expect(data.allowed).toMatchObject({ assign: false, reassign: false, priceEdit: false, cancel: false });
     expect(data.refundOutstanding).toBe(true);
   });

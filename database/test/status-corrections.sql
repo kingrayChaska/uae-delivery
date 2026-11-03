@@ -113,6 +113,9 @@ select t_fails('stale view (status moved on)',
 select t_fails('cannot correct to delivered',
   format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c1'), 'in_transit', 'delivered', 'Driver tapped too early'),
   '%proof of delivery%');
+select t_fails('cannot mark an arbitrary active shipment returned without return history',
+  format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c1'), 'in_transit', 'returned', 'Driver selected wrong status'),
+  '%failed attempt or recorded return evidence%');
 select t_fails('cannot correct to an unlisted status (confirmed)',
   format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c1'), 'in_transit', 'confirmed', 'Driver tapped too early'),
   '%can''t be corrected from in_transit to confirmed%');
@@ -175,12 +178,15 @@ set role authenticated;
 set request.jwt.uid = '00000000-0000-0000-0000-00000000006a';
 update shipments set status = 'arrived_destination' where id = (select id from ship where label = 'c2');
 select complete_delivery((select id from ship where label = 'c2'), null, (select id from ship where label = 'c2')::text || '/pod.jpg', null, null, null, 'At reception', false);
-set request.jwt.uid = '00000000-0000-0000-0000-00000000006f';
-select t_fails('delivered shipments are not correctable (even by a manager)',
-  format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c2'), 'delivered', 'arrived_destination', 'Wrong recipient maybe'),
-  '%proof of delivery%');
+set request.jwt.uid = '00000000-0000-0000-0000-00000000006e';
+select t_check('LEGITIMATE: operator corrects a mistaken delivered status',
+  correct_shipment_status((select id from ship where label = 'c2'), 'delivered', 'arrived_destination', 'Driver tapped delivered too soon')::text,
+  'arrived_destination');
 reset role;
-select t_check('proof of delivery intact', (select count(*)::text from proof_of_delivery where shipment_id = (select id from ship where label = 'c2')), '1');
+select t_check('proof of delivery remains after status correction',
+  (select count(*)::text from proof_of_delivery where shipment_id = (select id from ship where label = 'c2')), '1');
+select t_check('corrected delivery returns to the previous status',
+  (select status::text from shipments where id = (select id from ship where label = 'c2')), 'arrived_destination');
 
 -- c4: the driver returns it (with a photo); c5: the driver cancels before pickup.
 insert into storage.objects (bucket_id, name) values
@@ -193,20 +199,21 @@ update shipments set status = 'driver_accepted' where id = (select id from ship 
 select driver_cancel_shipment((select id from ship where label = 'c5'), 'Wrong tap', (select id from ship where label = 'c5')::text || '/can.jpg');
 
 set request.jwt.uid = '00000000-0000-0000-0000-00000000006e';
-select t_fails('operator cannot re-open a returned shipment',
-  format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c4'), 'returned', 'in_transit', 'Recipient answered after all'),
-  '%Only a manager%');
-set request.jwt.uid = '00000000-0000-0000-0000-00000000006f';
-select t_check('LEGITIMATE: manager re-opens the returned shipment',
+select t_check('LEGITIMATE: operator re-opens a mistakenly returned shipment',
   correct_shipment_status((select id from ship where label = 'c4'), 'returned', 'in_transit', 'Recipient answered after all')::text, 'in_transit');
+select t_check('LEGITIMATE: operator re-opens a mistakenly cancelled shipment',
+  correct_shipment_status((select id from ship where label = 'c5'), 'cancelled', 'driver_accepted', 'Driver cancelled by mistake')::text,
+  'driver_accepted');
 reset role;
 select t_check('return reason and photo kept',
   (select delivery_failed_reason || ' / ' || (select count(*) from shipment_outcome_proofs where shipment_id = s.id)
    from shipments s where id = (select id from ship where label = 'c4')),
   'Recipient unreachable / 1');
-select t_check('cancel reason kept on the cancelled shipment',
-  (select status || ' ' || cancelled_reason from shipments where id = (select id from ship where label = 'c5')),
-  'cancelled Wrong tap');
+select t_check('cancel reason and driver evidence remain after correction',
+  (select status || ' ' || cancelled_reason || ' / ' ||
+    (select count(*) from shipment_outcome_proofs where shipment_id = s.id)
+   from shipments s where id = (select id from ship where label = 'c5')),
+  'driver_accepted Wrong tap / 1');
 
 \echo '── Public tracking ──'
 select set_config('t.code', (select tracking_number from shipments where id = (select id from ship where label = 'c1')), false);

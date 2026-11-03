@@ -5,31 +5,30 @@ import { SHIPMENT_STATUSES } from '@/lib/types';
 import type { ShipmentStatus } from '@/lib/types';
 
 // Operators and managers correcting a status a driver set by mistake
-// (migration 0041). The database function correct_shipment_status() and
-// shipment_status_correction_targets() are the rule; this mirrors it so the
-// form only offers moves the database will accept.
+// (migrations 0041 and 0057). The database function enforces lifecycle
+// requirements for each target status.
 
-// The driver-workflow statuses a correction can land on, in workflow order.
-export const CORRECTION_TARGETS: readonly ShipmentStatus[] = [
-  'assigned',
-  'driver_accepted',
-  'arrived_pickup',
-  'picked_up',
-  'in_transit',
-  'arrived_destination',
-];
-
-const CORRECTABLE: readonly ShipmentStatus[] = [...CORRECTION_TARGETS, 'delivery_failed'];
-// Re-opening these is a manager's decision.
-const MANAGER_ONLY: readonly ShipmentStatus[] = ['cancelled', 'returned'];
+// A correction can restore any canonical status. The database enforces
+// lifecycle-specific requirements such as an assigned driver or delivery proof.
+export const CORRECTION_TARGETS: readonly ShipmentStatus[] = SHIPMENT_STATUSES;
 
 export const correctionTargets = (
   from: ShipmentStatus,
-  { isManager, hasDriver }: { isManager: boolean; hasDriver: boolean },
+  { hasDriver }: { isManager: boolean; hasDriver: boolean },
 ): ShipmentStatus[] => {
-  if (!hasDriver) return [];
-  if (!CORRECTABLE.includes(from) && !(isManager && MANAGER_ONLY.includes(from))) return [];
-  return CORRECTION_TARGETS.filter((status) => status !== from);
+  const driverStatuses: ShipmentStatus[] = [
+    'assigned',
+    'driver_accepted',
+    'arrived_pickup',
+    'picked_up',
+    'in_transit',
+    'arrived_destination',
+    'delivered',
+    'delivery_failed',
+  ];
+  return SHIPMENT_STATUSES.filter(
+    (status) => status !== from && (hasDriver || !driverStatuses.includes(status)),
+  );
 };
 
 export const statusCorrectionSchema = z.object({

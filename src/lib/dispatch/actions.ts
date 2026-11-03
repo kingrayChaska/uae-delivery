@@ -9,13 +9,10 @@ import { safeErrorMessage } from '@/lib/security/errors';
 import { logAuditEvent } from '@/lib/audit/log';
 import { listAvailableDrivers } from '@/services/drivers/list-available-drivers';
 import { statusCorrectionSchema } from '@/lib/shipment/status-corrections';
-import { OPERATOR_STATUS_CANONICAL, operatorStatusChangeSchema } from '@/lib/shipment/operator-status';
 import { priceEditSchema, staffCancelSchema } from '@/lib/shipment/staff-actions';
 
 import type { StatusCorrectionInput } from '@/lib/shipment/status-corrections';
-import type { OperatorStatusChangeInput, OperatorStatusOption } from '@/lib/shipment/operator-status';
 import type { PriceEditInput, PriceEditResult, StaffCancelInput, StaffCancelResult } from '@/lib/shipment/staff-actions';
-import type { ShipmentStatus } from '@/lib/types';
 
 export type DispatchActionResult = { success: true } | { success: false; error: string };
 
@@ -173,113 +170,10 @@ export const markReturnedAction = async (input: { shipmentId: string; reason: st
   return { success: true };
 };
 
-export type OperatorStatusChangeResult =
-  | {
-      success: true;
-      data: {
-        status: OperatorStatusOption;
-        canonicalStatus: ShipmentStatus;
-        unchanged?: boolean;
-        refundRequired?: boolean;
-      };
-    }
-  | { success: false; error: string };
-
-export const operatorChangeShipmentStatusAction = async (
-  input: OperatorStatusChangeInput,
-): Promise<OperatorStatusChangeResult> => {
-  await requireRole('operator');
-  const parsed = operatorStatusChangeSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
-
-  if (parsed.data.status === 'cancel') {
-    const result = await staffCancelShipmentAction({
-      shipmentId: parsed.data.shipmentId,
-      expectedStatus: parsed.data.expectedStatus,
-      reason: parsed.data.reason ?? '',
-      requestId: parsed.data.requestId,
-    });
-    if (!result.success) return result;
-    return {
-      success: true,
-      data: {
-        status: 'cancel',
-        canonicalStatus: OPERATOR_STATUS_CANONICAL.cancel,
-        refundRequired: result.data.refundRequired,
-      },
-    };
-  }
-
-  if (parsed.data.status === 'returned') {
-    if (parsed.data.expectedStatus !== 'delivery_failed') {
-      return { success: false, error: 'operator.errors.cannotMarkReturned' };
-    }
-    const result = await markReturnedAction({
-      shipmentId: parsed.data.shipmentId,
-      reason: parsed.data.reason ?? '',
-    });
-    return result.success
-      ? {
-          success: true,
-          data: { status: 'returned', canonicalStatus: OPERATOR_STATUS_CANONICAL.returned },
-        }
-      : result;
-  }
-
-  if (parsed.data.status === 'delivered') {
-    return { success: false, error: 'errors.db.completeWithProof' };
-  }
-
-  const supabase = await createClient();
-  const { data: shipment, error } = await supabase
-    .from('shipments')
-    .select('id, status, driver_id, payment_method')
-    .eq('id', parsed.data.shipmentId)
-    .maybeSingle();
-
-  if (error) return { success: false, error: safeErrorMessage(error) };
-  if (!shipment) return { success: false, error: 'operator.errors.shipmentNotFound' };
-  if (shipment.status !== parsed.data.expectedStatus) {
-    return { success: false, error: 'errors.db.staffChangedSinceOpened' };
-  }
-
-  if (shipment.status === 'pending_payment') {
-    if (shipment.payment_method !== 'card') {
-      return { success: false, error: 'operator.shipmentDetail.statusChange.pendingUnavailable' };
-    }
-    const { data, error: switchError } = await supabase.rpc('switch_shipment_to_cash', {
-      p_shipment_id: parsed.data.shipmentId,
-    });
-    if (switchError) return { success: false, error: safeErrorMessage(switchError) };
-    if (data !== 'confirmed') {
-      return { success: false, error: 'operator.shipmentDetail.statusChange.pendingUnavailable' };
-    }
-    return {
-      success: true,
-      data: { status: 'pending', canonicalStatus: OPERATOR_STATUS_CANONICAL.pending },
-    };
-  }
-
-  if (shipment.status === 'confirmed' && shipment.driver_id === null) {
-    return {
-      success: true,
-      data: {
-        status: 'pending',
-        canonicalStatus: OPERATOR_STATUS_CANONICAL.pending,
-        unchanged: true,
-      },
-    };
-  }
-
-  return { success: false, error: 'operator.shipmentDetail.statusChange.pendingUnavailable' };
-};
-
-// Corrects a status a driver set by mistake. correct_shipment_status()
-// (migration 0041) is the real gate: it re-checks the caller's role from
-// the session, refuses a status the operator didn't see (stale view), any
-// move outside the allowed list, and delivered shipments; then records the
-// correction in the status history and audit log in the same transaction.
-// The actor is never taken from the request.
+// Corrects a mistaken shipment status. correct_shipment_status() (migrations
+// 0041 and 0057) re-checks authorization, stale state, and lifecycle evidence
+// before appending correction history and audit records. The actor is never
+// taken from the request.
 export const correctShipmentStatusAction = async (input: StatusCorrectionInput): Promise<DispatchActionResult> => {
   await requireRole('operator', 'manager');
   const parsed = statusCorrectionSchema.safeParse(input);

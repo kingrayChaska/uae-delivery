@@ -124,41 +124,6 @@
     "assign": "Assign a driver",
     "reassign": "Reassign driver",
     "history": "Status history",
-    "statusChange": {
-      "button": "Change status",
-      "title": "Change shipment status",
-      "description": "Choose one of the administrative shipment statuses. Operational driver updates remain in the Driver workflow.",
-      "currentStatus": "Current status",
-      "label": "Status",
-      "options": {
-        "pending": "Pending",
-        "cancel": "Cancel",
-        "delivered": "Delivered",
-        "returned": "Returned"
-      },
-      "pendingCash": "This shipment is waiting for card payment. Choosing Pending will switch it to cash and send it for dispatch. The delivery fee stays unpaid until it is collected.",
-      "pendingAlreadyDescription": "This shipment is already Pending and awaiting dispatch.",
-      "pendingUnavailable": "This shipment cannot safely return to Pending from its current status. Use the existing cancellation or return workflow when eligible.",
-      "deliveredRequiresDriver": "Delivery can only be completed by the assigned driver after arrival at the destination, with required proof of delivery and any required COD confirmation. No payment or delivery evidence is created here.",
-      "returnedDescription": "A failed delivery can be marked Returned with a reason. If the parcel has been picked up, the assigned driver must complete the return with the required evidence.",
-      "returnReason": "Reason for return",
-      "alreadyPending": "Shipment is already Pending.",
-      "applying": "Updating…",
-      "close": "Close",
-      "confirm": {
-        "pending": "Confirm Pending",
-        "cancel": "Confirm cancellation",
-        "delivered": "Continue",
-        "returned": "Mark Returned",
-        "choose": "Confirm"
-      },
-      "success": {
-        "pending": "Shipment is Pending and awaiting dispatch.",
-        "cancel": "Shipment cancelled.",
-        "delivered": "Shipment delivered.",
-        "returned": "Shipment marked Returned."
-      }
-    },
     "markReturned": "Mark Returned",
     "marking": "Marking…",
     "markReturnedTitle": "Mark this delivery as returned?",
