@@ -32,4 +32,14 @@ describe('GET /api/internal/operator-emails', () => {
     expect(response.status).toBe(200);
     expect(process_).toHaveBeenCalledWith({ limit: 50 });
   });
+
+  it('accepts the Vercel cron secret when the bulk worker has its own secret', async () => {
+    const cronSecret = 'test-cron-secret-0123456789abcdef';
+    vi.stubEnv('CRON_SECRET', cronSecret);
+
+    const response = await GET(request('https://app.test/api/internal/operator-emails', `Bearer ${cronSecret}`));
+
+    expect(response.status).toBe(200);
+    expect(process_).toHaveBeenCalledWith({ limit: 50 });
+  });
 });

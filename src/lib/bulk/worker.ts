@@ -16,17 +16,23 @@ import { publicUrl } from '@/lib/auth/public-url';
 
 export const WORKER_BUDGET_MS = 45_000;
 
-const secret = () => process.env.BULK_WORKER_SECRET || process.env.CRON_SECRET || '';
+const secrets = () =>
+  [...new Set([process.env.BULK_WORKER_SECRET, process.env.CRON_SECRET].filter((value): value is string => Boolean(value && value.length >= 16)))];
 
-export const workerEnabled = () => secret().length >= 16;
+export const workerEnabled = () => secrets().length > 0;
 
 // Constant-time check of "Authorization: Bearer <secret>".
 export const isWorkerRequest = (authorization: string | null) => {
-  const expected = secret();
-  if (!workerEnabled() || !authorization?.startsWith('Bearer ')) return false;
+  const expectedSecrets = secrets();
+  if (expectedSecrets.length === 0 || !authorization?.startsWith('Bearer ')) return false;
   const given = Buffer.from(authorization.slice('Bearer '.length));
-  const wanted = Buffer.from(expected);
-  return given.length === wanted.length && timingSafeEqual(given, wanted);
+  let valid = false;
+  for (const expected of expectedSecrets) {
+    const wanted = Buffer.from(expected);
+    const matches = given.length === wanted.length && timingSafeEqual(given, wanted);
+    valid = matches || valid;
+  }
+  return valid;
 };
 
 // Starts a worker run for one batch. The route answers at once (the work
