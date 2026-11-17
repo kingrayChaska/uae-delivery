@@ -38,11 +38,12 @@ export const isWorkerRequest = (authorization: string | null) => {
 // Starts a worker run for one batch. The route answers at once (the work
 // happens after its response), so this only waits for that answer.
 export const startBulkWorker = async (batchId: string): Promise<void> => {
-  if (!workerEnabled()) return;
+  const [workerSecret] = secrets();
+  if (!workerSecret) return;
   try {
     const response = await fetch(publicUrl('/api/internal/bulk-worker'), {
       method: 'POST',
-      headers: { Authorization: `Bearer ${secret()}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${workerSecret}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ batchId }),
       signal: AbortSignal.timeout(8000),
     });
