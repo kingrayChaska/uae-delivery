@@ -43,10 +43,19 @@ export type StaffShipmentEvent =
       reason: string;
       refundRequired: boolean;
       cashCollected: number;
+    }
+  | {
+      kind: 'correction';
+      createdAt: string;
+      actorName: string | null;
+      previousStatus: ShipmentStatus;
+      newStatus: ShipmentStatus;
+      reason: string;
+      previousDriverId: string | null;
+      newDriverId: string | null;
     };
 
-// Price changes and cancellations by operations, newest first, from the
-// audit log (staff-only by RLS; written only inside the 0046 functions).
+// Operational changes by staff, newest first, from the audit log.
 export const listStaffShipmentEvents = async (shipmentId: string): Promise<StaffShipmentEvent[]> => {
   const supabase = await createClient();
   const { data } = await supabase
@@ -54,7 +63,7 @@ export const listStaffShipmentEvents = async (shipmentId: string): Promise<Staff
     .select('action, old_value, new_value, created_at, profiles(full_name)')
     .eq('entity_type', 'shipment')
     .eq('entity_id', shipmentId)
-    .in('action', ['shipment.price_adjusted', 'shipment.cancelled_by_staff'])
+    .in('action', ['shipment.price_adjusted', 'shipment.cancelled_by_staff', 'shipment.status_correction'])
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -63,20 +72,31 @@ export const listStaffShipmentEvents = async (shipmentId: string): Promise<Staff
     const after = (row.new_value ?? {}) as Record<string, unknown>;
     const actor = row.profiles as unknown as { full_name: string } | null;
     const base = { createdAt: row.created_at as string, actorName: actor?.full_name ?? null, reason: String(after.reason ?? '') };
-    return row.action === 'shipment.price_adjusted'
-      ? {
-          ...base,
-          kind: 'price' as const,
-          previousPrice: Number(before.price),
-          newPrice: Number(after.price),
-          voidedInvoices: Array.isArray(after.voidedInvoices) ? (after.voidedInvoices as string[]) : [],
-        }
-      : {
-          ...base,
-          kind: 'cancel' as const,
-          previousStatus: before.status as ShipmentStatus,
-          refundRequired: after.refundRequired === true,
-          cashCollected: Number(after.cashCollected ?? 0),
-        };
+    if (row.action === 'shipment.price_adjusted') {
+      return {
+        ...base,
+        kind: 'price' as const,
+        previousPrice: Number(before.price),
+        newPrice: Number(after.price),
+        voidedInvoices: Array.isArray(after.voidedInvoices) ? (after.voidedInvoices as string[]) : [],
+      };
+    }
+    if (row.action === 'shipment.status_correction') {
+      return {
+        ...base,
+        kind: 'correction' as const,
+        previousStatus: before.status as ShipmentStatus,
+        newStatus: after.status as ShipmentStatus,
+        previousDriverId: typeof before.driverId === 'string' ? before.driverId : null,
+        newDriverId: typeof after.driverId === 'string' ? after.driverId : null,
+      };
+    }
+    return {
+      ...base,
+      kind: 'cancel' as const,
+      previousStatus: before.status as ShipmentStatus,
+      refundRequired: after.refundRequired === true,
+      cashCollected: Number(after.cashCollected ?? 0),
+    };
   });
 };

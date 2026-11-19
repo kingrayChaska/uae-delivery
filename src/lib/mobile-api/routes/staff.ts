@@ -99,6 +99,7 @@ const shipmentDetail = async (id: string) => {
       reassign: shipment.status === 'assigned' || shipment.status === 'delivery_failed',
       markReturned: shipment.status === 'delivery_failed',
       correctTo: correctionTargets(shipment.status, { isManager: viewer?.role === 'manager', hasDriver: shipment.driverId !== null }),
+      operatorOverride: viewer?.role === 'operator',
       // Offered with an explanation when blocked, as on the website.
       priceEdit: actionContext !== null && actionContext.priceEditBlock !== 'closed',
       cancel: actionContext !== null && (actionContext.cancelBlock === null || actionContext.cancelBlock === 'picked_up'),

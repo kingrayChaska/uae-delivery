@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { safeErrorMessage } from '@/lib/security/errors';
 import { logAuditEvent } from '@/lib/audit/log';
 import { listAvailableDrivers } from '@/services/drivers/list-available-drivers';
-import { statusCorrectionSchema } from '@/lib/shipment/status-corrections';
+import { OPERATOR_CORRECTION_OPTIONS, statusCorrectionSchema } from '@/lib/shipment/status-corrections';
 import { priceEditSchema, staffCancelSchema } from '@/lib/shipment/staff-actions';
 
 import type { StatusCorrectionInput } from '@/lib/shipment/status-corrections';
@@ -170,14 +170,20 @@ export const markReturnedAction = async (input: { shipmentId: string; reason: st
   return { success: true };
 };
 
-// Corrects a mistaken shipment status. correct_shipment_status() (migrations
-// 0041 and 0057) re-checks authorization, stale state, and lifecycle evidence
-// before appending correction history and audit records. The actor is never
+// Operators are limited to the four administrative outcomes; the database
+// re-checks role, stale state and records status history plus the audit event.
+// Managers retain their existing correction targets. The actor is never
 // taken from the request.
 export const correctShipmentStatusAction = async (input: StatusCorrectionInput): Promise<DispatchActionResult> => {
-  await requireRole('operator', 'manager');
+  const profile = await requireRole('operator', 'manager');
   const parsed = statusCorrectionSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'validation.invalid' };
+  if (
+    profile.role === 'operator' &&
+    !OPERATOR_CORRECTION_OPTIONS.some(({ status }) => status === parsed.data.newStatus)
+  ) {
+    return { success: false, error: 'errors.db.correctionInvalidTarget' };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.rpc('correct_shipment_status', {

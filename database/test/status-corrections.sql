@@ -1,8 +1,7 @@
 -- Run after database/test/run.sh (a fresh scratch database with every
--- migration applied). Checks migration 0041: operators and managers
--- correcting a status a driver set by mistake — who may, which moves, the
--- reason, stale views, the history trail, notifications, and that delivered
--- / cancelled / returned shipments keep their evidence. Each check raises
+-- migration applied). Checks migration 0058: Operator administrative status
+-- overrides, retained Manager restrictions, reasons, stale views, history,
+-- notifications, and financial evidence. Each check raises
 -- "FAIL ..." on a wrong answer.
 --
 -- Usage: su postgres -c "psql -d uae_delivery_test -f database/test/status-corrections.sql"
@@ -61,7 +60,8 @@ begin
       currency, payment_method, package_type, package_description
     ) values (
       '00000000-0000-0000-0000-00000000006c', 'confirmed', 'A', 25.09, 55.14, 'S', '0500000000',
-      'B', 25.18, 55.27, 'R', '0500000001', 14.6, 25, v_rule, 12, 9.60, 0, 0, 21.60, 'AED', 'card', 'parcel', 'c' || n
+      'B', 25.18, 55.27, 'R', '0500000001', 14.6, 25, v_rule, 12, 9.60, 0, 0, 21.60, 'AED',
+      case when n = 1 then 'cod'::payment_method else 'card'::payment_method end, 'parcel', 'c' || n
     ) returning id into v_id;
     insert into ship values ('c' || n, v_id);
   end loop;
@@ -110,31 +110,27 @@ select t_fails('reason required',
 select t_fails('stale view (status moved on)',
   format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c1'), 'picked_up', 'arrived_pickup', 'Driver tapped too early'),
   '%reload it before correcting%');
-select t_fails('cannot correct to delivered',
-  format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c1'), 'in_transit', 'delivered', 'Driver tapped too early'),
-  '%proof of delivery%');
-select t_fails('cannot mark an arbitrary active shipment returned without return history',
-  format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c1'), 'in_transit', 'returned', 'Driver selected wrong status'),
-  '%failed attempt or recorded return evidence%');
-select t_fails('cannot correct to an unlisted status (confirmed)',
-  format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c1'), 'in_transit', 'confirmed', 'Driver tapped too early'),
-  '%can''t be corrected from in_transit to confirmed%');
+select t_fails('operator cannot select a driver workflow status',
+  format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c1'), 'in_transit', 'assigned', 'Driver tapped too early'),
+  '%Choose a valid shipment status%');
 select t_fails('same status is not a correction',
   format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c1'), 'in_transit', 'in_transit', 'Driver tapped too early'),
   '%already has this status%');
 select t_fails('ATTACK: operator moves a status backwards directly',
   format('update shipments set status = %L where id = %L', 'arrived_pickup', (select id from ship where label = 'c1')),
   '%Invalid shipment status transition%');
+select set_config('app.status_correction_reason', 'sneaky', false);
 select t_fails('ATTACK: client sets the correction flag itself',
-  format($f$select set_config('app.status_correction_reason', 'sneaky', true); update shipments set status = 'arrived_pickup' where id = %L$f$, (select id from ship where label = 'c1')),
+  format('update shipments set status = %L where id = %L', 'arrived_pickup', (select id from ship where label = 'c1')),
   '%Invalid shipment status transition%');
+select set_config('app.status_correction_reason', '', false);
 
 \echo '── The correction ──'
-select t_check('LEGITIMATE: in transit corrected to arrived at pickup',
-  correct_shipment_status((select id from ship where label = 'c1'), 'in_transit', 'arrived_pickup', 'Driver marked In Transit before pickup')::text,
-  'arrived_pickup');
+select t_check('LEGITIMATE: assigned driver corrected to Delivered without POD or COD confirmation',
+  correct_shipment_status((select id from ship where label = 'c1'), 'in_transit', 'delivered', 'Operator verified delivery independently')::text,
+  'delivered');
 select t_fails('repeat click is stale, not applied twice',
-  format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c1'), 'in_transit', 'arrived_pickup', 'Driver marked In Transit before pickup'),
+  format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c1'), 'in_transit', 'delivered', 'Operator verified delivery independently'),
   '%reload it before correcting%');
 reset role;
 select t_check('c2 (a genuine in-transit) is untouched', (select status::text from shipments where id = (select id from ship where label = 'c2')), 'in_transit');
@@ -144,76 +140,98 @@ select t_check('history keeps the mistaken rows and adds one correction',
 select t_check('correction row: from, to, who, why',
   (select previous_status || '>' || status || ' ' || event_type || ' ' || changed_by || ' ' || note
    from shipment_status_history where shipment_id = (select id from ship where label = 'c1') and event_type = 'correction'),
-  'in_transit>arrived_pickup correction 00000000-0000-0000-0000-00000000006e Driver marked In Transit before pickup');
+  'in_transit>delivered correction 00000000-0000-0000-0000-00000000006e Operator verified delivery independently');
 select t_check('the mistaken in-transit row is still there',
   (select count(*)::text from shipment_status_history where shipment_id = (select id from ship where label = 'c1') and status = 'in_transit' and event_type = 'transition'),
   '1');
-select t_check('no customer notification for the correction',
-  (select count(*)::text from notifications where profile_id = '00000000-0000-0000-0000-00000000006c'),
-  (select customer_notes::text from before_counts));
+select t_check('customer receives the existing delivered notification',
+  (select count(*)::text from notifications where profile_id = '00000000-0000-0000-0000-00000000006c' and type = 'shipment.delivered'),
+  '1');
 select t_check('driver told about the correction',
   (select count(*)::text from notifications where profile_id = '00000000-0000-0000-0000-00000000006a' and type = 'shipment.status_corrected'), '1');
-select t_check('audit log written',
-  (select new_value->>'reason' from audit_logs where action = 'shipment.status_correction' and entity_id = (select id from ship where label = 'c1')),
-  'Driver marked In Transit before pickup');
+select t_check('audit log records reason and administrative override',
+  (select new_value->>'reason' || ' ' || new_value->>'administrativeOverride'
+   from audit_logs where action = 'shipment.status_correction' and entity_id = (select id from ship where label = 'c1')),
+  'Operator verified delivery independently true');
+select t_check('COD expectation remains without a fabricated collection',
+  (select status::text || ' ' || coalesce(collected_amount::text, 'not-collected')
+   from cod_transactions where shipment_id = (select id from ship where label = 'c1')),
+  'expected not-collected');
+select t_check('override does not fabricate proof of delivery',
+  (select count(*)::text from proof_of_delivery where shipment_id = (select id from ship where label = 'c1')),
+  '0');
+select t_fails('same status is not a correction',
+  format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c1'), 'delivered', 'delivered', 'Operator verified delivery independently'),
+  '%already has this status%');
+
+\echo '── Operator outcome overrides ──'
+set role authenticated;
+set request.jwt.uid = '00000000-0000-0000-0000-00000000006e';
+select t_check('In transit → Pending returns shipment to the unassigned dispatch queue',
+  correct_shipment_status((select id from ship where label = 'c2'), 'in_transit', 'confirmed', 'Return to pending dispatch')::text,
+  'confirmed');
+reset role;
+select t_check('Pending shipment no longer has a driver',
+  (select status::text || ' ' || coalesce(driver_id::text, 'unassigned') from shipments where id = (select id from ship where label = 'c2')),
+  'confirmed unassigned');
+select t_check('Pending shipment is counted in the dispatch queue',
+  (select count(*)::text from shipments where id = (select id from ship where label = 'c2') and status = 'confirmed' and driver_id is null),
+  '1');
+select t_check('Pending shipment is no longer active work for its old driver',
+  (select count(*)::text from shipments where id = (select id from ship where label = 'c2') and driver_id = '00000000-0000-0000-0000-00000000006a'
+    and status in ('assigned', 'driver_accepted', 'arrived_pickup', 'picked_up', 'in_transit', 'arrived_destination')),
+  '0');
 
 set role authenticated;
-set request.jwt.uid = '00000000-0000-0000-0000-00000000006a';
-update shipments set status = 'picked_up' where id = (select id from ship where label = 'c1');
-select t_check('LEGITIMATE: the driver carries on from the corrected status',
-  (select status::text from shipments where id = (select id from ship where label = 'c1')), 'picked_up');
-
-\echo '── Assigned → In transit, corrected back to Assigned ──'
 set request.jwt.uid = '00000000-0000-0000-0000-00000000006e';
-select t_check('LEGITIMATE: corrected to assigned',
-  correct_shipment_status((select id from ship where label = 'c3'), 'in_transit', 'assigned', 'Parcel never left the pickup point')::text, 'assigned');
-set request.jwt.uid = '00000000-0000-0000-0000-00000000006a';
-update shipments set status = 'driver_accepted' where id = (select id from ship where label = 'c3');
-select t_check('LEGITIMATE: driver accepts again', (select status::text from shipments where id = (select id from ship where label = 'c3')), 'driver_accepted');
-
-\echo '── Delivered, cancelled and returned ──'
+select t_check('In transit → Cancel',
+  correct_shipment_status((select id from ship where label = 'c3'), 'in_transit', 'cancelled', 'Operations cancelled the shipment')::text,
+  'cancelled');
+select t_check('Cancelled → Pending reopens and unassigns',
+  correct_shipment_status((select id from ship where label = 'c3'), 'cancelled', 'confirmed', 'Shipment should return to dispatch')::text,
+  'confirmed');
 reset role;
-insert into storage.objects (bucket_id, name) values ('proof-of-delivery', (select id from ship where label = 'c2')::text || '/pod.jpg');
-set role authenticated;
-set request.jwt.uid = '00000000-0000-0000-0000-00000000006a';
-update shipments set status = 'arrived_destination' where id = (select id from ship where label = 'c2');
-select complete_delivery((select id from ship where label = 'c2'), null, (select id from ship where label = 'c2')::text || '/pod.jpg', null, null, null, 'At reception', false);
+select t_check('reopened shipment has no active driver assignment',
+  (select status::text || ' ' || coalesce(driver_id::text, 'unassigned') from shipments where id = (select id from ship where label = 'c3')),
+  'confirmed unassigned');
+
+\echo '── Operator overrides from all current outcomes ──'
 set request.jwt.uid = '00000000-0000-0000-0000-00000000006e';
-select t_check('LEGITIMATE: operator corrects a mistaken delivered status',
-  correct_shipment_status((select id from ship where label = 'c2'), 'delivered', 'arrived_destination', 'Driver tapped delivered too soon')::text,
-  'arrived_destination');
-reset role;
-select t_check('proof of delivery remains after status correction',
-  (select count(*)::text from proof_of_delivery where shipment_id = (select id from ship where label = 'c2')), '1');
-select t_check('corrected delivery returns to the previous status',
-  (select status::text from shipments where id = (select id from ship where label = 'c2')), 'arrived_destination');
-
--- c4: the driver returns it (with a photo); c5: the driver cancels before pickup.
-insert into storage.objects (bucket_id, name) values
-  ('proof-of-delivery', (select id from ship where label = 'c4')::text || '/ret.jpg'),
-  ('proof-of-delivery', (select id from ship where label = 'c5')::text || '/can.jpg');
-set role authenticated;
-set request.jwt.uid = '00000000-0000-0000-0000-00000000006a';
-select driver_return_shipment((select id from ship where label = 'c4'), 'Recipient unreachable', (select id from ship where label = 'c4')::text || '/ret.jpg');
-update shipments set status = 'driver_accepted' where id = (select id from ship where label = 'c5');
-select driver_cancel_shipment((select id from ship where label = 'c5'), 'Wrong tap', (select id from ship where label = 'c5')::text || '/can.jpg');
-
+select t_check('In transit → Returned without driver return evidence',
+  correct_shipment_status((select id from ship where label = 'c4'), 'in_transit', 'returned', 'Operations confirmed return')::text,
+  'returned');
+select t_check('Returned → Delivered without POD',
+  correct_shipment_status((select id from ship where label = 'c4'), 'returned', 'delivered', 'Operations verified delivery')::text,
+  'delivered');
+select t_check('Delivered → Returned',
+  correct_shipment_status((select id from ship where label = 'c4'), 'delivered', 'returned', 'Shipment was returned after delivery override')::text,
+  'returned');
+select t_check('Delivered → Cancel',
+  correct_shipment_status((select id from ship where label = 'c1'), 'delivered', 'cancelled', 'Operations reversed delivery status')::text,
+  'cancelled');
+select t_check('Pending → Delivered',
+  correct_shipment_status((select id from ship where label = 'c2'), 'confirmed', 'delivered', 'Operations verified delivery')::text,
+  'delivered');
+set request.jwt.uid = '00000000-0000-0000-0000-00000000006f';
+select t_fails('manager retains proof requirement for its existing delivery correction',
+  format('select correct_shipment_status(%L, %L, %L, %L)', (select id from ship where label = 'c5'), 'in_transit', 'delivered', 'Manager correction check'),
+  '%proof and COD confirmation%');
+select t_check('manager retains existing lifecycle corrections',
+  correct_shipment_status((select id from ship where label = 'c5'), 'in_transit', 'assigned', 'Driver progress needs correction')::text,
+  'assigned');
 set request.jwt.uid = '00000000-0000-0000-0000-00000000006e';
-select t_check('LEGITIMATE: operator re-opens a mistakenly returned shipment',
-  correct_shipment_status((select id from ship where label = 'c4'), 'returned', 'in_transit', 'Recipient answered after all')::text, 'in_transit');
-select t_check('LEGITIMATE: operator re-opens a mistakenly cancelled shipment',
-  correct_shipment_status((select id from ship where label = 'c5'), 'cancelled', 'driver_accepted', 'Driver cancelled by mistake')::text,
-  'driver_accepted');
+select t_check('assigned → Delivered without POD is allowed for operators',
+  correct_shipment_status((select id from ship where label = 'c5'), 'assigned', 'delivered', 'Operations verified delivery')::text,
+  'delivered');
 reset role;
-select t_check('return reason and photo kept',
-  (select delivery_failed_reason || ' / ' || (select count(*) from shipment_outcome_proofs where shipment_id = s.id)
-   from shipments s where id = (select id from ship where label = 'c4')),
-  'Recipient unreachable / 1');
-select t_check('cancel reason and driver evidence remain after correction',
-  (select status || ' ' || cancelled_reason || ' / ' ||
-    (select count(*) from shipment_outcome_proofs where shipment_id = s.id)
-   from shipments s where id = (select id from ship where label = 'c5')),
-  'driver_accepted Wrong tap / 1');
+select t_check('returned override did not fabricate return proof',
+  (select count(*)::text from shipment_outcome_proofs where shipment_id = (select id from ship where label = 'c4')),
+  '0');
+select t_check('status history preserves the previous driver assignment in audit',
+  (select old_value->>'driverId' || ' ' || coalesce(new_value->>'driverId', 'null')
+   from audit_logs where action = 'shipment.status_correction' and entity_id = (select id from ship where label = 'c2')
+     and old_value->>'status' = 'in_transit' and new_value->>'status' = 'confirmed'),
+  '00000000-0000-0000-0000-00000000006a null');
 
 \echo '── Public tracking ──'
 select set_config('t.code', (select tracking_number from shipments where id = (select id from ship where label = 'c1')), false);
@@ -221,7 +239,7 @@ set role anon;
 select t_check('public history marks the correction, without the reason or who made it',
   (select string_agg(event_type, ',' order by created_at) filter (where event_type = 'correction')
    from get_shipment_tracking_history(current_setting('t.code'))),
-  'correction');
+  'correction,correction');
 reset role;
 select t_check('public history returns no notes or people',
   (select string_agg(p.name, ',' order by p.ordinal) from (

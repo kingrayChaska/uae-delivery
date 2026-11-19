@@ -120,7 +120,13 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
           ) : null}
           <ShipmentStatusBadge status={shipment.status} />
           {correctTo.length > 0 ? (
-            <CorrectStatusButton shipmentId={shipment.id} currentStatus={shipment.status} targets={correctTo} />
+            <CorrectStatusButton
+              shipmentId={shipment.id}
+              trackingNumber={shipment.trackingNumber}
+              currentStatus={shipment.status}
+              isOperator={isOperator}
+              targets={correctTo}
+            />
           ) : null}
           {!isOperator && shipment.status === 'delivery_failed' ? <MarkReturnedButton shipmentId={shipment.id} /> : null}
           {canOfferPriceEdit && actionContext ? (
@@ -252,12 +258,22 @@ const ShipmentDetailView = async ({ basePath, id }: StaffDetailViewProps) => {
                                 from: format.money(event.previousPrice, shipment.currency),
                                 to: format.money(event.newPrice, shipment.currency),
                               })
-                            : t('cancelledEntry', { status: tShipments(`status.${event.previousStatus}`) })}
+                            : event.kind === 'correction'
+                              ? t('statusCorrectionEntry', {
+                                  from: tShipments(`status.${event.previousStatus}`),
+                                  to: tShipments(`status.${event.newStatus}`),
+                                })
+                              : t('cancelledEntry', { status: tShipments(`status.${event.previousStatus}`) })}
                         </span>
                         <span className="font-brand-mono">{format.dateTime(event.createdAt)}</span>
                       </span>
                       <span className="text-muted-foreground">{t('byStaff', { name: event.actorName ?? '—' })}</span>
                       {event.reason ? <span className="wrap-break-word">{event.reason}</span> : null}
+                      {event.kind === 'correction' ? (
+                        <span className="text-muted-foreground">
+                          {t('driverAssignment', { from: event.previousDriverId ?? '—', to: event.newDriverId ?? '—' })}
+                        </span>
+                      ) : null}
                       {event.kind === 'price' && event.voidedInvoices.length > 0 ? (
                         <span className="text-muted-foreground">{t('invoicesVoided', { numbers: event.voidedInvoices.join(', ') })}</span>
                       ) : null}

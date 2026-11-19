@@ -4,18 +4,27 @@ import { SHIPMENT_STATUSES } from '@/lib/types';
 
 import type { ShipmentStatus } from '@/lib/types';
 
-// Operators and managers correcting a status a driver set by mistake
-// (migrations 0041 and 0057). The database function enforces lifecycle
-// requirements for each target status.
+// Operators apply one of four administrative outcomes; Pending is represented
+// by the app's confirmed, unassigned dispatch-queue status.
+export const OPERATOR_CORRECTION_OPTIONS = [
+  { status: 'confirmed', label: 'pending' },
+  { status: 'cancelled', label: 'cancel' },
+  { status: 'delivered', label: 'delivered' },
+  { status: 'returned', label: 'returned' },
+] as const satisfies readonly { status: ShipmentStatus; label: string }[];
 
-// A correction can restore any canonical status. The database enforces
-// lifecycle-specific requirements such as an assigned driver or delivery proof.
+// Managers retain the existing full status-correction behavior. The database
+// independently enforces role permissions and the manager lifecycle rules.
 export const CORRECTION_TARGETS: readonly ShipmentStatus[] = SHIPMENT_STATUSES;
 
 export const correctionTargets = (
   from: ShipmentStatus,
-  { hasDriver }: { isManager: boolean; hasDriver: boolean },
+  { isManager, hasDriver }: { isManager: boolean; hasDriver: boolean },
 ): ShipmentStatus[] => {
+  if (!isManager) {
+    return OPERATOR_CORRECTION_OPTIONS.map(({ status }) => status);
+  }
+
   const driverStatuses: ShipmentStatus[] = [
     'assigned',
     'driver_accepted',

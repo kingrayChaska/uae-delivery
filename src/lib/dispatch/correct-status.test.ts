@@ -27,7 +27,7 @@ const { correctShipmentStatusAction } = await import('@/lib/dispatch/actions');
 const correction = {
   shipmentId: SHIPMENT,
   expectedStatus: 'in_transit' as const,
-  newStatus: 'assigned' as const,
+  newStatus: 'delivered' as const,
   reason: 'Driver marked In Transit before pickup',
 };
 
@@ -42,14 +42,20 @@ describe('correctShipmentStatusAction', () => {
     expect(rpc).toHaveBeenCalledWith('correct_shipment_status', {
       p_shipment_id: SHIPMENT,
       p_expected_status: 'in_transit',
-      p_new_status: 'assigned',
+      p_new_status: 'delivered',
       p_reason: 'Driver marked In Transit before pickup',
     });
   });
 
   it('is open to managers', async () => {
     role.current = 'manager';
-    expect(await correctShipmentStatusAction(correction)).toEqual({ success: true });
+    expect(await correctShipmentStatusAction({ ...correction, newStatus: 'assigned' })).toEqual({ success: true });
+  });
+
+  it('rejects Operator requests outside the four operational override targets', async () => {
+    const result = await correctShipmentStatusAction({ ...correction, newStatus: 'assigned' });
+    expect(result).toEqual({ success: false, error: 'errors.db.correctionInvalidTarget' });
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it.each(['driver', 'customer'])('refuses a %s', async (who) => {

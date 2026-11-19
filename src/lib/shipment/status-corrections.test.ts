@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   CORRECTION_TARGETS,
+  OPERATOR_CORRECTION_OPTIONS,
   correctionTargets,
   effectiveStatusHistory,
   statusCorrectionSchema,
@@ -26,32 +27,31 @@ const expectedTargets = (from: ShipmentStatus, hasDriver: boolean): ShipmentStat
 
 describe('correctionTargets', () => {
   it.each(SHIPMENT_STATUSES.flatMap((status) => [[status, false], [status, true]] as const))(
-    'from %s (has driver: %s)',
-    (from, hasDriver) => {
-      expect(correctionTargets(from, { isManager: false, hasDriver })).toEqual(expectedTargets(from, hasDriver));
+    'from %s (manager: %s)',
+    (from, isManager) => {
+      expect(correctionTargets(from, { isManager, hasDriver: true })).toEqual(
+        isManager ? expectedTargets(from, true) : OPERATOR_CORRECTION_OPTIONS.map(({ status: target }) => target),
+      );
     },
   );
 
-  it('offers every other canonical status when a driver is assigned', () => {
-    expect(correctionTargets('in_transit', { isManager: false, hasDriver: true })).toEqual(
-      SHIPMENT_STATUSES.filter((status) => status !== 'in_transit'),
-    );
-  });
-
-  it('allows operators to correct mistakes from delivered, cancelled, and returned', () => {
-    for (const status of ['delivered', 'cancelled', 'returned'] as const) {
+  it('offers exactly Pending, Cancel, Delivered and Returned to operators for every current status', () => {
+    for (const status of SHIPMENT_STATUSES) {
       expect(correctionTargets(status, { isManager: false, hasDriver: true })).toEqual(
-        SHIPMENT_STATUSES.filter((target) => target !== status),
+        ['confirmed', 'cancelled', 'delivered', 'returned'],
       );
     }
   });
 
-  it('offers non-driver statuses when no driver is assigned', () => {
-    const targets = correctionTargets('pending_payment', { isManager: false, hasDriver: false });
-    expect(targets).toEqual(['confirmed', 'cancelled', 'returned']);
+  it('preserves manager driver-status filtering when no driver is assigned', () => {
+    expect(correctionTargets('pending_payment', { isManager: true, hasDriver: false })).toEqual([
+      'confirmed',
+      'cancelled',
+      'returned',
+    ]);
   });
 
-  it('never offers the current status and only offers canonical statuses', () => {
+  it('offers only canonical statuses to managers and excludes their current status', () => {
     for (const status of SHIPMENT_STATUSES) {
       const targets = correctionTargets(status, { isManager: true, hasDriver: true });
       expect(targets).not.toContain(status);

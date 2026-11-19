@@ -94,14 +94,19 @@ describe('staff routes', () => {
     }
   });
 
-  it.each(['operator', 'manager'] as const)('offers all valid canonical correction targets to a %s', async (role) => {
+  it.each(['operator', 'manager'] as const)('offers role-appropriate correction targets to a %s', async (role) => {
     m.getCurrentProfile.mockResolvedValue({ role });
     m.getShipmentDetail.mockResolvedValue({ shipment: shipment({}), history: [], packageImageUrl: null });
     m.getStaffActionContext.mockResolvedValue({ priceEditBlock: 'closed', cancelBlock: 'cancelled' });
     const result = await route('GET', 'staff/shipments/:id').handle(ctx({ id: ID }, {}, role));
     expect(result.status).toBe(200);
     const data = (result as { data: { allowed: Record<string, unknown>; refundOutstanding: boolean } }).data;
-    expect(data.allowed.correctTo).toEqual(SHIPMENT_STATUSES.filter((status) => status !== 'cancelled'));
+    expect(data.allowed.correctTo).toEqual(
+      role === 'operator'
+        ? ['confirmed', 'cancelled', 'delivered', 'returned']
+        : SHIPMENT_STATUSES.filter((status) => status !== 'cancelled'),
+    );
+    expect(data.allowed.operatorOverride).toBe(role === 'operator');
     expect(data.allowed).toMatchObject({ assign: false, reassign: false, priceEdit: false, cancel: false });
     expect(data.refundOutstanding).toBe(true);
   });
