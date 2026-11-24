@@ -13,6 +13,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
     title: t('registerTitle'),
     description: t('registerDescription'),
     alternates: localizedAlternates('/register', locale),
+    robots: { index: false, follow: true },
   };
 };
 

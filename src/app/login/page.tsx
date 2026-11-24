@@ -14,6 +14,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
     title: t('loginTitle'),
     description: t('loginDescription'),
     alternates: localizedAlternates('/login', locale),
+    robots: { index: false, follow: true },
   };
 };
 

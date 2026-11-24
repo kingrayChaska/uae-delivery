@@ -21,7 +21,7 @@ import LocaleSync from '@/components/i18n/locale-sync';
 import { OG_LOCALES, localeDirection } from '@/i18n/config';
 import { PUBLIC_CLIENT_NAMESPACES } from '@/i18n/messages';
 import { getRequestLocale } from '@/i18n/server';
-import { SITE_NAME, siteUrl } from '@/lib/seo';
+import { SITE_NAME, SITE_URL } from '@/lib/seo';
 
 import type { Metadata, Viewport } from 'next';
 import type { Messages } from '@/i18n/messages';
@@ -35,7 +35,7 @@ import type { Messages } from '@/i18n/messages';
 export const generateMetadata = async (): Promise<Metadata> => {
   const [t, locale] = await Promise.all([getTranslations('meta'), getRequestLocale()]);
   return {
-    metadataBase: new URL(siteUrl()),
+    metadataBase: new URL(SITE_URL),
     title: t('siteTitle'),
     description: t('siteDescription'),
     applicationName: SITE_NAME,

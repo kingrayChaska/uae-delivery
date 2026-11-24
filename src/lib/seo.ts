@@ -1,4 +1,3 @@
-import { getPublicOrigin } from '@/lib/auth/public-url';
 import { DEFAULT_LOCALE, LOCALES, localizedPath } from '@/i18n/config';
 
 import type { Locale } from '@/i18n/config';
@@ -23,9 +22,9 @@ export const SITE_KEYWORDS = [
   'Dubai courier',
 ];
 
-// No trailing slash, so `${siteUrl()}/tracking` never becomes "//tracking"
-// when NEXT_PUBLIC_APP_URL is configured with one.
-export const siteUrl = () => getPublicOrigin().replace(/\/+$/, '');
+export const SITE_URL = 'https://www.parcellinkuae.com';
+
+export const siteUrl = () => SITE_URL;
 
 // Canonical + hreflang for a public page: English at the existing URL,
 // Arabic under /ar. Each language version is canonical for itself, so the
@@ -42,8 +41,6 @@ export const localizedAlternates = (path: string, locale: Locale) => ({
 export const PUBLIC_PAGES: { path: string; priority: number; changeFrequency: 'weekly' | 'monthly' | 'yearly' }[] = [
   { path: '/', priority: 1, changeFrequency: 'weekly' },
   { path: '/tracking', priority: 0.8, changeFrequency: 'monthly' },
-  { path: '/register', priority: 0.7, changeFrequency: 'monthly' },
-  { path: '/login', priority: 0.4, changeFrequency: 'yearly' },
   { path: '/privacy', priority: 0.2, changeFrequency: 'yearly' },
   { path: '/terms', priority: 0.2, changeFrequency: 'yearly' },
 ];
