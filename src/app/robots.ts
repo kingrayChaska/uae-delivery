@@ -2,14 +2,14 @@ import { siteUrl } from '@/lib/seo';
 
 import type { MetadataRoute } from 'next';
 
-// Dashboards, auth callbacks and API routes are private or useless to a
-// crawler; everything public is listed in the sitemap.
+// Authenticated pages are crawlable so search engines can see their noindex
+// metadata. API routes and auth callbacks are not useful to a crawler.
 const robots = (): MetadataRoute.Robots => ({
   rules: [
     {
       userAgent: '*',
       allow: '/',
-      disallow: ['/dashboard', '/api', '/auth', '/reset-password', '/forgot-password', '/ar/forgot-password'],
+      disallow: ['/api', '/auth'],
     },
   ],
   sitemap: `${siteUrl()}/sitemap.xml`,

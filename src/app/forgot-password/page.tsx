@@ -7,7 +7,7 @@ import type { Metadata } from 'next';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   const t = await getTranslations('auth.meta');
-  return { title: t('forgotTitle') };
+  return { title: t('forgotTitle'), robots: { index: false, follow: false } };
 };
 
 const ForgotPasswordPage = async () => {
