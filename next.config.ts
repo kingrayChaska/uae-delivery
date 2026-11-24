@@ -55,6 +55,13 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
   },
+  redirects: async () => [
+    {
+      source: "/customer-login",
+      destination: "/login",
+      permanent: true,
+    },
+  ],
   headers: async () => [
     { source: "/:path*", headers: securityHeaders },
     {
