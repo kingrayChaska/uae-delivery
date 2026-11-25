@@ -3,9 +3,9 @@ import { DEFAULT_LOCALE, LOCALES, localizedPath } from '@/i18n/config';
 import type { Locale } from '@/i18n/config';
 
 // Single source for the site's search/social metadata.
-export const SITE_NAME = 'ParcelLink';
+export const SITE_NAME = 'ParcelLink UAE';
 
-export const SITE_TITLE = 'ParcelLink — Parcel Delivery & Courier Service in the UAE';
+export const SITE_TITLE = 'ParcelLink UAE — Parcel Delivery & Courier Service in the UAE';
 
 export const SITE_DESCRIPTION =
   'Book same-day and next-day parcel delivery across the UAE with upfront pricing, live shipment tracking, proof of delivery, cash on delivery and merchant logistics for businesses.';
@@ -25,6 +25,33 @@ export const SITE_KEYWORDS = [
 export const SITE_URL = 'https://www.parcellinkuae.com';
 
 export const siteUrl = () => SITE_URL;
+
+const CANONICAL_HOST = new URL(SITE_URL).hostname;
+const REDIRECT_HOSTS = new Set([
+  CANONICAL_HOST.replace(/^www\./, ''),
+  'parcellink-delivery.vercel.app',
+]);
+
+export const getCanonicalRedirectUrl = (
+  url: URL,
+  method: string,
+  requestHost = url.host,
+): URL | null => {
+  const hostname = requestHost.toLowerCase().replace(/:\d+$/, '');
+  if (
+    !['GET', 'HEAD'].includes(method) ||
+    !REDIRECT_HOSTS.has(hostname) ||
+    /^\/(?:api|auth)(?:\/|$)/.test(url.pathname)
+  ) {
+    return null;
+  }
+
+  const redirectUrl = new URL(url);
+  redirectUrl.protocol = 'https:';
+  redirectUrl.hostname = CANONICAL_HOST;
+  redirectUrl.port = '';
+  return redirectUrl;
+};
 
 // Canonical + hreflang for a public page: English at the existing URL,
 // Arabic under /ar. Each language version is canonical for itself, so the

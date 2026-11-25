@@ -8,7 +8,7 @@ import type { Metadata } from 'next';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   const [t, locale] = await Promise.all([getTranslations('legal.privacy'), getRequestLocale()]);
-  return { title: `${t('title')} — ParcelLink`, alternates: localizedAlternates('/privacy', locale) };
+  return { title: `${t('title')} — ParcelLink UAE`, alternates: localizedAlternates('/privacy', locale) };
 };
 
 // Placeholder — real privacy policy copy is a legal/business decision, not

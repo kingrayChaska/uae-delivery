@@ -133,7 +133,7 @@ const HomePage = async () => {
         "@type": "WebSite",
         "@id": `${url}/#website`,
         name: SITE_NAME,
-        alternateName: ["ParcelLink UAE", "parcellinkuae.com"],
+        alternateName: ["ParcelLink", "parcellinkuae.com"],
         url: `${url}/`,
         inLanguage: ["en", "ar"],
         publisher: { "@id": `${url}/#organization` },

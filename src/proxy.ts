@@ -4,6 +4,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 import { buildCsp, generateNonce, isLoopbackHost } from "@/lib/security/csp";
 import { decideLocale } from "@/i18n/resolve";
 import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE, LOCALE_HEADER } from "@/i18n/config";
+import { getCanonicalRedirectUrl } from "@/lib/seo";
 
 import type { Locale } from "@/i18n/config";
 
@@ -14,6 +15,19 @@ const enableHttpsRedirect =
   isProduction && process.env.ENABLE_HTTPS_REDIRECT === "true";
 
 export const proxy = async (request: NextRequest) => {
+  const requestHost =
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host") ??
+    request.nextUrl.host;
+  const canonicalRedirect = getCanonicalRedirectUrl(
+    request.nextUrl,
+    request.method,
+    requestHost,
+  );
+  if (canonicalRedirect) {
+    return NextResponse.redirect(canonicalRedirect, 308);
+  }
+
   // Force HTTPS. Managed hosts (Vercel etc.) already redirect at the edge;
   // this covers self-hosting behind a TLS-terminating proxy. HSTS (set in
   // next.config.ts) then keeps browsers on HTTPS for future visits.

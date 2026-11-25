@@ -8,7 +8,7 @@ import type { Metadata } from 'next';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   const [t, locale] = await Promise.all([getTranslations('legal.terms'), getRequestLocale()]);
-  return { title: `${t('title')} — ParcelLink`, alternates: localizedAlternates('/terms', locale) };
+  return { title: `${t('title')} — ParcelLink UAE`, alternates: localizedAlternates('/terms', locale) };
 };
 
 // Placeholder — real terms of service copy is a legal/business decision,

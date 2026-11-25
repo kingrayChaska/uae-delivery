@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 // The preview card shown when the site is shared (Open Graph / Twitter).
-export const alt = 'ParcelLink — same-day and next-day parcel delivery across the UAE';
+export const alt = 'ParcelLink UAE — same-day and next-day parcel delivery across the UAE';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -36,7 +36,7 @@ const OpengraphImage = () =>
           >
             P
           </div>
-          ParcelLink
+          ParcelLink UAE
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ fontSize: 68, fontWeight: 700, lineHeight: 1.08, maxWidth: 980 }}>
